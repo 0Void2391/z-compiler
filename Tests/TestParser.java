@@ -426,4 +426,35 @@ public class TestParser {
         final DeclaratorExprAST v = parser.ParseVariable();
         assertInstanceOf(DeclaratorExprAST.class, v);
     }
+
+    @Test
+    void testIfParsed() throws IOException {
+        final Parser parser = createParser("if (1 < 2) { ret 1 }");
+        final IfAST ifAst = assertInstanceOf(IfAST.class, parser.ParseStatement());
+
+        assertEquals(1, ifAst.branches().size());
+        assertNull(ifAst.elseBody());
+    }
+
+    @Test
+    void testIfEifElseParsed() throws IOException {
+        final Parser parser = createParser(
+                "if (1 > 2) { ret 1 } eif (2 > 3) { ret 2 } else { ret 3 }");
+        final IfAST ifAst = assertInstanceOf(IfAST.class, parser.ParseStatement());
+
+        assertEquals(2, ifAst.branches().size());
+        assertNotNull(ifAst.elseBody());
+    }
+
+    @Test
+    void testIfMissingConditionFails() throws IOException {
+        final Parser parser = createParser("if { ret 1 }");
+        assertNull(parser.ParseStatement());
+    }
+
+    @Test
+    void testIfMissingBodyFails() throws IOException {
+        final Parser parser = createParser("if (1 < 2) ret 1");
+        assertNull(parser.ParseStatement());
+    }
 }

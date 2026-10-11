@@ -91,7 +91,7 @@ public final class ForAST extends ExprAST {
         builder.emitLabel(condLabel);
 
 
-        final String condReg = emitConditionI1(builder, cond);
+        final String condReg = Conditions.emitI1(builder, cond);
         if (condReg == null) {
             builder.markFailed();
             return null;
@@ -124,44 +124,5 @@ public final class ForAST extends ExprAST {
 
         builder.emitLabel(endLabel);
         return null;
-    }
-
-
-    private String emitConditionI1(final IRBuilder builder, final ExprAST condition) {
-        if (condition instanceof BinaryExprAST bin) { // strange shit
-            final char op = bin.operator();
-            if (op == '<' || op == '>') {
-                final Value a = bin.left().Codegen(builder);
-                if (a == null) return null;
-                final Value b = bin.right().Codegen(builder);
-                if (b == null) return null;
-
-                final ZType common;
-                try {
-                    common = ZType.unify(a.type(), b.type());
-                } catch (final IllegalArgumentException e) {
-                    System.err.println("Error: " + e.getMessage());
-                    return null;
-                }
-                final Value left = bin.left().coerce(builder, a, common);
-                final Value right = bin.right().coerce(builder, b, common);
-                if (left == null || right == null) return null;
-                final boolean ordered = common.isFloat();
-                final String pred = ordered ? (op == '<' ? "olt" : "ogt") : (op == '<' ? "slt" : "sgt");
-                final String cmp = builder.nextRegister();
-                builder.appendLine(cmp + " = " + (ordered ? "fcmp " : "icmp ") + pred + " " + common.llvm() + " " + left.text() + ", " + right.text());
-                return cmp;
-            }
-        }
-
-        final Value v = condition.Codegen(builder);
-        if (v == null) return null;
-        final String cmp = builder.nextRegister();
-        if (v.type().isFloat()) {
-            builder.appendLine(cmp + " = fcmp one " + v.type().llvm() + " " + v.text() + ", 0.0");
-        } else {
-            builder.appendLine(cmp + " = icmp ne " + v.type().llvm() + " " + v.text() + ", 0");
-        }
-        return cmp;
     }
 }

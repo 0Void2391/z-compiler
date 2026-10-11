@@ -26,6 +26,7 @@ public class Parser {
         BinOpPrecedence.put(Lexer.Tokens.LESS.value, 10);
         BinOpPrecedence.put(Lexer.Tokens.MORE.value, 10);
         BinOpPrecedence.put(Lexer.Tokens.SAME.value, 10);
+        BinOpPrecedence.put(Lexer.Tokens.ASSIGN.value, 5);
         BinOpPrecedence.put(Lexer.Tokens.ADD.value, 20);
         BinOpPrecedence.put(Lexer.Tokens.SUB.value, 20);
         BinOpPrecedence.put(Lexer.Tokens.MUL.value, 40);
@@ -255,6 +256,13 @@ public class Parser {
     public final ExprAST ParseIdentifierExpr() throws IOException {
         final String idName = lex.IdentifierStr;
         Next();
+
+        if (curTok == Lexer.Tokens.ASSIGN.value || curTok == Lexer.Tokens.SAME.value) {
+            Next();
+            final ExprAST expr = ParseExpression();
+            if (expr == null) return null;
+            return new AssignExprAST(idName, expr);
+        }
 
         if (curTok != Lexer.Tokens.OPEN_PAR.value) {
             return new VarRefExprAST(idName);

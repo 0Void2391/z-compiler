@@ -606,4 +606,86 @@ public class TestCodeGen {
         }
         return count;
     }
+
+    @Test
+    public void testSimpleIf() throws IOException {
+        final String llvmIR = codeGen("proc main() { if (1 < 2) { ret 1 } ret 0 }");
+
+        assertNotNull(llvmIR);
+        assertTrue(llvmIR.contains("if.cond."), llvmIR);
+        assertTrue(llvmIR.contains("if.then."), llvmIR);
+        assertTrue(llvmIR.contains("if.end."), llvmIR);
+        assertTrue(llvmIR.contains("icmp slt i32 1, 2"), llvmIR);
+    }
+
+    @Test
+    public void testIfElse() throws IOException {
+        final String llvmIR = codeGen(
+                "proc main() { if (1 > 2) { ret 1 } else { ret 0 } }");
+
+        assertNotNull(llvmIR);
+        assertTrue(llvmIR.contains("if.else."), llvmIR);
+    }
+
+    @Test
+    public void testIfEifElse() throws IOException {
+        final String llvmIR = codeGen(
+                "proc main() { if (1 > 2) { ret 1 } eif (2 > 3) { ret 2 } else { ret 3 } }");
+
+        assertNotNull(llvmIR);
+        // " if.cond." (leading space) matches only the label definition lines,
+        // not the "br label %if.cond.N" lines.
+        assertEquals(2, countOccurrences(llvmIR, " if.cond."));
+        assertTrue(llvmIR.contains("if.else."), llvmIR);
+    }
+
+    @Test
+    public void testIfWithFloatCondition() throws IOException {
+        final String llvmIR = codeGen(
+                "proc main() { if (1.0 < 2.0) { ret 1 } ret 0 }");
+
+        assertNotNull(llvmIR);
+        assertTrue(llvmIR.contains("fcmp olt double 1.0, 2.0"), llvmIR);
+    }
+
+    @Test
+    public void testIfBranchWithoutReturnFallsThrough() throws IOException {
+        // The outer then-branch does not return, so it must fall through
+        // to the outer if.end.
+        final String llvmIR = codeGen(
+                "proc main() { if (1 < 2) { if (2 < 3) { ret 1 } }\n ret 0 }");
+
+        assertNotNull(llvmIR);
+        assertTrue(llvmIR.contains("br label %if.end."), llvmIR);
+    }
+
+    @Test
+    public void testNestedIf() throws IOException {
+        final String llvmIR = codeGen(
+                "proc main() { if (1 < 2) { if (2 < 3) { ret 1 } } ret 0 }");
+
+        assertNotNull(llvmIR);
+        assertEquals(2, countOccurrences(llvmIR, " if.cond."));
+    }
+
+    @Test
+    public void testIfWithReturnOnlySkipsEndBranch() throws IOException {
+        final String llvmIR = codeGen(
+                "proc main() { if (1 < 2) { ret 1 } ret 0 }");
+
+        // The then-branch ends in `ret`, so no fallthrough br is emitted there.
+        assertEquals("""
+                define dso_local i32 @main() {
+                entry:
+                 br label %if.cond.0
+                 if.cond.0:
+                 %1 = icmp slt i32 1, 2
+                 br i1 %1, label %if.then.1, label %if.end.2
+                 if.then.1:
+                 ret i32 1
+                 if.end.2:
+                 ret i32 0
+                }
+                """, llvmIR);
+    }
 }

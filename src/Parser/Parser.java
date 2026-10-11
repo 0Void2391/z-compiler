@@ -431,6 +431,91 @@ public class Parser {
     }
 
     /**
+     * Parses a conditional: {@code if (cond) { } eif (cond) { } else { }}.
+     *
+     * @return an IfAST node or an error
+     * @throws IOException
+     */
+    public final IfAST ParseIf() throws IOException {
+        Next();  // skip 'if'
+
+        final List<IfAST.Branch> branches = new ArrayList<>();
+        ExprAST elseBody = null;
+
+        final IfAST.Branch first = parseIfBranch("if");
+        if (first == null) return null;
+        branches.add(first);
+
+        while (Lexer.Tokens.fromValues(curTok) == Lexer.Tokens.EIF) {
+            Next();  // skip 'eif'
+            final IfAST.Branch branch = parseIfBranch("eif");
+            if (branch == null) return null;
+            branches.add(branch);
+        }
+
+        if (Lexer.Tokens.fromValues(curTok) == Lexer.Tokens.ELSE) {
+            Next();  // skip 'else'
+            if (curTok != Lexer.Tokens.OPEN_FUNC.value) {
+                return error("Expected '{' after 'else'");
+            }
+            Next();
+            final List<ExprAST> stmts = parseBlockBody();
+            if (stmts == null) return null;
+            elseBody = stmts.size() == 1 ? stmts.get(0) : new BlockAST(stmts);
+        }
+
+        return new IfAST(branches, elseBody);
+    }
+
+    /**
+     * Parses one {@code (cond) { body }} pair, shared by {@code if} and {@code eif}.
+     */
+    private IfAST.Branch parseIfBranch(final String keyword) throws IOException {
+        if (curTok != Lexer.Tokens.OPEN_PAR.value) {
+            return error("Expected '(' after '" + keyword + "'");
+        }
+        Next();
+        final ExprAST cond = ParseExpression();
+        if (cond == null) return null;
+        if (curTok != Lexer.Tokens.CLOSE_PAR.value) {
+            return error("Expected ')' after condition in " + keyword);
+        }
+        Next();
+
+        if (curTok != Lexer.Tokens.OPEN_FUNC.value) {
+            return error("Expected '{' after condition in " + keyword);
+        }
+        Next();
+        final List<ExprAST> stmts = parseBlockBody();
+        if (stmts == null) return null;
+        final ExprAST body = stmts.size() == 1 ? stmts.get(0) : new BlockAST(stmts);
+        return new IfAST.Branch(cond, body);
+    }
+
+    /**
+     * Parses {@code stmt*} and consumes the closing {@code '}'}.
+     *
+     * @return the statements, or null on error
+     */
+    private List<ExprAST> parseBlockBody() throws IOException {
+        final List<ExprAST> stmts = new ArrayList<>();
+        while (curTok != Lexer.Tokens.CLOSE_FUNC.value && curTok != Lexer.Tokens.EOF.value) {
+            if (curTok == ';') {
+                Next();
+                continue;
+            }
+            final ExprAST s = ParseStatement();
+            if (s == null) return null;
+            stmts.add(s);
+        }
+        if (curTok != Lexer.Tokens.CLOSE_FUNC.value) {
+            return error("Expected '}' at the end of the block");
+        }
+        Next();
+        return stmts;
+    }
+
+    /**
      * Parses a statement
      * @return a node, in reality it just calls other functions
      * @throws IOException
@@ -439,6 +524,8 @@ public class Parser {
         final Lexer.Tokens token = Lexer.Tokens.fromValues(curTok);
         if (token == Lexer.Tokens.RET) {
             return ParseRet();
+        } else if (token == Lexer.Tokens.IF) {
+            return ParseIf();
         } else if (token == Lexer.Tokens.FOR) {
             return ParseFor();
         } else if (isTypeToken(token)) {

@@ -688,4 +688,82 @@ public class TestCodeGen {
                 }
                 """, llvmIR);
     }
+
+    @Test
+    public void testUnsignedDeclarations() throws IOException {
+        final String llvmIR = codeGen("proc main() { uint32 a -> 3\n uint64 b -> 4\n ret 0 }");
+
+        assertTrue(llvmIR.contains("%a = alloca i32"), llvmIR);
+        assertTrue(llvmIR.contains("store i32 3, ptr %a"), llvmIR);
+        assertTrue(llvmIR.contains("%b = alloca i64"), llvmIR);
+        assertTrue(llvmIR.contains("store i64 4, ptr %b"), llvmIR);
+    }
+
+    @Test
+    public void testUnsignedDivisionUsesUdiv() throws IOException {
+        final String llvmIR = codeGen("proc main() { uint32 a -> 10\n uint32 b -> 3\n ret a / b }");
+        assertTrue(llvmIR.contains("udiv i32"), llvmIR);
+    }
+
+    @Test
+    public void testSignedDivisionStillUsesSdiv() throws IOException {
+        final String llvmIR = codeGen("proc main() { int32 a -> 10\n int32 b -> 3\n ret a / b }");
+        assertTrue(llvmIR.contains("sdiv i32"), llvmIR);
+    }
+
+    @Test
+    public void testUnsignedComparisonUsesUlt() throws IOException {
+        final String llvmIR = codeGen("proc main() { uint32 a -> 10\n ret a < 5 }");
+        assertTrue(llvmIR.contains("icmp ult i32"), llvmIR);
+    }
+
+    @Test
+    public void testSignedComparisonStillUsesSlt() throws IOException {
+        final String llvmIR = codeGen("proc main() { int32 a -> 10\n ret a < 5 }");
+        assertTrue(llvmIR.contains("icmp slt i32"), llvmIR);
+    }
+
+    @Test
+    public void testUnsignedWidensWithZext() throws IOException {
+        final String llvmIR = codeGen("proc main() { uint32 a -> 1\n uint64 b -> a\n ret 0 }");
+        assertTrue(llvmIR.contains("zext i32"), llvmIR);
+    }
+
+    @Test
+    public void testSignedWidensWithSext() throws IOException {
+        final String llvmIR = codeGen("proc main() { int32 a -> 1\n int64 b -> a\n ret 0 }");
+        assertTrue(llvmIR.contains("sext i32"), llvmIR);
+    }
+
+    @Test
+    public void testUnsignedToFloatUsesUitofp() throws IOException {
+        final String llvmIR = codeGen("proc main() { uint32 a -> 1\n flt64 b -> a\n ret 0 }");
+        assertTrue(llvmIR.contains("uitofp i32"), llvmIR);
+    }
+
+    @Test
+    public void testSignedToFloatUsesSitofp() throws IOException {
+        final String llvmIR = codeGen("proc main() { int32 a -> 1\n flt64 b -> a\n ret 0 }");
+        assertTrue(llvmIR.contains("sitofp i32"), llvmIR);
+    }
+
+    @Test
+    public void testStringDeclarationStartsWithNull() throws IOException {
+        final String llvmIR = codeGen("proc main() { str s\n ret 0 }");
+
+        assertTrue(llvmIR.contains("%s = alloca i8*"), llvmIR);
+        assertTrue(llvmIR.contains("store i8* null, ptr %s"), llvmIR);
+    }
+
+    @Test
+    public void testStringParameter() throws IOException {
+        final String llvmIR = codeGen("proc take(str s) { ret 0 }");
+        assertTrue(llvmIR.contains("@take(i8* %s)"), llvmIR);
+    }
+
+    @Test
+    public void testUint32Parameter() throws IOException {
+        final String llvmIR = codeGen("proc take(uint32 n) { ret 0 }");
+        assertTrue(llvmIR.contains("@take(i32 %n)"), llvmIR);
+    }
 }

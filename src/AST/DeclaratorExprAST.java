@@ -64,7 +64,7 @@ public final class DeclaratorExprAST extends ExprAST {
         final String slot = builder.emitAlloca(name, type.llvm());
         builder.emitStore(text, type.llvm(), slot);
         builder.symbols().define(name, new SymbolTable.SymbolInfo(
-                name, type.llvm(), slot, constant));
+                name, type, slot, constant));
         return null;
     }
 }

@@ -20,7 +20,7 @@ public final class VarRefExprAST extends ExprAST {
     @Override
     public ZType type(final IRBuilder builder) {
         final SymbolTable.SymbolInfo info = builder.symbols().lookup(name);
-        return info == null ? ZType.INT32 : ZType.fromZName(zNameOf(info));
+        return info == null ? ZType.INT32 : info.getZType();
     }
 
     @Override
@@ -31,14 +31,7 @@ public final class VarRefExprAST extends ExprAST {
             builder.markFailed();
             return null;
         }
-        final ZType type = ZType.fromZName(zNameOf(info));
+        final ZType type = info.getZType();
         return new Value(builder.emitLoad(type.llvm(), info.getPointerReg()), type);
-    }
-
-    private static String zNameOf(final SymbolTable.SymbolInfo info) {
-        for (final ZType candidate : ZType.values()) {
-            if (candidate.llvm().equals(info.getLlvmType())) return candidate.zName();
-        }
-        return "int32";
     }
 }

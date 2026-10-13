@@ -72,7 +72,9 @@ public final class BinaryExprAST extends ExprAST {
         if (isComparison()) {
             final boolean ordered = a.type().isFloat();
             final String compared = builder.nextRegister();
-            builder.appendLine(compared + " = " + (ordered ? "fcmp " : "icmp ") + predicate(ordered) + " " + a.type().llvm() + " " + a.text() + ", " + b.text());
+            builder.appendLine(compared + " = " + (ordered ? "fcmp " : "icmp ")
+                    + predicate(ordered, a.type()) + " "
+                    + a.type().llvm() + " " + a.text() + ", " + b.text());
             final String result = builder.nextRegister();
             builder.appendLine(result + " = zext i1 " + compared + " to i32");
             builder.setRegisterType(result, ZType.INT32.llvm());
@@ -91,21 +93,38 @@ public final class BinaryExprAST extends ExprAST {
         return new Value(result, a.type());
     }
 
-    private String predicate(final boolean ordered) {
+    private String predicate(final boolean ordered, final ZType type) {
+        if (ordered) {
+            return switch (op) {
+                case '<' -> "olt";
+                case '>' -> "ogt";
+                default -> throw new IllegalStateException("not a comparison: " + op);
+            };
+        }
+        final boolean unsigned = type.isUnsigned();
         return switch (op) {
-            case '<' -> ordered ? "olt" : "slt";
-            case '>' -> ordered ? "ogt" : "sgt";
+            case '<' -> unsigned ? "ult" : "slt";
+            case '>' -> unsigned ? "ugt" : "sgt";
             default -> throw new IllegalStateException("not a comparison: " + op);
         };
     }
 
     private String arithmeticOpcode(final ZType type) {
-        final String prefix = type.isFloat() ? "f" : "";
+        if (type.isFloat()) {
+            return switch (op) {
+                case '+' -> "fadd";
+                case '-' -> "fsub";
+                case '*' -> "fmul";
+                case '/' -> "fdiv";
+                default -> null;
+            };
+        }
+        final boolean unsigned = type.isUnsigned();
         return switch (op) {
-            case '+' -> prefix + "add";
-            case '-' -> prefix + "sub";
-            case '*' -> prefix + "mul";
-            case '/' -> prefix + "div";
+            case '+' -> "add";
+            case '-' -> "sub";
+            case '*' -> "mul";
+            case '/' -> unsigned ? "udiv" : "sdiv";
             default -> null;
         };
     }

@@ -44,7 +44,7 @@ public final class CallExprAST extends ExprAST {
             return null;
         }
 
-        final List<PrototypeAST.Param> params = signature.getParams();
+        final List<PrototypeAST.Param> params = signature.params();
         if (params.size() != arguments.size()) {
             System.err.println("Error: '" + callee + "' takes " + params.size() + " argument(s) but " + arguments.size() + " were given");
             builder.markFailed();
@@ -58,7 +58,7 @@ public final class CallExprAST extends ExprAST {
                 builder.markFailed();
                 return null;
             }
-            final ZType expected = ZType.fromZName(params.get(i).type);
+            final ZType expected = ZType.fromZName(params.get(i).type());
             final Value fitted = coerce(builder, argument, expected);
             if (fitted == null) return null;
             printed.add(expected.llvm() + " " + fitted.text());

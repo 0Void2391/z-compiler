@@ -21,7 +21,7 @@ public class Parser {
     /**
      * BinOpPrecedence stores the precedence of binary operators
      */
-    public static final HashMap<Integer, Integer> BinOpPrecedence = new HashMap<>();
+    protected static final HashMap<Integer, Integer> BinOpPrecedence = new HashMap<>();
     static {
         BinOpPrecedence.put(Lexer.Tokens.LESS.value, 10);
         BinOpPrecedence.put(Lexer.Tokens.MORE.value, 10);
@@ -101,13 +101,15 @@ public class Parser {
                 continue;
             }
 
-            final ExprAST parsed;
+            ExprAST parsed = null;
             if (token == Lexer.Tokens.FUNC) {
                 parsed = ParseDefinition();
             } else if (token == Lexer.Tokens.CN) {
                 parsed = ParseConstant();
             } else if (isTypeToken(token)) {
                 parsed = ParseVariable();
+            } else if (token == Lexer.Tokens.EXTERN){
+                ParseExtern();
             } else {
                 error("Unknown token in main loop: " + curTok);
                 Next();
@@ -206,6 +208,26 @@ public class Parser {
         final ExprAST result = literal(numVal, lex.NumberText, lex.NumIsFloat);
         Next();
         return result;
+    }
+
+    public final ExternExprAST ParseExtern() throws IOException {
+        Next();
+
+        PrototypeAST proto = ParsePrototype(true);
+        if (proto == null) return null;
+
+        Next();
+        if (curTok != Lexer.Tokens.ASSIGN.value) {
+            return error("Missing return value for extern function: " + proto.name());
+        }
+
+        Next();
+        final Lexer.Tokens token = Lexer.Tokens.fromValues(curTok);
+        if (!isTypeToken(token)) {
+            return error("Invalid return type for extern function: " + proto.name());
+        }
+
+        return new ExternExprAST(proto, token.description);
     }
 
     /**
@@ -585,7 +607,7 @@ public class Parser {
      * @return an error or a PrototypeAST node
      * @throws IOException
      */
-    public final PrototypeAST ParsePrototype() throws IOException {
+    public final PrototypeAST ParsePrototype(final boolean extern) throws IOException {
         if (curTok != Lexer.Tokens.IDENTIFIER.value) {
             return error("Expected function name in prototype");
         }
@@ -609,13 +631,15 @@ public class Parser {
                 if (paramType == null) return null;
                 Next();
 
-                if (curTok != Lexer.Tokens.IDENTIFIER.value) {
-                    return error("Expected parameter name");
-                }
-                final String paramName = lex.IdentifierStr;
-                Next();
+                if (!extern) {
+                    if (curTok != Lexer.Tokens.IDENTIFIER.value) {
+                        return error("Expected parameter name");
+                    }
+                    final String paramName = lex.IdentifierStr;
+                    Next();
 
-                params.add(new PrototypeAST.Param(paramType.zName(), paramName));
+                    params.add(new PrototypeAST.Param(paramType.zName(), paramName));
+                }
 
                 if (curTok == Lexer.Tokens.PARAMS.value) {
                     Next();
@@ -648,7 +672,7 @@ public class Parser {
         }
 
         Next();
-        final PrototypeAST proto = ParsePrototype();
+        final PrototypeAST proto = ParsePrototype(false);
         if (proto == null) return null;
 
         if (curTok == Lexer.Tokens.OPEN_FUNC.value) {

@@ -32,6 +32,13 @@ class CompilerCmd implements Callable<Integer> {
     @CommandLine.Option(names = {"-o", "--out"}, description = "Output path")
     private String outPath;
 
+    @CommandLine.Option(names = {"-l", "--link"}, description = "Libraries to link against (e.g., -lcurl, -lm)")
+    private final List<String> linkLibraries = new ArrayList<>();
+
+    @CommandLine.Option(names = {"-L", "--library-path"}, description = "Directories to search for libraries")
+    private final List<String> libraryPaths = new ArrayList<>();
+
+
     @Override
     /**
      * Main method for the compiler
@@ -84,7 +91,7 @@ class CompilerCmd implements Callable<Integer> {
             }
 
             // compilation
-            return compileToBinary(new File(optFilePath).getAbsolutePath(), binaryName);
+            return compileToBinary(new File(optFilePath).getAbsolutePath(), binaryName, libraryPaths, linkLibraries);
 
         } catch (IOException e) {
             e.printStackTrace();
@@ -113,7 +120,7 @@ class CompilerCmd implements Callable<Integer> {
 
         for (final FunctionAST definition : definitions) {
             if (!builder.declare(definition.prototype())) {
-                System.err.println("Error: '" + definition.prototype().getName() + "' is defined more than once");
+                System.err.println("Error: '" + definition.prototype().name() + "' is defined more than once");
                 return null;
             }
         }
@@ -202,10 +209,6 @@ class CompilerCmd implements Callable<Integer> {
                 System.out.println("Optimized IR saved to: " + outputLl);
                 return true;
             } else {
-                // The raw IR was not a module, so there is nothing to optimise and
-                // nothing to hand to the linker either. Carrying on from here built a
-                // binary from IR that had already been rejected — or none at all —
-                // and reported success.
                 System.err.println("Opt tool failed with exit code " + exitCode + ".");
                 return false;
             }
@@ -221,10 +224,10 @@ class CompilerCmd implements Callable<Integer> {
      * @param outputBinaryName name for the final binary file
      * @return 0 if the executable was produced, 1 otherwise
      */
-    private static int compileToBinary(String llFilePath, String outputBinaryName) {
+    private static int compileToBinary(String llFilePath, String outputBinaryName, List<String> libPaths, List<String> libFlags) {
         System.out.println("Launching Clang...");
 
-        final ProcessBuilder processBuilder = createProcessBuilder(llFilePath, outputBinaryName);
+        final ProcessBuilder processBuilder = createProcessBuilder(llFilePath, outputBinaryName, libPaths, libFlags);
 
         try {
             final Process process = processBuilder.start();
@@ -250,20 +253,32 @@ class CompilerCmd implements Callable<Integer> {
      * @param outputBinaryName name for the final binary file
      * @return a ProcesssBuilder object
      */
-    private static ProcessBuilder createProcessBuilder(String llFilePath, String outputBinaryName) {
-        final ProcessBuilder processBuilder = new ProcessBuilder(
-                "clang",
-                "-O3",
-                "-flto",
-                "-march=native",
-                "-funroll-loops",
-                "-fno-rtti",
-                "-fno-exceptions",
-                "-mtune=native",
-                llFilePath,
-                "-o",
-                outputBinaryName
-        );
+    private static ProcessBuilder createProcessBuilder(String llFilePath, String outputBinaryName, List<String> libPaths, List<String> libFlags) {
+        StringBuilder command = new StringBuilder("clang" +
+                "-O3" +
+                "-flto" +
+                "-march=native" +
+                "-funroll-loops" +
+                "-fno-rtti" +
+                "-fno-exceptions" +
+                "-mtune=native" +
+                llFilePath +
+                "-o" +
+                outputBinaryName);
+
+        for (String path : libPaths) {
+            command.append("-L").append(path);
+        }
+
+        for (String lib : libFlags) {
+            if (lib.startsWith("-l")) {
+                command.append(lib);
+            } else {
+                command.append("-l").append(lib);
+            }
+        }
+
+        final ProcessBuilder processBuilder = new ProcessBuilder(command.toString());
 
         processBuilder.inheritIO();
         return processBuilder;

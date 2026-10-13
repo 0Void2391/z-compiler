@@ -1,11 +1,7 @@
-proc add(int32 a | int32 b) {
-    if (a > b) {
-        ret 0
-    }
-    ret a + b
-}
+extern isalpha(int32)
+                
 proc main() {
-    int32 test -> 0
-    int32 test2 -> add(1 | 2)
-    ret test2 + 2
+    int32 test -> 60
+    01 result -> isalpha(60)
+    return result
 }

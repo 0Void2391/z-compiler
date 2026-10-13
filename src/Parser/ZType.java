@@ -4,7 +4,7 @@ package src.Parser;
  * The types Z can name, and what each one is in LLVM.
  */
 public enum ZType {
-
+    PTR("ptr", "ptr", "0", 64, false),
     INT32("int32", "i32", "0", 32, true),
     INT64("int64", "i64", "0", 64, true),
     FLT32("flt32", "float", "0.0", 32, false),
@@ -18,8 +18,7 @@ public enum ZType {
     private final int bits;
     private final boolean integral;
 
-    ZType(final String zName, final String llvm, final String initial,
-          final int bits, final boolean integral) {
+    ZType(final String zName, final String llvm, final String initial, final int bits, final boolean integral) {
         this.zName = zName;
         this.llvm = llvm;
         this.initial = initial;

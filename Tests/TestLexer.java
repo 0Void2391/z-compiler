@@ -101,6 +101,17 @@ public class TestLexer {
     }
 
     @Test
+    void testExtern() throws IOException {
+        final Lexer lex = new Lexer(new ByteArrayInputStream("extern test(int32)".getBytes(StandardCharsets.UTF_8)));
+
+        assertEquals(Lexer.Tokens.EXTERN.value, lex.GetTok());
+        assertEquals(Lexer.Tokens.IDENTIFIER.value, lex.GetTok());
+        assertEquals(Lexer.Tokens.OPEN_PAR.value, lex.GetTok());
+        assertEquals(Lexer.Tokens.INT32.value, lex.GetTok());
+        assertEquals(Lexer.Tokens.CLOSE_PAR.value, lex.GetTok());
+    }
+
+    @Test
     void testIntegerLiteralKeepsItsText() throws IOException {
         final Lexer lex = new Lexer(new ByteArrayInputStream(
                 "9007199254740993".getBytes(StandardCharsets.UTF_8)));

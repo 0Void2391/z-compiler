@@ -208,13 +208,13 @@ public class TestParser {
     @Test
     void testPrototypeIsParsed() throws IOException {
         final Parser parser = createParser("foo(int32 x | flt64 y)");
-        final PrototypeAST prototype = parser.ParsePrototype();
+        final PrototypeAST prototype = parser.ParsePrototype(false);
 
-        assertEquals("foo", prototype.getName());
-        assertEquals(2, prototype.getParams().size());
-        assertEquals("x", prototype.getParams().getFirst().name);
-        assertEquals("int32", prototype.getParams().getFirst().type);
-        assertEquals("flt64", prototype.getParams().get(1).type);
+        assertEquals("foo", prototype.name());
+        assertEquals(2, prototype.params().size());
+        assertEquals("x", prototype.params().getFirst().name());
+        assertEquals("int32", prototype.params().getFirst().type());
+        assertEquals("flt64", prototype.params().get(1).type());
     }
 
     @Test
@@ -223,8 +223,8 @@ public class TestParser {
         final FunctionAST function = parser.ParseDefinition();
 
         assertNotNull(function);
-        assertEquals("foo", function.prototype().getName());
-        assertEquals(1, function.prototype().getParams().size());
+        assertEquals("foo", function.prototype().name());
+        assertEquals(1, function.prototype().params().size());
         assertEquals(src.Parser.ZType.FLT64, function.returnType());
     }
 
@@ -243,8 +243,8 @@ public class TestParser {
 
         assertNotNull(definitions);
         assertEquals(2, definitions.size());
-        assertEquals("a", definitions.getFirst().prototype().getName());
-        assertEquals("b", definitions.get(1).prototype().getName());
+        assertEquals("a", definitions.getFirst().prototype().name());
+        assertEquals("b", definitions.get(1).prototype().name());
     }
 
     @Test
@@ -298,13 +298,13 @@ public class TestParser {
     @Test
     void testPrototypeWithMissingParameterNameFails() throws IOException {
         final Parser parser = createParser("foo(int32)");
-        assertNull(parser.ParsePrototype());
+        assertNull(parser.ParsePrototype(false));
     }
 
     @Test
     void testPrototypeWithUnknownTypeFails() throws IOException {
         final Parser parser = createParser("foo(int7 x)");
-        assertNull(parser.ParsePrototype());
+        assertNull(parser.ParsePrototype(false));
     }
 
     @Test

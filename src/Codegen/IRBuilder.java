@@ -55,8 +55,8 @@ public class IRBuilder {
      * @return false when the name is already taken, in which case nothing changes
      */
     public boolean declare(final PrototypeAST prototype) {
-        if (signatures.containsKey(prototype.getName())) return false;
-        signatures.put(prototype.getName(), prototype);
+        if (signatures.containsKey(prototype.name())) return false;
+        signatures.put(prototype.name(), prototype);
         return true;
     }
 

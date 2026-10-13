@@ -39,24 +39,24 @@ public final class FunctionAST extends ExprAST {
         builder.setReturnType(returnType().llvm());
 
         final boolean isMain = proto.isMain();
-        final List<PrototypeAST.Param> params = proto.getParams();
+        final List<PrototypeAST.Param> params = proto.params();
 
         final StringBuilder parameters = new StringBuilder();
         for (int i = 0; i < params.size(); i++) {
             if (i > 0) parameters.append(", ");
             final PrototypeAST.Param param = params.get(i);
-            parameters.append(ZType.fromZName(param.type).llvm()).append(" %").append(param.name);
+            parameters.append(ZType.fromZName(param.type()).llvm()).append(" %").append(param.name());
         }
 
         boolean parametersAreDistinct = true;
         for (final PrototypeAST.Param param : params) {
-            final ZType type = ZType.fromZName(param.type);
-            final String slot = builder.emitAlloca(param.name + ".addr", type.llvm());
-            builder.emitStore("%" + param.name, type.llvm(), slot);
-            parametersAreDistinct &= builder.symbols().define(param.name, new SymbolTable.SymbolInfo(param.name, type.llvm(), slot, false));
+            final ZType type = ZType.fromZName(param.type());
+            final String slot = builder.emitAlloca(param.name() + ".addr", type.llvm());
+            builder.emitStore("%" + param.name(), type.llvm(), slot);
+            parametersAreDistinct &= builder.symbols().define(param.name(), new SymbolTable.SymbolInfo(param.name(), type.llvm(), slot, false));
         }
         if (!parametersAreDistinct) {
-            System.err.println("Error: '" + proto.getName() + "' declares the same parameter twice");
+            System.err.println("Error: '" + proto.name() + "' declares the same parameter twice");
             builder.markFailed();
             builder.symbols().exitScope();
             return null;
@@ -71,7 +71,7 @@ public final class FunctionAST extends ExprAST {
 
         if (!builder.isTerminated()) {
             if (!isMain) {
-                System.err.println("Error: '" + proto.getName() + "' can reach the end without returning");
+                System.err.println("Error: '" + proto.name() + "' can reach the end without returning");
                 builder.markFailed();
                 builder.symbols().exitScope();
                 return null;
@@ -79,7 +79,7 @@ public final class FunctionAST extends ExprAST {
             builder.emitBareReturn("i32 0");
         }
 
-        final String text = "define " + (isMain ? "dso_local" : "private dso_local") + " " + returnType().llvm() + " @" + proto.getName() + "(" + parameters + ") {\nentry:\n" + builder.getIR() + "}\n";
+        final String text = "define " + (isMain ? "dso_local" : "private dso_local") + " " + returnType().llvm() + " @" + proto.name() + "(" + parameters + ") {\nentry:\n" + builder.getIR() + "}\n";
 
         builder.symbols().exitScope();
         return new Value(text, ZType.VOID);

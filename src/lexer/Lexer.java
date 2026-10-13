@@ -15,6 +15,7 @@ public class Lexer {
      * Enum of Tokens
      */
     public enum Tokens {
+        EXTERN("extern", -50),
         FUNC("proc", -1),
         INT64("int64", -2),
         NUMBER("unused", -3), // number returns
@@ -48,6 +49,7 @@ public class Lexer {
         IDENTIFIER("id", -34),
         EOF("eof", -31),
         SAME("=", -32),
+        PTR("ptr", -40),
         CN("cn", -35);
 
         /**

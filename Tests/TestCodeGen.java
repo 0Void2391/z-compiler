@@ -688,4 +688,24 @@ public class TestCodeGen {
                 }
                 """, llvmIR);
     }
+
+    @Test
+    public void testIfElseWithRet() throws IOException {
+        final String llvmIR = codeGen("proc main() { if (1 < 2) {\n} else {\n ret 0\n}ret 1\n}\n");
+
+        assertNotNull(llvmIR);
+        assertEquals("define dso_local i32 @main() {\n" +
+                "entry:\n" +
+                " br label %if.cond.0\n" +
+                " if.cond.0:\n" +
+                " %1 = icmp slt i32 1, 2\n" +
+                " br i1 %1, label %if.then.1, label %if.else.2\n" +
+                " if.then.1:\n" +
+                " br label %if.end.3\n" +
+                " if.else.2:\n" +
+                " ret i32 0\n" +
+                " if.end.3:\n" +
+                " ret i32 1\n}\n", llvmIR);
+    }
+
 }

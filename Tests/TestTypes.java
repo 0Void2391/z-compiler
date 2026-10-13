@@ -118,4 +118,71 @@ public class TestTypes {
         assertThrows(IllegalStateException.class, () -> ZType.VOID.literal(1L));
         assertThrows(IllegalStateException.class, () -> ZType.VOID.literal(1.0));
     }
+
+    @Test
+    public void testNewTypeNames() {
+        assertSame(ZType.UINT32, ZType.fromZName("uint32"));
+        assertSame(ZType.UINT64, ZType.fromZName("uint64"));
+        assertSame(ZType.STRING, ZType.fromZName("str"));
+    }
+
+    @Test
+    public void testSignedness() {
+        assertTrue(ZType.INT32.isSigned());
+        assertTrue(ZType.INT64.isSigned());
+        assertFalse(ZType.INT32.isUnsigned());
+        assertTrue(ZType.UINT32.isUnsigned());
+        assertTrue(ZType.UINT64.isUnsigned());
+        assertFalse(ZType.UINT32.isSigned());
+    }
+
+    @Test
+    public void testNewLlvmNames() {
+        assertEquals("i32", ZType.UINT32.llvm());
+        assertEquals("i64", ZType.UINT64.llvm());
+        assertEquals("i8*", ZType.STRING.llvm());
+    }
+
+    @Test
+    public void testStringIsNeitherIntegralNorFloat() {
+        assertFalse(ZType.STRING.isIntegral());
+        assertFalse(ZType.STRING.isFloat());
+        assertTrue(ZType.STRING.isString());
+    }
+
+    @Test
+    public void testUnifySameWidthPrefersUnsigned() {
+        assertSame(ZType.UINT32, ZType.unify(ZType.INT32, ZType.UINT32));
+        assertSame(ZType.UINT64, ZType.unify(ZType.INT64, ZType.UINT64));
+    }
+
+    @Test
+    public void testUnifyDifferentWidthsPicksTheWider() {
+        assertSame(ZType.INT64, ZType.unify(ZType.INT32, ZType.INT64));
+        assertSame(ZType.UINT64, ZType.unify(ZType.UINT32, ZType.UINT64));
+        assertSame(ZType.UINT64, ZType.unify(ZType.UINT32, ZType.INT64));
+    }
+
+    @Test
+    public void testStringCannotBeCombined() {
+        assertThrows(IllegalArgumentException.class, () -> ZType.unify(ZType.STRING, ZType.INT32));
+        assertThrows(IllegalArgumentException.class, () -> ZType.unify(ZType.FLT64, ZType.STRING));
+    }
+
+    @Test
+    public void testStringInitialIsNull() {
+        assertEquals("null", ZType.STRING.initial());
+    }
+
+    @Test
+    public void testUnsignedInitialIsZero() {
+        assertEquals("0", ZType.UINT32.initial());
+        assertEquals("0", ZType.UINT64.initial());
+    }
+
+    @Test
+    public void testStringHasNoLiteral() {
+        assertThrows(IllegalStateException.class, () -> ZType.STRING.literal(1L));
+        assertThrows(IllegalStateException.class, () -> ZType.STRING.literal(1.0));
+    }
 }

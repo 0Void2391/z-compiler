@@ -78,11 +78,7 @@ public class Parser {
      */
     private static boolean isTypeToken(final Lexer.Tokens token) {
         if (token == null) return false;
-        if (ZType.isType(token.description)) return true;
-        return switch (token) {
-            case STRING, UINT32, UINT64 -> true;
-            default -> false;
-        };
+        return ZType.isType(token.description);
     }
 
     /**

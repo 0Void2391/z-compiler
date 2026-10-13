@@ -53,7 +53,8 @@ public final class FunctionAST extends ExprAST {
             final ZType type = ZType.fromZName(param.type);
             final String slot = builder.emitAlloca(param.name + ".addr", type.llvm());
             builder.emitStore("%" + param.name, type.llvm(), slot);
-            parametersAreDistinct &= builder.symbols().define(param.name, new SymbolTable.SymbolInfo(param.name, type.llvm(), slot, false));
+            parametersAreDistinct &= builder.symbols().define(param.name,
+                    new SymbolTable.SymbolInfo(param.name, type, slot, false));
         }
         if (!parametersAreDistinct) {
             System.err.println("Error: '" + proto.getName() + "' declares the same parameter twice");

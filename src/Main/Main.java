@@ -132,7 +132,9 @@ class CompilerCmd implements Callable<Integer> {
             return null;
         }
 
-        return module.toString();
+        final String body = module.toString();
+        final String globals = builder.getGlobals();
+        return globals.isEmpty() ? body : globals + "\n" + body;
     }
 
     /**

@@ -299,6 +299,10 @@ public class Parser {
             return ParseIdentifierExpr();
         } else if (curTok == Lexer.Tokens.NUMBER.value) {
             return ParseNumberExpr(lex.NumVal);
+        } else if (curTok == Lexer.Tokens.STRING_LITERAL.value) {
+            final String value = lex.StringVal;
+            Next();
+            return new StringExprAST(value);
         } else if (curTok == Lexer.Tokens.OPEN_PAR.value) {
             return ParseParenExpr();
         } else if (curTok == Lexer.Tokens.SUB.value) {

@@ -31,6 +31,8 @@ public final class CallExprAST extends ExprAST {
 
     @Override
     public ZType type(final IRBuilder builder) {
+        final ZType externReturn = builder.externReturnType(callee);
+        if (externReturn != null) return externReturn;
         final PrototypeAST signature = builder.signatures().get(callee);
         return signature == null ? ZType.FLT64 : signature.isMain() ? ZType.INT32 : ZType.FLT64;
     }
@@ -44,7 +46,7 @@ public final class CallExprAST extends ExprAST {
             return null;
         }
 
-        final List<PrototypeAST.Param> params = signature.getParams();
+        final List<PrototypeAST.Param> params = signature.params();
         if (params.size() != arguments.size()) {
             System.err.println("Error: '" + callee + "' takes " + params.size() + " argument(s) but " + arguments.size() + " were given");
             builder.markFailed();
@@ -58,13 +60,20 @@ public final class CallExprAST extends ExprAST {
                 builder.markFailed();
                 return null;
             }
-            final ZType expected = ZType.fromZName(params.get(i).type);
+            final ZType expected = ZType.fromZName(params.get(i).type());
             final Value fitted = coerce(builder, argument, expected);
             if (fitted == null) return null;
             printed.add(expected.llvm() + " " + fitted.text());
         }
 
-        final ZType result = signature.isMain() ? ZType.INT32 : ZType.FLT64;
+        final ZType externReturn = builder.externReturnType(callee);
+        final ZType result;
+        if (externReturn != null) {
+            result = externReturn;
+        } else {
+            if (signature.isMain()) result = ZType.INT32;
+            else result = ZType.FLT64;
+        }
         final String call = "call " + result.llvm() + " @" + callee + "(" + String.join(", ", printed) + ")";
         if (result.isVoid()) {
             builder.appendLine(call);

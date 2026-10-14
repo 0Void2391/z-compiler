@@ -2,22 +2,17 @@ package src.Main;
 
 import picocli.CommandLine;
 import picocli.CommandLine.Command;
+import src.AST.ExternExprAST;
 import src.AST.FunctionAST;
 import src.AST.Value;
 import src.Codegen.IRBuilder;
 import src.Parser.Parser;
 import src.lexer.Lexer;
 
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.File;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.PrintStream;
+import java.io.*;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.Callable;
 
@@ -31,6 +26,13 @@ class CompilerCmd implements Callable<Integer> {
 
     @CommandLine.Option(names = {"-o", "--out"}, description = "Output path")
     private String outPath;
+
+    @CommandLine.Option(names = {"-l", "--link"}, description = "Libraries to link against (e.g., -lcurl, -lm)")
+    private final List<String> linkLibraries = new ArrayList<>();
+
+    @CommandLine.Option(names = {"-L", "--library-path"}, description = "Directories to search for libraries")
+    private final List<String> libraryPaths = new ArrayList<>();
+
 
     @Override
     /**
@@ -67,7 +69,7 @@ class CompilerCmd implements Callable<Integer> {
             final Lexer lexer = new Lexer(input);
             final Parser parser = new Parser(lexer);
 
-            final String llvmIR = generateModule(parser, lexer);
+            final String llvmIR = generateModule(parser);
 
             if (llvmIR == null) {
                 return 1;
@@ -84,7 +86,7 @@ class CompilerCmd implements Callable<Integer> {
             }
 
             // compilation
-            return compileToBinary(new File(optFilePath).getAbsolutePath(), binaryName);
+            return compileToBinary(new File(optFilePath).getAbsolutePath(), binaryName, libraryPaths, linkLibraries);
 
         } catch (IOException e) {
             e.printStackTrace();
@@ -93,18 +95,29 @@ class CompilerCmd implements Callable<Integer> {
     }
 
     /**
-     * Generates every function in the file, in the order they were written.
+     * Generates every extern declaration and function in the file, in the order
+     * they were written.
      *
-     * @param parser the parser, positioned on the next token
-     * @param lexer the lexer it reads from
+     * @param parser the parser, positioned on the first token of the file
      * @return the whole module, or null if anything in it failed
      * @throws IOException if the input cannot be read
      */
-    private static String generateModule(final Parser parser, final Lexer lexer) throws IOException {
+    private static String generateModule(final Parser parser) throws IOException {
         final IRBuilder builder = new IRBuilder();
         final StringBuilder module = new StringBuilder();
 
-        final List<FunctionAST> definitions = parseDefinitions(parser, lexer);
+        final List<ExternExprAST> externs = parseHeaders(parser);
+        if (externs == null) return null;
+        for (final ExternExprAST extern: externs) {
+            final Value externValue = extern.Codegen(builder);
+            if (externValue == null || builder.hasFailed()) {
+                System.err.println("Error building the IR of the externs");
+                return null;
+            }
+            module.append(externValue.text());
+        }
+
+        final List<FunctionAST> definitions = parseDefinitions(parser, !externs.isEmpty());
         if (definitions == null) return null;
         if (definitions.isEmpty()) {
             System.err.println("Syntax error");
@@ -113,7 +126,7 @@ class CompilerCmd implements Callable<Integer> {
 
         for (final FunctionAST definition : definitions) {
             if (!builder.declare(definition.prototype())) {
-                System.err.println("Error: '" + definition.prototype().getName() + "' is defined more than once");
+                System.err.println("Error: '" + definition.prototype().name() + "' is defined more than once");
                 return null;
             }
         }
@@ -138,14 +151,47 @@ class CompilerCmd implements Callable<Integer> {
     }
 
     /**
+     * Parses the extern (C) declarations at the head of the file.
+     * @return the externs in source order, or null if one of them is malformed
+     * @throws IOException if the input cannot be read
+     */
+    private static List<ExternExprAST> parseHeaders(final Parser parser) throws IOException {
+        final List<ExternExprAST> definitions = new ArrayList<>();
+
+        while (true) {
+            final PrintStream diagnostics = System.err;
+            final ByteArrayOutputStream reported = new ByteArrayOutputStream();
+
+            final ExternExprAST definition;
+            System.setErr(new PrintStream(reported, true, StandardCharsets.UTF_8));
+            try {
+                definition = parser.ParseExtern();
+            } finally {
+                System.setErr(diagnostics);
+            }
+
+            if (reported.size() > 0) {
+                diagnostics.print(reported.toString(StandardCharsets.UTF_8));
+            }
+
+            if (definition != null) {
+                definitions.add(definition);
+                continue;
+            }
+
+            return reported.size() > 0 ? null : definitions;
+        }
+    }
+
+
+    /**
      * Reads every definition in the file, reporting the first syntax error.
      *
-     * @param parser the parser, positioned on the next token
-     * @param lexer the lexer it reads from
+     * @param parser the parser, positioned on the first token after the externs
      * @return the definitions in source order, or null if one failed to parse
      * @throws IOException if the input cannot be read
      */
-    private static List<FunctionAST> parseDefinitions(final Parser parser, final Lexer lexer) throws IOException {
+    private static List<FunctionAST> parseDefinitions(final Parser parser, final boolean foundExtern) throws IOException {
         final List<FunctionAST> definitions = new ArrayList<>();
 
         while (true) {
@@ -156,8 +202,8 @@ class CompilerCmd implements Callable<Integer> {
             final boolean endOfInput;
             System.setErr(new PrintStream(reported, true, StandardCharsets.UTF_8));
             try {
-                definition = parser.ParseDefinition();
-                endOfInput = definition == null && lexer.GetTok() == Lexer.Tokens.EOF.value;
+                definition = parser.ParseDefinition(foundExtern);
+                endOfInput = definition == null && parser.atEOF();
             } finally {
                 System.setErr(diagnostics);
             }
@@ -170,7 +216,7 @@ class CompilerCmd implements Callable<Integer> {
 
             if (definition == null) {
                 System.err.println("Syntax error");
-                return Collections.emptyList();
+                return null;
             }
 
             definitions.add(definition);
@@ -204,10 +250,6 @@ class CompilerCmd implements Callable<Integer> {
                 System.out.println("Optimized IR saved to: " + outputLl);
                 return true;
             } else {
-                // The raw IR was not a module, so there is nothing to optimise and
-                // nothing to hand to the linker either. Carrying on from here built a
-                // binary from IR that had already been rejected — or none at all —
-                // and reported success.
                 System.err.println("Opt tool failed with exit code " + exitCode + ".");
                 return false;
             }
@@ -223,10 +265,10 @@ class CompilerCmd implements Callable<Integer> {
      * @param outputBinaryName name for the final binary file
      * @return 0 if the executable was produced, 1 otherwise
      */
-    private static int compileToBinary(String llFilePath, String outputBinaryName) {
+    private static int compileToBinary(String llFilePath, String outputBinaryName, List<String> libPaths, List<String> libFlags) {
         System.out.println("Launching Clang...");
 
-        final ProcessBuilder processBuilder = createProcessBuilder(llFilePath, outputBinaryName);
+        final ProcessBuilder processBuilder = createProcessBuilder(llFilePath, outputBinaryName, libPaths, libFlags);
 
         try {
             final Process process = processBuilder.start();
@@ -252,20 +294,32 @@ class CompilerCmd implements Callable<Integer> {
      * @param outputBinaryName name for the final binary file
      * @return a ProcesssBuilder object
      */
-    private static ProcessBuilder createProcessBuilder(String llFilePath, String outputBinaryName) {
-        final ProcessBuilder processBuilder = new ProcessBuilder(
-                "clang",
-                "-O3",
-                "-flto",
-                "-march=native",
-                "-funroll-loops",
-                "-fno-rtti",
-                "-fno-exceptions",
-                "-mtune=native",
-                llFilePath,
-                "-o",
-                outputBinaryName
-        );
+    private static ProcessBuilder createProcessBuilder(String llFilePath, String outputBinaryName, List<String> libPaths, List<String> libFlags) {
+        StringBuilder command = new StringBuilder("clang" +
+                "-O3" +
+                "-flto" +
+                "-march=native" +
+                "-funroll-loops" +
+                "-fno-rtti" +
+                "-fno-exceptions" +
+                "-mtune=native" +
+                llFilePath +
+                "-o" +
+                outputBinaryName);
+
+        for (String path : libPaths) {
+            command.append("-L").append(path);
+        }
+
+        for (String lib : libFlags) {
+            if (lib.startsWith("-l")) {
+                command.append(lib);
+            } else {
+                command.append("-l").append(lib);
+            }
+        }
+
+        final ProcessBuilder processBuilder = new ProcessBuilder(command.toString());
 
         processBuilder.inheritIO();
         return processBuilder;

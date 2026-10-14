@@ -12,10 +12,10 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class TestEndToEnd {
 
-    private static final String OPT = findTool("opt");
-    private static final String CLANG = findTool("clang");
+    public static final String OPT = findTool("opt");
+    public static final String CLANG = findTool("clang");
 
-    private static String findTool(final String name) {
+    public static String findTool(final String name) {
         final String path = System.getenv("PATH");
         if (path == null) return null;
         for (final String directory : path.split(":")) {
@@ -25,7 +25,7 @@ public class TestEndToEnd {
         return null;
     }
 
-    private Path compile(final String name, final String source) throws Exception {
+    public Path compile(final String name, final String source) throws Exception {
         final Path directory = Files.createTempDirectory("zendtoend");
         final Path sourceFile = directory.resolve(name + ".z");
         Files.writeString(sourceFile, source);
@@ -45,10 +45,8 @@ public class TestEndToEnd {
         return directory.resolve(name);
     }
 
-    private int run(final Path binary) throws Exception {
-        final Process process = new ProcessBuilder(binary.toString())
-                .redirectErrorStream(true)
-                .start();
+    public int run(final Path binary) throws Exception {
+        final Process process = new ProcessBuilder(binary.toString()).redirectErrorStream(true).start();
         final String output = new String(process.getInputStream().readAllBytes());
         return process.waitFor();
     }

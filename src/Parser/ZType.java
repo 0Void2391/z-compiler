@@ -16,14 +16,14 @@ package src.Parser;
  * passed around; it starts life as a null pointer.
  */
 public enum ZType {
-
+    PTR("ptr", "ptr", "0", 64, false),
     INT32 ("int32",  "i32",    "0",     32, Kind.SIGNED),
     INT64 ("int64",  "i64",    "0",     64, Kind.SIGNED),
     UINT32("uint32", "i32",    "0",     32, Kind.UNSIGNED),
     UINT64("uint64", "i64",    "0",     64, Kind.UNSIGNED),
     FLT32 ("flt32",  "float",  "0.0",   32, Kind.FLOAT),
     FLT64 ("flt64",  "double", "0.0",   64, Kind.FLOAT),
-    BOOL  ("01",     "i1",     "false",  1, Kind.BOOL),
+    BOOL  ("bool",     "i1",     "false",  1, Kind.BOOL),
     STRING("str",    "i8*",    "null",   0, Kind.STRING),
     VOID  ("void",   "void",   "",       0, Kind.VOID);
 
@@ -36,8 +36,7 @@ public enum ZType {
     private final int bits;
     private final Kind kind;
 
-    ZType(final String zName, final String llvm, final String initial,
-          final int bits, final Kind kind) {
+    ZType(final String zName, final String llvm, final String initial, final int bits, final Kind kind) {
         this.zName = zName;
         this.llvm = llvm;
         this.initial = initial;

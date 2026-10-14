@@ -29,8 +29,8 @@ public final class ExternExprAST extends ExprAST{
 
     @Override
     public Value Codegen(IRBuilder builder) {
-        builder.declare(proto);
         final ZType llvmType = ZType.fromZName(type);
+        builder.declareExtern(proto, llvmType);
         final List<PrototypeAST.Param> params = proto.params();
 
         final StringBuilder parameters = new StringBuilder();

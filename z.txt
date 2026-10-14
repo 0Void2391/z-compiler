@@ -23,7 +23,9 @@ types: {
  uint32
  uint64
 
- 01 'bool'
+ bool // rip
+
+ ret
 }
 
 

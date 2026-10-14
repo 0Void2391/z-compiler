@@ -220,7 +220,7 @@ public class TestParser {
     @Test
     void testFunctionDefinitionCarriesItsBody() throws IOException {
         final Parser parser = createParser("proc foo(int32 x) { ret x }");
-        final FunctionAST function = parser.ParseDefinition();
+        final FunctionAST function = parser.ParseDefinition(false);
 
         assertNotNull(function);
         assertEquals("foo", function.prototype().name());
@@ -231,7 +231,7 @@ public class TestParser {
     @Test
     void testMainIsTheOnlyFunctionReturningAnInteger() throws IOException {
         final Parser parser = createParser("proc main() { ret 1 }");
-        final FunctionAST function = parser.ParseDefinition();
+        final FunctionAST function = parser.ParseDefinition(false);
 
         assertEquals(src.Parser.ZType.INT32, function.returnType());
     }

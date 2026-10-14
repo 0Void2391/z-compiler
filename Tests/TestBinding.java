@@ -20,11 +20,11 @@ public class TestBinding {
         if (!verifyTools()) return;
 
         final Path binary = end.compile("test", """
-                extern isalpha(int32)
+                extern isalpha(int32) -> bool
                 
                 proc main() {
                     int32 test -> 60
-                    01 result -> isalpha(60)
+                    bool result -> isalpha(60)
                     return result
                 }
                 """);

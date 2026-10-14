@@ -2,6 +2,7 @@ package src.Codegen;
 
 import src.AST.PrototypeAST;
 import src.AST.Value;
+import src.Parser.ZType;
 
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -58,6 +59,32 @@ public class IRBuilder {
         if (signatures.containsKey(prototype.name())) return false;
         signatures.put(prototype.name(), prototype);
         return true;
+    }
+
+    /**
+     * The return types of the extern (C) functions declared so far.
+     */
+    private final Map<String, ZType> externReturnTypes = new HashMap<>();
+
+    /**
+     * Declares an extern function together with the type it returns.
+     *
+     * @param prototype the signature to declare
+     * @param returnType what the C function returns
+     * @return false when the name is already taken
+     */
+    public boolean declareExtern(final PrototypeAST prototype, final ZType returnType) {
+        final boolean fresh = declare(prototype);
+        externReturnTypes.put(prototype.name(), returnType);
+        return fresh;
+    }
+
+    /**
+     * @param name a function name
+     * @return the type the extern of that name returns, or null when it is not an extern
+     */
+    public ZType externReturnType(final String name) {
+        return externReturnTypes.get(name);
     }
 
     public void emitReturn(final Value value) {

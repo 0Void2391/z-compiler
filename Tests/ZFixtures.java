@@ -61,7 +61,7 @@ final class ZFixtures {
 
             System.setErr(new java.io.PrintStream(reported, true, StandardCharsets.UTF_8));
             try {
-                definition = parser.ParseDefinition();
+                definition = parser.ParseDefinition(false);
                 endOfInput = definition == null && lexer.GetTok() == Lexer.Tokens.EOF.value;
             } finally {
                 System.setErr(diagnostics);

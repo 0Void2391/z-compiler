@@ -80,9 +80,29 @@ public class Parser {
         if (token == null) return false;
         if (ZType.isType(token.description)) return true;
         return switch (token) {
-            case STRING, UINT32, UINT64 -> true;
+            case STRING, UINT32, UINT64, BOOL -> true;
             default -> false;
         };
+    }
+
+    /**
+     * Names a token for an error message.
+     *
+     * @param token the token value
+     * @return its description, its character for punctuation, or its raw value
+     */
+    private static String describeToken(final int token) {
+        final Lexer.Tokens known = Lexer.Tokens.fromValues(token);
+        if (known != null) return known.description;
+        if (token > 0 && token <= Character.MAX_VALUE) return "'" + (char) token + "'";
+        return String.valueOf(token);
+    }
+
+    /**
+     * @return whether the parser is positioned on the end of the input
+     */
+    public final boolean atEOF() {
+        return curTok == Lexer.Tokens.EOF.value;
     }
 
     /**
@@ -103,7 +123,7 @@ public class Parser {
 
             ExprAST parsed = null;
             if (token == Lexer.Tokens.FUNC) {
-                parsed = ParseDefinition();
+                parsed = ParseDefinition(false);
             } else if (token == Lexer.Tokens.CN) {
                 parsed = ParseConstant();
             } else if (isTypeToken(token)) {
@@ -211,12 +231,14 @@ public class Parser {
     }
 
     public final ExternExprAST ParseExtern() throws IOException {
-        Next();
+        if (curTok != Lexer.Tokens.EXTERN.value) {
+            return null;
+        }
+        Next();  // consume 'extern'
 
-        PrototypeAST proto = ParsePrototype(true);
+        final PrototypeAST proto = ParsePrototype(true);
         if (proto == null) return null;
 
-        Next();
         if (curTok != Lexer.Tokens.ASSIGN.value) {
             return error("Missing return value for extern function: " + proto.name());
         }
@@ -226,6 +248,9 @@ public class Parser {
         if (!isTypeToken(token)) {
             return error("Invalid return type for extern function: " + proto.name());
         }
+        final ZType returnType = resolveType(token.description);
+        if (returnType == null) return null;
+        Next();
 
         return new ExternExprAST(proto, token.description);
     }
@@ -609,19 +634,19 @@ public class Parser {
      */
     public final PrototypeAST ParsePrototype(final boolean extern) throws IOException {
         if (curTok != Lexer.Tokens.IDENTIFIER.value) {
-            return error("Expected function name in prototype");
+            return error("Expected function name in prototype, got " + describeToken(curTok) + " instead");
         }
         final String fnName = lex.IdentifierStr;
         Next();
 
         // Expect '('
-        if (curTok != Lexer.Tokens.OPEN_PAR.value) {
-            return error("Expected '(' in prototype");
+        if (curTok != Lexer.Tokens.OPEN_PAR.value ) {
+            return error("Expected '(' in prototype, got " + describeToken(curTok) + " instead");
         }
         Next();
 
         final List<PrototypeAST.Param> params = new ArrayList<>();
-        if (curTok != Lexer.Tokens.CLOSE_PAR.value) {
+        if (curTok != Lexer.Tokens.CLOSE_PAR.value ) {
             while (true) {
                 final Lexer.Tokens typeTok = Lexer.Tokens.fromValues(curTok);
                 if (!isTypeToken(typeTok)) {
@@ -631,7 +656,9 @@ public class Parser {
                 if (paramType == null) return null;
                 Next();
 
-                if (!extern) {
+                if (extern) {
+                    params.add(new PrototypeAST.Param(paramType.zName(), ""));
+                } else {
                     if (curTok != Lexer.Tokens.IDENTIFIER.value) {
                         return error("Expected parameter name");
                     }
@@ -666,11 +693,12 @@ public class Parser {
      * @return null or a FunctionAST node
      * @throws IOException
      */
-    public final FunctionAST ParseDefinition() throws IOException {
+    public final FunctionAST ParseDefinition(final boolean foundExtern) throws IOException {
         if (curTok == Lexer.Tokens.EOF.value) {
             return null;
         }
 
+        // consume 'proc' so the prototype starts on the function name
         Next();
         final PrototypeAST proto = ParsePrototype(false);
         if (proto == null) return null;

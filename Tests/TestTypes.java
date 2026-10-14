@@ -17,7 +17,7 @@ public class TestTypes {
         assertSame(ZType.INT64, ZType.fromZName("int64"));
         assertSame(ZType.FLT32, ZType.fromZName("flt32"));
         assertSame(ZType.FLT64, ZType.fromZName("flt64"));
-        assertSame(ZType.BOOL, ZType.fromZName("01"));
+        assertSame(ZType.BOOL, ZType.fromZName("bool"));
     }
 
     @Test

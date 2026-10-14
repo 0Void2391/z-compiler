@@ -24,7 +24,7 @@ public class Lexer {
         FLOAT32("flt32", -6),
         FLOAT64("flt64", -7),
         STRING("str", -8),
-        BOOL("01", -9),
+        BOOL("bool", -9),
         UINT32("uint32", -10),
         UINT64("uint64", -11),
         MUL("*", -12),
@@ -108,6 +108,10 @@ public class Lexer {
         this.input = input;
     }
 
+    private void read() throws IOException {
+        LastChar = input.read();
+    }
+
     /**
      * Returns the next token
      * @return the next token
@@ -117,7 +121,7 @@ public class Lexer {
 
         // skips whitespaces
         while (Character.isWhitespace(LastChar)) {
-            LastChar = input.read();
+            read();
         }
 
         // EOF for some fucking reason in java is -1
@@ -127,10 +131,10 @@ public class Lexer {
 
         // assignment operator ->
         if (LastChar == '-') {
-            LastChar = input.read();
+            read();
 
             if (LastChar == '>') {
-                LastChar = input.read();
+                read();
                 return Tokens.ASSIGN.value;
             }
 
@@ -140,65 +144,57 @@ public class Lexer {
         // chars
 
         if (Character.isAlphabetic(LastChar)) {
-                final StringBuilder sb = new StringBuilder();
+            final StringBuilder sb = new StringBuilder();
 
-                do {
-                    sb.append((char) LastChar);
-                    LastChar = input.read();
-                } while (Character.isLetterOrDigit(LastChar));
+            do {
+                sb.append((char) LastChar);
+                read();
+            } while (Character.isLetterOrDigit(LastChar));
 
-                IdentifierStr = sb.toString();
+            IdentifierStr = sb.toString();
 
-                // hashmap should be faster
-                final Tokens token = keywordMap.get(IdentifierStr);
-                if (token != null && token != Tokens.IDENTIFIER && token != Tokens.NUMBER && token != Tokens.EOF) {
-                    return token.value;
-                }
+            // hashmap should be faster
+            final Tokens token = keywordMap.get(IdentifierStr);
+            if (token != null && token != Tokens.IDENTIFIER && token != Tokens.NUMBER && token != Tokens.EOF) {
+                return token.value;
+            }
 
-                // if it's not a word it must be an identifier ig
-                return Tokens.IDENTIFIER.value;
+            // if it's not a word it must be an identifier ig
+            return Tokens.IDENTIFIER.value;
         }
 
-            // Numbers.
-            //
-            // The spelling is kept as well as the value. NumVal is a double, and
-            // a double cannot hold 9007199254740993 — it comes back as
-            // 9007199254740992, one out, with nothing to say so. Carrying the text
-            // lets an integer literal survive to the IR as the number that was
-            // written, which is the only way an int64 literal above 2^53 can be
-            // correct.
-            if (Character.isDigit(LastChar) || LastChar == '.') {
-                final StringBuilder NumStr = new StringBuilder();
-                boolean floating = false;
+        // Numbers.
+        if (Character.isDigit(LastChar) || LastChar == '.') {
+            final StringBuilder NumStr = new StringBuilder();
+            boolean floating = false;
 
-                do {
-                    if (LastChar == '.' || LastChar == 'e' || LastChar == 'E') {
-                        floating = true;
-                    }
-                    NumStr.append((char) LastChar);
-                    LastChar = input.read();
-                } while (Character.isDigit(LastChar) || LastChar == '.'
-                        || LastChar == 'e' || LastChar == 'E');
-
-                NumberText = NumStr.toString();
-                try {
-                    NumVal = Double.parseDouble(NumberText);
-                } catch (final NumberFormatException e) {
-                    System.err.println("Error: malformed number: " + NumberText);
-                    NumVal = 0;
+            do {
+                if (LastChar == '.' || LastChar == 'e' || LastChar == 'E') {
+                    floating = true;
                 }
-                NumIsFloat = floating;
-                NumIsInteger = !floating;
-                return Tokens.NUMBER.value;
+                NumStr.append((char) LastChar);
+                read();
+            } while (Character.isDigit(LastChar) || LastChar == '.' || LastChar == 'e' || LastChar == 'E');
+
+            NumberText = NumStr.toString();
+            try {
+                NumVal = Double.parseDouble(NumberText);
+            } catch (final NumberFormatException e) {
+                System.err.println("Error: malformed number: " + NumberText);
+                NumVal = 0;
             }
+            NumIsFloat = floating;
+            NumIsInteger = !floating;
+            return Tokens.NUMBER.value;
+        }
 
         // Comments
         if (LastChar == '/') {
-            LastChar = input.read();
+            read();
 
             if (LastChar == '/') {
                 do {
-                    LastChar = input.read();
+                    read();
                 } while (LastChar != -1 && LastChar != '\n' && LastChar != '\r');
 
                 return GetTok();
@@ -211,7 +207,7 @@ public class Lexer {
         final Tokens symbol = keywordMap.get(Character.toString((char) LastChar));
 
         if (symbol != null) {
-            LastChar = input.read();
+            read();
             return symbol.value;
         }
 
@@ -219,9 +215,8 @@ public class Lexer {
             final int ThisChar = LastChar;
 
             // next one
-            LastChar = input.read();
+            read();
 
             return ThisChar;
         }
-
     }

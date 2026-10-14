@@ -9,7 +9,7 @@ public enum ZType {
     INT64("int64", "i64", "0", 64, true),
     FLT32("flt32", "float", "0.0", 32, false),
     FLT64("flt64", "double", "0.0", 64, false),
-    BOOL("01", "i1", "false", 1, true),
+    BOOL("bool", "i1", "false", 1, true),
     VOID("void", "void", "", 0, false);
 
     private final String zName;

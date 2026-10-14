@@ -83,7 +83,6 @@ public class Parser {
             case STRING, UINT32, UINT64, BOOL -> true;
             default -> false;
         };
-        return ZType.isType(token.description);
     }
 
     /**

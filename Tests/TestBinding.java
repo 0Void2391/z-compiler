@@ -10,11 +10,9 @@ public class TestBinding {
     private final TestEndToEnd end = new TestEndToEnd();
 
     private static boolean verifyTools() {
-        if (TestEndToEnd.OPT == null || TestEndToEnd.CLANG == null) {
-            return false;
-        }
-        return true;
+        return TestEndToEnd.OPT != null && TestEndToEnd.CLANG != null;
     }
+
     @Test
     void testBasic() throws Exception {
         if (!verifyTools()) return;
@@ -25,7 +23,7 @@ public class TestBinding {
                 proc main() {
                     int32 test -> 60
                     bool result -> isalpha(60)
-                    return result
+                    ret result
                 }
                 """);
         assertEquals(0, end.run(binary));

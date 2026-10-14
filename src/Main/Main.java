@@ -295,31 +295,29 @@ class CompilerCmd implements Callable<Integer> {
      * @return a ProcesssBuilder object
      */
     private static ProcessBuilder createProcessBuilder(String llFilePath, String outputBinaryName, List<String> libPaths, List<String> libFlags) {
-        StringBuilder command = new StringBuilder("clang" +
-                "-O3" +
-                "-flto" +
-                "-march=native" +
-                "-funroll-loops" +
-                "-fno-rtti" +
-                "-fno-exceptions" +
-                "-mtune=native" +
-                llFilePath +
-                "-o" +
-                outputBinaryName);
+
+        final List<String> command = new ArrayList<>();
+        command.add("clang");
+        command.add("-O3");
+        command.add("-flto");
+        command.add("-march=native");
+        command.add("-funroll-loops");
+        command.add("-fno-rtti");
+        command.add("-fno-exceptions");
+        command.add("-mtune=native");
+        command.add(llFilePath);
+        command.add("-o");
+        command.add(outputBinaryName);
 
         for (String path : libPaths) {
-            command.append("-L").append(path);
+            command.add("-L" + path);
         }
 
         for (String lib : libFlags) {
-            if (lib.startsWith("-l")) {
-                command.append(lib);
-            } else {
-                command.append("-l").append(lib);
-            }
+            command.add(lib.startsWith("-l") ? lib : "-l" + lib);
         }
 
-        final ProcessBuilder processBuilder = new ProcessBuilder(command.toString());
+        final ProcessBuilder processBuilder = new ProcessBuilder(command);
 
         processBuilder.inheritIO();
         return processBuilder;

@@ -16,7 +16,7 @@ package src.Parser;
  * passed around; it starts life as a null pointer.
  */
 public enum ZType {
-    PTR("ptr", "ptr", "0", 64, false),
+    PTR("ptr", "ptr", "0", 64, Kind.POINTER),
     INT32 ("int32",  "i32",    "0",     32, Kind.SIGNED),
     INT64 ("int64",  "i64",    "0",     64, Kind.SIGNED),
     UINT32("uint32", "i32",    "0",     32, Kind.UNSIGNED),
@@ -28,7 +28,7 @@ public enum ZType {
     VOID  ("void",   "void",   "",       0, Kind.VOID);
 
     /** What family a type belongs to. */
-    private enum Kind { SIGNED, UNSIGNED, FLOAT, BOOL, STRING, VOID }
+    private enum Kind { POINTER, SIGNED, UNSIGNED, FLOAT, BOOL, STRING, VOID }
 
     private final String zName;
     private final String llvm;
@@ -115,13 +115,11 @@ public enum ZType {
 
         if (a.isBoolean() || b.isBoolean()) {
             if (a.isBoolean() && b.isBoolean()) return BOOL;
-            throw new IllegalArgumentException(
-                    "a truth value cannot be combined with " + other(a, b));
+            throw new IllegalArgumentException("a truth value cannot be combined with " + other(a, b));
         }
 
         if (a.isString() || b.isString()) {
-            throw new IllegalArgumentException(
-                    "str cannot be combined with " + other(a, b));
+            throw new IllegalArgumentException("str cannot be combined with " + other(a, b));
         }
 
         if (a.isFloat() && b.isFloat()) return a.bits() >= b.bits() ? a : b;
@@ -153,11 +151,9 @@ public enum ZType {
     public String literal(final long value) {
         return switch (kind) {
             case BOOL -> Boolean.toString(value != 0);
-            case SIGNED, UNSIGNED -> bits == 32
-                    ? Integer.toString((int) value)
-                    : Long.toString(value);
+            case SIGNED, UNSIGNED -> bits == 32 ? Integer.toString((int) value) : Long.toString(value);
             case FLOAT -> Double.toString(value);
-            case STRING, VOID -> throw new IllegalStateException(zName + " has no literal");
+            case POINTER, STRING, VOID -> throw new IllegalStateException(zName + " has no literal");
         };
     }
 
@@ -170,11 +166,9 @@ public enum ZType {
     public String literal(final double value) {
         return switch (kind) {
             case BOOL -> Boolean.toString(value != 0);
-            case SIGNED, UNSIGNED -> bits == 32
-                    ? Integer.toString((int) value)
-                    : Long.toString((long) value);
+            case SIGNED, UNSIGNED -> bits == 32 ? Integer.toString((int) value) : Long.toString((long) value);
             case FLOAT -> Double.toString(value);
-            case STRING, VOID -> throw new IllegalStateException(zName + " has no literal");
+            case POINTER, STRING, VOID -> throw new IllegalStateException(zName + " has no literal");
         };
     }
 }

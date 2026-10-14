@@ -69,6 +69,10 @@ public final class BinaryExprAST extends ExprAST {
         final Value b = coerce(builder, rhs, common);
         if (a == null || b == null) return null;
 
+        if (op == '+' && a.type().isString() && b.type().isString()) {
+            return emitStringConcat(builder, a, b);
+        }
+
         if (isComparison()) {
             final boolean ordered = a.type().isFloat();
             final String compared = builder.nextRegister();
@@ -127,5 +131,37 @@ public final class BinaryExprAST extends ExprAST {
             case '/' -> unsigned ? "udiv" : "sdiv";
             default -> null;
         };
+    }
+
+    /**
+     * Concatenates two strings by calling into libc.
+     *
+     * <p>{@code malloc(strlen(a) + strlen(b) + 1)} then {@code strcpy} then
+     * {@code strcat}. Nothing is freed: without a garbage collector the
+     * result lives for the rest of the process, which is the same thing
+     * that happens to any other string built at run time.
+     */
+    private Value emitStringConcat(final IRBuilder builder,
+                                   final Value a, final Value b) {
+        final String la = builder.nextRegister();
+        builder.appendLine(la + " = call i64 @strlen(ptr " + a.text() + ")");
+
+        final String lb = builder.nextRegister();
+        builder.appendLine(lb + " = call i64 @strlen(ptr " + b.text() + ")");
+
+        final String sum = builder.nextRegister();
+        builder.appendLine(sum + " = add i64 " + la + ", " + lb);
+
+        final String total = builder.nextRegister();
+        builder.appendLine(total + " = add i64 " + sum + ", 1");
+
+        final String buf = builder.nextRegister();
+        builder.appendLine(buf + " = call ptr @malloc(i64 " + total + ")");
+
+        builder.appendLine("call ptr @strcpy(ptr " + buf + ", ptr " + a.text() + ")");
+        builder.appendLine("call ptr @strcat(ptr " + buf + ", ptr " + b.text() + ")");
+
+        builder.setRegisterType(buf, ZType.STRING.llvm());
+        return new Value(buf, ZType.STRING);
     }
 }

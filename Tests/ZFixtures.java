@@ -99,7 +99,9 @@ final class ZFixtures {
             if (function == null || builder.hasFailed()) return null;
             module.append(function.text());
         }
-        return module.toString();
+        final String body = module.toString();
+        final String globals = builder.getGlobals();
+        return globals.isEmpty() ? body : globals + "\n" + body;
     }
 
     /**

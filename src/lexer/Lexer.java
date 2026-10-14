@@ -46,11 +46,12 @@ public class Lexer {
         ARRAY_OPEN("[", -27),
         ARRAY_CLOSE("]", -28),
         PARAMS("|", -29),
-        IDENTIFIER("id", -34),
         EOF("eof", -31),
         SAME("=", -32),
         PTR("ptr", -40),
-        CN("cn", -35);
+        IDENTIFIER("id", -34),
+        CN("cn", -35),
+        STRING_LITERAL("string-literal", -36);
 
         /**
          * Attributes: description is to identify the token; the value is the return value
@@ -83,6 +84,8 @@ public class Lexer {
     public boolean NumIsFloat;
     /** true when the literal was written without one */
     public boolean NumIsInteger;
+    /** the contents of a string literal, after escape processing */
+    public String StringVal;
 
     // stream for the input
     private final InputStream input;
@@ -187,6 +190,37 @@ public class Lexer {
             NumIsInteger = !floating;
             return Tokens.NUMBER.value;
         }
+
+        // String literals: "hello\n"
+        if (LastChar == '"') {
+            final StringBuilder sb = new StringBuilder();
+            LastChar = input.read();
+            while (LastChar != '"' && LastChar != -1) {
+                if (LastChar == '\\') {
+                    LastChar = input.read();
+                    switch (LastChar) {
+                        case 'n' -> sb.append('\n');
+                        case 't' -> sb.append('\t');
+                        case 'r' -> sb.append('\r');
+                        case '\\' -> sb.append('\\');
+                        case '"' -> sb.append('"');
+                        case '0' -> sb.append('\0');
+                        default -> sb.append((char) LastChar);
+                    }
+                } else {
+                    sb.append((char) LastChar);
+                }
+                LastChar = input.read();
+            }
+            if (LastChar == -1) {
+                System.err.println("Error: unterminated string literal");
+                return Tokens.EOF.value;
+            }
+            LastChar = input.read();  // consume closing quote
+            StringVal = sb.toString();
+            return Tokens.STRING_LITERAL.value;
+        }
+
 
         // Comments
         if (LastChar == '/') {

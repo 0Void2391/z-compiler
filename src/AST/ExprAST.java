@@ -31,18 +31,44 @@ public abstract class ExprAST {
         if (from == target) return value;
 
         final String result = builder.nextRegister();
+
         if (from.isFloat() && target.isFloat()) {
             // float is narrower than double; double is widened to it otherwise.
-            builder.appendLine(result + " = " + (target.bits() < from.bits() ? "fptrunc " : "fpext ") + from.llvm() + " " + value.text() + " to " + target.llvm());
-        } else if (from.isFloat() && target.isIntegral()) {
-            builder.appendLine(result + " = fptosi " + from.llvm() + " " + value.text() + " to " + target.llvm());
-        } else if (from.isIntegral() && target.isFloat()) {
-            builder.appendLine(result + " = sitofp " + from.llvm() + " " + value.text() + " to " + target.llvm());
-        } else if (from.isIntegral() && target.isIntegral()) {
-            builder.appendLine(result + " = " + (from.bits() > target.bits() ? "trunc " : "sext ") + from.llvm() + " " + value.text() + " to " + target.llvm());
-        } else {
-            return value;
+            builder.appendLine(result + " = "
+                    + (target.bits() < from.bits() ? "fptrunc " : "fpext ")
+                    + from.llvm() + " " + value.text() + " to " + target.llvm());
+            return new Value(result, target);
         }
-        return new Value(result, target);
+        if (from.isFloat() && target.isIntegral()) {
+            final String op = target.isUnsigned() ? "fptoui " : "fptosi ";
+            builder.appendLine(result + " = " + op
+                    + from.llvm() + " " + value.text() + " to " + target.llvm());
+            return new Value(result, target);
+        }
+        if (from.isIntegral() && target.isFloat()) {
+            final String op = from.isUnsigned() ? "uitofp " : "sitofp ";
+            builder.appendLine(result + " = " + op
+                    + from.llvm() + " " + value.text() + " to " + target.llvm());
+            return new Value(result, target);
+        }
+        if (from.isIntegral() && target.isIntegral()) {
+            if (from.bits() > target.bits()) {
+                builder.appendLine(result + " = trunc "
+                        + from.llvm() + " " + value.text() + " to " + target.llvm());
+                return new Value(result, target);
+            }
+            if (from.bits() < target.bits()) {
+                final String op = from.isUnsigned() ? "zext " : "sext ";
+                builder.appendLine(result + " = " + op
+                        + from.llvm() + " " + value.text() + " to " + target.llvm());
+                return new Value(result, target);
+            }
+            // Same width, different signedness. The bits don't change; only
+            // the interpretation does. No instruction needed.
+            return new Value(value.text(), target);
+        }
+
+        // Anything else (str, void) cannot be coerced.
+        return value;
     }
 }

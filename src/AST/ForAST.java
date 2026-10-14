@@ -63,7 +63,7 @@ public final class ForAST extends ExprAST {
         }
         final String slot = builder.emitAlloca(varName, varType.llvm());
         builder.symbols().define(varName, new SymbolTable.SymbolInfo(
-                varName, varType.llvm(), slot, false));
+                varName, varType, slot, false));
 
         if (init != null) {
             final Value produced = init.Codegen(builder);

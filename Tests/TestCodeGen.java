@@ -708,4 +708,130 @@ public class TestCodeGen {
                 " ret i32 1\n}\n", llvmIR);
     }
 
+    public void testUnsignedDeclarations() throws IOException {
+        final String llvmIR = codeGen("proc main() { uint32 a -> 3\n uint64 b -> 4\n ret 0 }");
+
+        assertTrue(llvmIR.contains("%a = alloca i32"), llvmIR);
+        assertTrue(llvmIR.contains("store i32 3, ptr %a"), llvmIR);
+        assertTrue(llvmIR.contains("%b = alloca i64"), llvmIR);
+        assertTrue(llvmIR.contains("store i64 4, ptr %b"), llvmIR);
+    }
+
+    @Test
+    public void testUnsignedDivisionUsesUdiv() throws IOException {
+        final String llvmIR = codeGen("proc main() { uint32 a -> 10\n uint32 b -> 3\n ret a / b }");
+        assertTrue(llvmIR.contains("udiv i32"), llvmIR);
+    }
+
+    @Test
+    public void testSignedDivisionStillUsesSdiv() throws IOException {
+        final String llvmIR = codeGen("proc main() { int32 a -> 10\n int32 b -> 3\n ret a / b }");
+        assertTrue(llvmIR.contains("sdiv i32"), llvmIR);
+    }
+
+    @Test
+    public void testUnsignedComparisonUsesUlt() throws IOException {
+        final String llvmIR = codeGen("proc main() { uint32 a -> 10\n ret a < 5 }");
+        assertTrue(llvmIR.contains("icmp ult i32"), llvmIR);
+    }
+
+    @Test
+    public void testSignedComparisonStillUsesSlt() throws IOException {
+        final String llvmIR = codeGen("proc main() { int32 a -> 10\n ret a < 5 }");
+        assertTrue(llvmIR.contains("icmp slt i32"), llvmIR);
+    }
+
+    @Test
+    public void testUnsignedWidensWithZext() throws IOException {
+        final String llvmIR = codeGen("proc main() { uint32 a -> 1\n uint64 b -> a\n ret 0 }");
+        assertTrue(llvmIR.contains("zext i32"), llvmIR);
+    }
+
+    @Test
+    public void testSignedWidensWithSext() throws IOException {
+        final String llvmIR = codeGen("proc main() { int32 a -> 1\n int64 b -> a\n ret 0 }");
+        assertTrue(llvmIR.contains("sext i32"), llvmIR);
+    }
+
+    @Test
+    public void testUnsignedToFloatUsesUitofp() throws IOException {
+        final String llvmIR = codeGen("proc main() { uint32 a -> 1\n flt64 b -> a\n ret 0 }");
+        assertTrue(llvmIR.contains("uitofp i32"), llvmIR);
+    }
+
+    @Test
+    public void testSignedToFloatUsesSitofp() throws IOException {
+        final String llvmIR = codeGen("proc main() { int32 a -> 1\n flt64 b -> a\n ret 0 }");
+        assertTrue(llvmIR.contains("sitofp i32"), llvmIR);
+    }
+
+    @Test
+    public void testStringDeclarationStartsWithNull() throws IOException {
+        final String llvmIR = codeGen("proc main() { str s\n ret 0 }");
+
+        assertTrue(llvmIR.contains("%s = alloca i8*"), llvmIR);
+        assertTrue(llvmIR.contains("store i8* null, ptr %s"), llvmIR);
+    }
+
+    @Test
+    public void testStringParameter() throws IOException {
+        final String llvmIR = codeGen("proc take(str s) { ret 0 }");
+        assertTrue(llvmIR.contains("@take(i8* %s)"), llvmIR);
+    }
+
+    @Test
+    public void testUint32Parameter() throws IOException {
+        final String llvmIR = codeGen("proc take(uint32 n) { ret 0 }");
+        assertTrue(llvmIR.contains("@take(i32 %n)"), llvmIR);
+    }
+
+    @Test
+    public void testStringLiteralIsPutInAGlobal() throws IOException {
+        final String llvmIR = codeGen("proc main() { str s -> \"hello\"\n ret 0 }");
+
+        assertNotNull(llvmIR);
+        assertTrue(llvmIR.contains("@.str.0 = private unnamed_addr constant [6 x i8] c\"hello\\00\""), llvmIR);
+        assertTrue(llvmIR.contains("getelementptr inbounds [6 x i8], ptr @.str.0"), llvmIR);
+    }
+
+    @Test
+    public void testStringDeclarationStoresThePointer() throws IOException {
+        final String llvmIR = codeGen("proc main() { str s -> \"hi\"\n ret 0 }");
+
+        assertNotNull(llvmIR);
+        assertTrue(llvmIR.contains("%s = alloca i8*"), llvmIR);
+        assertTrue(llvmIR.contains("store i8* %1, ptr %s"), llvmIR);
+    }
+
+    @Test
+    public void testStringConcatenationUsesLibc() throws IOException {
+        final String llvmIR = codeGen(
+                "proc main() { str a -> \"hello\"\n str b -> \" world\"\n str c -> a + b\n ret 0 }");
+
+        assertNotNull(llvmIR);
+        assertTrue(llvmIR.contains("declare ptr @malloc(i64)"), llvmIR);
+        assertTrue(llvmIR.contains("declare i64 @strlen(ptr)"), llvmIR);
+        assertTrue(llvmIR.contains("declare ptr @strcpy(ptr, ptr)"), llvmIR);
+        assertTrue(llvmIR.contains("declare ptr @strcat(ptr, ptr)"), llvmIR);
+        assertTrue(llvmIR.contains("call i64 @strlen(ptr"), llvmIR);
+        assertTrue(llvmIR.contains("call ptr @malloc(i64"), llvmIR);
+        assertTrue(llvmIR.contains("call ptr @strcpy(ptr"), llvmIR);
+        assertTrue(llvmIR.contains("call ptr @strcat(ptr"), llvmIR);
+    }
+
+    @Test
+    public void testProgramWithoutStringsHasNoLibcDeclares() throws IOException {
+        final String llvmIR = codeGen("proc main() { ret 0 }");
+
+        assertFalse(llvmIR.contains("declare ptr @malloc"), llvmIR);
+        assertFalse(llvmIR.contains("@.str."), llvmIR);
+    }
+
+    @Test
+    public void testStringArgumentPassesAPointer() throws IOException {
+        final String llvmIR = codeGen(
+                "proc id(str s) { ret 0 }\nproc main() { ret 0 }");
+
+        assertTrue(llvmIR.contains("@id(i8* %s)"), llvmIR);
+    }
 }

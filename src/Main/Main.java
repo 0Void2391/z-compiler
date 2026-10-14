@@ -140,7 +140,14 @@ class CompilerCmd implements Callable<Integer> {
             module.append(function.text());
         }
 
-        return module.toString();
+        if (module.isEmpty()) {
+            System.err.println("Syntax error");
+            return null;
+        }
+
+        final String body = module.toString();
+        final String globals = builder.getGlobals();
+        return globals.isEmpty() ? body : globals + "\n" + body;
     }
 
     /**

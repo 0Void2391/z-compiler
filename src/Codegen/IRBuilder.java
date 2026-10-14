@@ -50,6 +50,15 @@ public class IRBuilder {
         return failed;
     }
 
+    /** Global definitions: string constants and library declarations. */
+    private final StringBuilder globals = new StringBuilder();
+
+    /** How many string constants have been emitted so far. */
+    private int stringCount = 0;
+
+    /** True once the libc declarations have been emitted. */
+    private boolean declaresEmitted = false;
+
     /**
      *
      * @param prototype the signature to declare
@@ -270,5 +279,56 @@ public class IRBuilder {
     public void emitCondBr(final String condReg, final String trueLabel, final String falseLabel) {
         appendLine("br i1 " + condReg + ", label %" + trueLabel + ", label %" + falseLabel);
         terminated = true;
+    }
+
+    /**
+     * @return the global definitions (string constants and libc declares),
+     *         which must go in front of the functions that use them
+     */
+    public String getGlobals() {
+        return globals.toString();
+    }
+
+    /**
+     * Adds a string literal to the module's globals and returns the name of
+     * the resulting global (without the leading {@code @}).
+     *
+     * <p>The bytes are emitted as a private unnamed_addr constant with a
+     * trailing null byte, which is what C string functions expect.
+     *
+     * @param bytes the UTF-8 bytes of the literal
+     * @return the global's name
+     */
+    public String emitStringConstant(final byte[] bytes) {
+        ensureStringDeclares();
+        final String name = ".str." + (stringCount++);
+        final int length = bytes.length + 1;
+
+        globals.append("@").append(name)
+                .append(" = private unnamed_addr constant [")
+                .append(length).append(" x i8] c\"");
+        for (final byte b : bytes) {
+            final int u = b & 0xFF;
+            if (u == '"') globals.append("\\22");
+            else if (u == '\\') globals.append("\\5C");
+            else if (u >= 32 && u < 127) globals.append((char) u);
+            else globals.append(String.format("\\%02X", u));
+        }
+        globals.append("\\00\"\n");
+
+        return name;
+    }
+
+    /**
+     * Emits the libc declares the first time a string is actually used.
+     * A program without strings never sees them.
+     */
+    private void ensureStringDeclares() {
+        if (declaresEmitted) return;
+        declaresEmitted = true;
+        globals.append("declare ptr @malloc(i64)\n");
+        globals.append("declare i64 @strlen(ptr)\n");
+        globals.append("declare ptr @strcpy(ptr, ptr)\n");
+        globals.append("declare ptr @strcat(ptr, ptr)\n");
     }
 }

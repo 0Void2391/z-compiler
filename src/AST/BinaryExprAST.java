@@ -69,10 +69,16 @@ public final class BinaryExprAST extends ExprAST {
         final Value b = coerce(builder, rhs, common);
         if (a == null || b == null) return null;
 
+        if (op == '+' && a.type().isString() && b.type().isString()) {
+            return emitStringConcat(builder, a, b);
+        }
+
         if (isComparison()) {
             final boolean ordered = a.type().isFloat();
             final String compared = builder.nextRegister();
-            builder.appendLine(compared + " = " + (ordered ? "fcmp " : "icmp ") + predicate(ordered) + " " + a.type().llvm() + " " + a.text() + ", " + b.text());
+            builder.appendLine(compared + " = " + (ordered ? "fcmp " : "icmp ")
+                    + predicate(ordered, a.type()) + " "
+                    + a.type().llvm() + " " + a.text() + ", " + b.text());
             final String result = builder.nextRegister();
             builder.appendLine(result + " = zext i1 " + compared + " to i32");
             builder.setRegisterType(result, ZType.INT32.llvm());
@@ -91,22 +97,71 @@ public final class BinaryExprAST extends ExprAST {
         return new Value(result, a.type());
     }
 
-    private String predicate(final boolean ordered) {
+    private String predicate(final boolean ordered, final ZType type) {
+        if (ordered) {
+            return switch (op) {
+                case '<' -> "olt";
+                case '>' -> "ogt";
+                default -> throw new IllegalStateException("not a comparison: " + op);
+            };
+        }
+        final boolean unsigned = type.isUnsigned();
         return switch (op) {
-            case '<' -> ordered ? "olt" : "slt";
-            case '>' -> ordered ? "ogt" : "sgt";
+            case '<' -> unsigned ? "ult" : "slt";
+            case '>' -> unsigned ? "ugt" : "sgt";
             default -> throw new IllegalStateException("not a comparison: " + op);
         };
     }
 
     private String arithmeticOpcode(final ZType type) {
-        final String prefix = type.isFloat() ? "f" : "";
+        if (type.isFloat()) {
+            return switch (op) {
+                case '+' -> "fadd";
+                case '-' -> "fsub";
+                case '*' -> "fmul";
+                case '/' -> "fdiv";
+                default -> null;
+            };
+        }
+        final boolean unsigned = type.isUnsigned();
         return switch (op) {
-            case '+' -> prefix + "add";
-            case '-' -> prefix + "sub";
-            case '*' -> prefix + "mul";
-            case '/' -> prefix + "div";
+            case '+' -> "add";
+            case '-' -> "sub";
+            case '*' -> "mul";
+            case '/' -> unsigned ? "udiv" : "sdiv";
             default -> null;
         };
+    }
+
+    /**
+     * Concatenates two strings by calling into libc.
+     *
+     * <p>{@code malloc(strlen(a) + strlen(b) + 1)} then {@code strcpy} then
+     * {@code strcat}. Nothing is freed: without a garbage collector the
+     * result lives for the rest of the process, which is the same thing
+     * that happens to any other string built at run time.
+     */
+    private Value emitStringConcat(final IRBuilder builder,
+                                   final Value a, final Value b) {
+        final String la = builder.nextRegister();
+        builder.appendLine(la + " = call i64 @strlen(ptr " + a.text() + ")");
+
+        final String lb = builder.nextRegister();
+        builder.appendLine(lb + " = call i64 @strlen(ptr " + b.text() + ")");
+
+        final String sum = builder.nextRegister();
+        builder.appendLine(sum + " = add i64 " + la + ", " + lb);
+
+        final String total = builder.nextRegister();
+        builder.appendLine(total + " = add i64 " + sum + ", 1");
+
+        final String buf = builder.nextRegister();
+        builder.appendLine(buf + " = call ptr @malloc(i64 " + total + ")");
+
+        builder.appendLine("call ptr @strcpy(ptr " + buf + ", ptr " + a.text() + ")");
+        builder.appendLine("call ptr @strcat(ptr " + buf + ", ptr " + b.text() + ")");
+
+        builder.setRegisterType(buf, ZType.STRING.llvm());
+        return new Value(buf, ZType.STRING);
     }
 }

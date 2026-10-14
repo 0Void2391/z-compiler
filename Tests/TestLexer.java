@@ -235,4 +235,30 @@ public class TestLexer {
 
         assertEquals('@', lex.GetTok());
     }
+
+    @Test
+    void testStringLiteral() throws IOException {
+        final Lexer lex = new Lexer(new ByteArrayInputStream(
+                "\"hello\"".getBytes(StandardCharsets.UTF_8)));
+
+        assertEquals(Lexer.Tokens.STRING_LITERAL.value, lex.GetTok());
+        assertEquals("hello", lex.StringVal);
+    }
+
+    @Test
+    void testStringLiteralEscapes() throws IOException {
+        final Lexer lex = new Lexer(new ByteArrayInputStream(
+                "\"a\\nb\\t\\\\\\\"c\"".getBytes(StandardCharsets.UTF_8)));
+
+        assertEquals(Lexer.Tokens.STRING_LITERAL.value, lex.GetTok());
+        assertEquals("a\nb\t\\\"c", lex.StringVal);
+    }
+
+    @Test
+    void testUnterminatedStringLiteral() throws IOException {
+        final Lexer lex = new Lexer(new ByteArrayInputStream(
+                "\"hello".getBytes(StandardCharsets.UTF_8)));
+
+        assertEquals(Lexer.Tokens.EOF.value, lex.GetTok());
+    }
 }

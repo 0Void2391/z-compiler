@@ -67,7 +67,7 @@ class CompilerCmd implements Callable<Integer> {
             }
 
             final Lexer lexer = new Lexer(input);
-            final Parser parser = new Parser(lexer);
+            final Parser parser = new Parser(lexer, sourceFile.getName());
 
             final String llvmIR = generateModule(parser);
 

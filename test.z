@@ -1,7 +1,9 @@
-extern exit(int32) -> void
+proc add(flt64 a | flt64 b) {
+    ret a + b
+}
                 
 proc main () {
     int32 test -> 60
-    exit(test)
+    int32 test2 -> add(10 | 20)
     ret test
 }

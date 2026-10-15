@@ -17,6 +17,7 @@ public class Parser {
      */
     private int curTok;
     private Lexer lex = null;
+    private String fileName;
 
     /**
      * BinOpPrecedence stores the precedence of binary operators
@@ -41,9 +42,10 @@ public class Parser {
      * @param lex the lexer object
      * @throws IOException
      */
-    public Parser(final Lexer lex) throws IOException {
+    public Parser(final Lexer lex, final String fileName) throws IOException {
         this.lex = lex;
         this.curTok = lex.GetTok();
+        this.fileName = fileName;
     }
 
     /**
@@ -108,6 +110,7 @@ public class Parser {
     /**
      * MainLoop method to parse the input
      * @throws IOException
+     * @deprecated
      */
     public void MainLoop() throws IOException {
         while (true) {

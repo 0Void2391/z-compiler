@@ -80,7 +80,7 @@ public class Parser {
         if (token == null) return false;
         if (ZType.isType(token.description)) return true;
         return switch (token) {
-            case STRING, UINT32, UINT64, BOOL -> true;
+            case STRING, UINT32, UINT64, BOOL, VOID -> true;
             default -> false;
         };
     }

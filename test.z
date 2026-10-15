@@ -1,7 +1,7 @@
-extern isalpha(int32) -> bool
+extern exit(int32) -> void
                 
 proc main () {
     int32 test -> 60
-    bool result -> isalpha(60)
-    ret result
+    exit(test)
+    ret test
 }

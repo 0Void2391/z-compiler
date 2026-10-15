@@ -51,7 +51,8 @@ public class Lexer {
         PTR("ptr", -40),
         IDENTIFIER("id", -34),
         CN("cn", -35),
-        STRING_LITERAL("string-literal", -36);
+        STRING_LITERAL("string-literal", -36),
+        VOID("void", -37);
 
         /**
          * Attributes: description is to identify the token; the value is the return value

@@ -17,7 +17,7 @@ public class Parser {
      */
     private int curTok;
     private Lexer lex = null;
-    private String fileName;
+    private final String fileName;
 
     /**
      * BinOpPrecedence stores the precedence of binary operators
@@ -106,6 +106,7 @@ public class Parser {
     public final boolean atEOF() {
         return curTok == Lexer.Tokens.EOF.value;
     }
+
 
     /**
      * MainLoop method to parse the input
@@ -233,6 +234,24 @@ public class Parser {
         return result;
     }
 
+
+    public final ImportAST ParseImport() throws IOException {
+        if (curTok != Lexer.Tokens.IMPORT.value) {
+            return null;
+        }
+
+        Next();  // consume 'import'
+
+        if (curTok != Lexer.Tokens.IDENTIFIER.value) {
+            return error("Expected module name after 'import'");
+        }
+
+        final String moduleName = lex.IdentifierStr;
+        Next();
+
+        return new ImportAST(moduleName);
+    }
+
     public final ExternExprAST ParseExtern() throws IOException {
         if (curTok != Lexer.Tokens.EXTERN.value) {
             return null;
@@ -304,18 +323,36 @@ public class Parser {
      * @throws IOException
      */
     public final ExprAST ParseIdentifierExpr() throws IOException {
-        final String idName = lex.IdentifierStr;
+        StringBuilder idName = new StringBuilder(lex.IdentifierStr);
         Next();
 
+        while (curTok == '.') {
+            Next();
+            if (curTok != Lexer.Tokens.IDENTIFIER.value) {
+                return error("Expected a name after '.' in '" + idName + "'");
+            }
+            idName.append(".").append(lex.IdentifierStr);
+            Next();
+        }
+
+        final boolean qualified = idName.toString().contains(".");
+
         if (curTok == Lexer.Tokens.ASSIGN.value || curTok == Lexer.Tokens.SAME.value) {
+            if (qualified) {
+                return error("Cannot assign to module member '" + idName + "'");
+            }
             Next();
             final ExprAST expr = ParseExpression();
             if (expr == null) return null;
-            return new AssignExprAST(idName, expr);
+            return new AssignExprAST(idName.toString(), expr);
         }
 
         if (curTok != Lexer.Tokens.OPEN_PAR.value) {
-            return new VarRefExprAST(idName);
+            if (qualified) {
+                return error("Module function '" + idName + "' can only be called");
+            }
+
+            return new VarRefExprAST(idName.toString());
         }
 
         Next();
@@ -335,7 +372,7 @@ public class Parser {
             }
         }
         Next();
-        return new CallExprAST(idName, args);
+        return new CallExprAST(idName.toString(), args);
     }
 
     /**
@@ -703,6 +740,10 @@ public class Parser {
     public final FunctionAST ParseDefinition(final boolean foundExtern) throws IOException {
         if (curTok == Lexer.Tokens.EOF.value) {
             return null;
+        }
+
+        if (Lexer.Tokens.fromValues(curTok) == Lexer.Tokens.IMPORT) {
+            return error("'import' must appear before any 'extern' or definition");
         }
 
         // consume 'proc' so the prototype starts on the function name

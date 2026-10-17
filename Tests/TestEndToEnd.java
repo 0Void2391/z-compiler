@@ -256,4 +256,72 @@ public class TestEndToEnd {
 
         assertNotEquals(0, process.waitFor());
     }
+
+    public Path compileFiles(final String root, final String... files) throws Exception {
+        final Path directory = Files.createTempDirectory("zendtoend");
+        for (final String file : files) {
+            final int split = file.indexOf('\n');
+            Files.writeString(directory.resolve(file.substring(0, split)), file.substring(split + 1));
+        }
+
+        final Process process = new ProcessBuilder(
+                "java",
+                "-cp", System.getProperty("java.class.path"),
+                "src.Main.Main",
+                directory.resolve(root + ".z").toString(),
+                "-o", directory.resolve(root).toString())
+                .redirectErrorStream(true)
+                .start();
+
+        final String output = new String(process.getInputStream().readAllBytes());
+        assertEquals(0, process.waitFor(), output);
+        return directory.resolve(root);
+    }
+
+    @Test
+    public void testImportedModuleFunctionRuns() throws Exception {
+        if (OPT == null || CLANG == null) return;
+
+        final Path binary = compileFiles("main", "main.z\nimport math\n\nproc main() {\n    ret math.twice(21)\n}", "math.z\nproc twice(int32 x) {\n    ret x * 2\n}");
+
+        assertEquals(42, run(binary));
+    }
+
+    @Test
+    public void testTransitiveImportsRun() throws Exception {
+        if (OPT == null || CLANG == null) return;
+
+        final Path binary = compileFiles("main",
+                "main.z\nimport a\n\nproc main() {\n    ret a.fa(20)\n}",
+                "a.z\nimport b\n\nproc fa(int32 x) {\n    ret b.fb(x)\n}",
+                "b.z\nproc fb(int32 x) {\n    ret x + 22\n}");
+
+        assertEquals(42, run(binary));
+    }
+
+    @Test
+    public void testCallingAFunctionTheModuleDoesNotHaveIsRejected() throws Exception {
+        if (OPT == null || CLANG == null) return;
+
+        final Path directory = Files.createTempDirectory("zendtoend");
+        Files.writeString(directory.resolve("math.z"), "proc twice(int32 x) { ret x * 2 }");
+        final Path sourceFile = directory.resolve("main.z");
+        Files.writeString(sourceFile, "import math\nproc main() { ret math.nope(1) }");
+        final Path binary = directory.resolve("main");
+
+        final Process process = new ProcessBuilder(
+                "java",
+                "-cp", System.getProperty("java.class.path"),
+                "src.Main.Main",
+                sourceFile.toString(),
+                "-o", binary.toString())
+                .redirectErrorStream(true)
+                .start();
+
+        final String output = new String(process.getInputStream().readAllBytes());
+
+        assertNotEquals(0, process.waitFor(), output);
+        assertTrue(output.contains("unknown function: math.nope"), output);
+        assertFalse(Files.exists(binary));
+    }
 }

@@ -172,6 +172,16 @@ public class Lexer {
             final StringBuilder NumStr = new StringBuilder();
             boolean floating = false;
 
+            if (LastChar == '.') {
+                read();
+                if (!Character.isDigit(LastChar)) {
+                    return '.';
+                }
+
+                NumStr.append('.');
+                floating = true;
+            }
+
             do {
                 if (LastChar == '.' || LastChar == 'e' || LastChar == 'E') {
                     floating = true;

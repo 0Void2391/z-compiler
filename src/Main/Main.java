@@ -4,6 +4,7 @@ import picocli.CommandLine;
 import picocli.CommandLine.Command;
 import src.AST.ExternExprAST;
 import src.AST.FunctionAST;
+import src.AST.ModuleAST;
 import src.AST.Value;
 import src.Codegen.IRBuilder;
 import src.Parser.Parser;
@@ -12,6 +13,7 @@ import src.lexer.Lexer;
 import java.io.*;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.Callable;
@@ -69,7 +71,7 @@ class CompilerCmd implements Callable<Integer> {
             final Lexer lexer = new Lexer(input);
             final Parser parser = new Parser(lexer, sourceFile.getName());
 
-            final String llvmIR = generateModule(parser);
+            final String llvmIR = Main.generateModule(parser, sourceFile.toPath());
 
             if (llvmIR == null) {
                 return 1;
@@ -91,135 +93,6 @@ class CompilerCmd implements Callable<Integer> {
         } catch (IOException e) {
             e.printStackTrace();
             return 1;
-        }
-    }
-
-    /**
-     * Generates every extern declaration and function in the file, in the order
-     * they were written.
-     *
-     * @param parser the parser, positioned on the first token of the file
-     * @return the whole module, or null if anything in it failed
-     * @throws IOException if the input cannot be read
-     */
-    private static String generateModule(final Parser parser) throws IOException {
-        final IRBuilder builder = new IRBuilder();
-        final StringBuilder module = new StringBuilder();
-
-        final List<ExternExprAST> externs = parseHeaders(parser);
-        if (externs == null) return null;
-        for (final ExternExprAST extern: externs) {
-            final Value externValue = extern.Codegen(builder);
-            if (externValue == null || builder.hasFailed()) {
-                System.err.println("Error building the IR of the externs");
-                return null;
-            }
-            module.append(externValue.text());
-        }
-
-        final List<FunctionAST> definitions = parseDefinitions(parser, !externs.isEmpty());
-        if (definitions == null) return null;
-        if (definitions.isEmpty()) {
-            System.err.println("Syntax error");
-            return null;
-        }
-
-        for (final FunctionAST definition : definitions) {
-            if (!builder.declare(definition.prototype())) {
-                System.err.println("Error: '" + definition.prototype().name() + "' is defined more than once");
-                return null;
-            }
-        }
-
-        for (final FunctionAST definition : definitions) {
-            final Value function = definition.Codegen(builder);
-            if (function == null || builder.hasFailed()) {
-                System.err.println("Error building the IR");
-                return null;
-            }
-            module.append(function.text());
-        }
-
-        if (module.isEmpty()) {
-            System.err.println("Syntax error");
-            return null;
-        }
-
-        final String body = module.toString();
-        final String globals = builder.getGlobals();
-        return globals.isEmpty() ? body : globals + "\n" + body;
-    }
-
-    /**
-     * Parses the extern (C) declarations at the head of the file.
-     * @return the externs in source order, or null if one of them is malformed
-     * @throws IOException if the input cannot be read
-     */
-    private static List<ExternExprAST> parseHeaders(final Parser parser) throws IOException {
-        final List<ExternExprAST> definitions = new ArrayList<>();
-
-        while (true) {
-            final PrintStream diagnostics = System.err;
-            final ByteArrayOutputStream reported = new ByteArrayOutputStream();
-
-            final ExternExprAST definition;
-            System.setErr(new PrintStream(reported, true, StandardCharsets.UTF_8));
-            try {
-                definition = parser.ParseExtern();
-            } finally {
-                System.setErr(diagnostics);
-            }
-
-            if (reported.size() > 0) {
-                diagnostics.print(reported.toString(StandardCharsets.UTF_8));
-            }
-
-            if (definition != null) {
-                definitions.add(definition);
-                continue;
-            }
-
-            return reported.size() > 0 ? null : definitions;
-        }
-    }
-
-
-    /**
-     * Reads every definition in the file, reporting the first syntax error.
-     *
-     * @param parser the parser, positioned on the first token after the externs
-     * @return the definitions in source order, or null if one failed to parse
-     * @throws IOException if the input cannot be read
-     */
-    private static List<FunctionAST> parseDefinitions(final Parser parser, final boolean foundExtern) throws IOException {
-        final List<FunctionAST> definitions = new ArrayList<>();
-
-        while (true) {
-            final PrintStream diagnostics = System.err;
-            final ByteArrayOutputStream reported = new ByteArrayOutputStream();
-
-            final FunctionAST definition;
-            final boolean endOfInput;
-            System.setErr(new PrintStream(reported, true, StandardCharsets.UTF_8));
-            try {
-                definition = parser.ParseDefinition(foundExtern);
-                endOfInput = definition == null && parser.atEOF();
-            } finally {
-                System.setErr(diagnostics);
-            }
-
-            if (reported.size() > 0) {
-                diagnostics.print(reported.toString(StandardCharsets.UTF_8));
-            }
-
-            if (endOfInput && reported.size() == 0) return definitions;
-
-            if (definition == null) {
-                System.err.println("Syntax error");
-                return null;
-            }
-
-            definitions.add(definition);
         }
     }
 
@@ -331,5 +204,96 @@ public class Main {
     public static void main(String[] args) {
         final int exitCode = new CommandLine(new CompilerCmd()).execute(args);
         System.exit(exitCode);
+    }
+
+
+    public static String generateModule(final Parser parser, final Path sourceFile) throws IOException {
+        final IRBuilder builder = new IRBuilder();
+        final StringBuilder module = new StringBuilder();
+
+        final String rootName = sourceFile.getFileName().toString().replaceFirst("\\.z$", "");
+        final ModuleAST root = ModuleLoader.parseUnit(parser, rootName);
+        if (root == null) return null;
+
+        final Path fromDir = sourceFile.toAbsolutePath().getParent();
+        final List<ModuleAST> dependencies = new ModuleLoader(rootName).loadAll(root.imports(), fromDir);
+        if (dependencies == null) return null;
+
+        for (final ModuleAST dependency : dependencies) {
+            if (!emitModule(dependency, builder, module)) return null;
+        }
+        builder.setCurrentModule(null);
+
+        for (final ExternExprAST extern : root.externs()) {
+            final Value externValue = extern.Codegen(builder);
+            if (externValue == null || builder.hasFailed()) {
+                System.err.println("Error building the IR of the externs");
+                return null;
+            }
+            module.append(externValue.text());
+        }
+
+        if (!declareAll(root, builder)) return null;
+
+        for (final FunctionAST definition : root.functions()) {
+            final Value function = definition.Codegen(builder);
+            if (function == null || builder.hasFailed()) {
+                System.err.println("Error building the IR");
+                return null;
+            }
+            module.append(function.text());
+        }
+
+        if (module.isEmpty()) {
+            System.err.println("Syntax error");
+            return null;
+        }
+
+        final String body = module.toString();
+        final String globals = builder.getGlobals();
+        return globals.isEmpty() ? body : globals + "\n" + body;
+    }
+
+
+    private static boolean emitModule(final ModuleAST module, final IRBuilder builder, final StringBuilder unit) {
+        builder.setCurrentModule(module.name());
+
+        for (final ExternExprAST extern : module.externs()) {
+            final Value externValue = extern.Codegen(builder);
+            if (externValue == null || builder.hasFailed()) {
+                System.err.println("Error building the IR of the externs of module '" + module.name() + "'");
+                return false;
+            }
+            unit.append(externValue.text());
+        }
+
+        for (final FunctionAST definition : module.functions()) {
+            if (definition.prototype().isMain()) {
+                System.err.println("Error: 'main' can only be defined in the root file, not in module '" + module.name() + "'");
+                return false;
+            }
+        }
+
+        if (!declareAll(module, builder)) return false;
+
+        for (final FunctionAST definition : module.functions()) {
+            final Value function = definition.Codegen(builder);
+            if (function == null || builder.hasFailed()) {
+                System.err.println("Error building the IR of module '" + module.name() + "'");
+                return false;
+            }
+            unit.append(function.text());
+        }
+        return true;
+    }
+
+    private static boolean declareAll(final ModuleAST module, final IRBuilder builder) {
+        for (final FunctionAST definition : module.functions()) {
+            if (!builder.declare(definition.prototype())) {
+                System.err.println("Error: '" + builder.qualify(definition.prototype().name()) + "' is defined more than once");
+                return false;
+            }
+        }
+        return true;
     }
 }

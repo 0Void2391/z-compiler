@@ -16,7 +16,7 @@ public class TestParser {
 
     private final Parser createParser(final String input) throws IOException {
         final Lexer lex = new Lexer(new ByteArrayInputStream(input.getBytes(StandardCharsets.UTF_8)));
-        return new Parser(lex);
+        return new Parser(lex, "");
     }
     @Test
     void testSimpleNumber() throws IOException {

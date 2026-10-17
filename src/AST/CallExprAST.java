@@ -33,18 +33,20 @@ public final class CallExprAST extends ExprAST {
     public ZType type(final IRBuilder builder) {
         final ZType externReturn = builder.externReturnType(callee);
         if (externReturn != null) return externReturn;
-        final PrototypeAST signature = builder.signatures().get(callee);
+        final IRBuilder.ResolvedSignature resolved = builder.resolve(callee);
+        final PrototypeAST signature = resolved == null ? null : resolved.prototype();
         return signature == null ? ZType.FLT64 : signature.isMain() ? ZType.INT32 : ZType.FLT64;
     }
 
     @Override
     public Value Codegen(final IRBuilder builder) {
-        final PrototypeAST signature = builder.signatures().get(callee);
-        if (signature == null) {
+        final IRBuilder.ResolvedSignature resolved = builder.resolve(callee);
+        if (resolved == null) {
             System.err.println("Error: unknown function: " + callee);
             builder.markFailed();
             return null;
         }
+        final PrototypeAST signature = resolved.prototype();
 
         final List<PrototypeAST.Param> params = signature.params();
         if (params.size() != arguments.size()) {
@@ -74,7 +76,8 @@ public final class CallExprAST extends ExprAST {
             if (signature.isMain()) result = ZType.INT32;
             else result = ZType.FLT64;
         }
-        final String call = "call " + result.llvm() + " @" + callee + "(" + String.join(", ", printed) + ")";
+
+        final String call = "call " + result.llvm() + " @" + resolved.irName() + "(" + String.join(", ", printed) + ")";
         if (result.isVoid()) {
             builder.appendLine(call);
             return null;

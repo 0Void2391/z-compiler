@@ -27,11 +27,47 @@ public class IRBuilder {
      */
     private final SymbolTable symbols = new SymbolTable();
 
-    /**
-     * Every function signature seen so far, so a call can be typed and checked.
-     *
-     */
     private final Map<String, PrototypeAST> signatures = new LinkedHashMap<>();
+
+    private String currentModule;
+
+    public void setCurrentModule(final String moduleName) {
+        this.currentModule = moduleName;
+    }
+
+    public String currentModule() {
+        return currentModule;
+    }
+
+    public String qualify(final String name) {
+        return currentModule == null || name.contains(".") ? name : currentModule + "." + name;
+    }
+
+    public String irName(final String key) {
+        return key.replace('.', '_');
+    }
+
+
+    public String irNameOf(final String name) {
+        return irName(qualify(name));
+    }
+
+    public record ResolvedSignature(PrototypeAST prototype, String irName) {
+    }
+
+
+    public ResolvedSignature resolve(final String callee) {
+        if (callee.contains(".")) {
+            final PrototypeAST prototype = signatures.get(callee);
+            return prototype == null ? null : new ResolvedSignature(prototype, irName(callee));
+        }
+        if (currentModule != null) {
+            final PrototypeAST own = signatures.get(currentModule + "." + callee);
+            if (own != null) return new ResolvedSignature(own, irName(currentModule + "." + callee));
+        }
+        final PrototypeAST root = signatures.get(callee);
+        return root == null ? null : new ResolvedSignature(root, irName(callee));
+    }
 
     private boolean terminated;
     private String returnType = "double";
@@ -65,6 +101,14 @@ public class IRBuilder {
      * @return false when the name is already taken, in which case nothing changes
      */
     public boolean declare(final PrototypeAST prototype) {
+        final String key = qualify(prototype.name());
+        if (signatures.containsKey(key)) return false;
+        signatures.put(key, prototype);
+        return true;
+    }
+
+
+    private boolean declareRaw(final PrototypeAST prototype) {
         if (signatures.containsKey(prototype.name())) return false;
         signatures.put(prototype.name(), prototype);
         return true;
@@ -83,7 +127,7 @@ public class IRBuilder {
      * @return false when the name is already taken
      */
     public boolean declareExtern(final PrototypeAST prototype, final ZType returnType) {
-        final boolean fresh = declare(prototype);
+        final boolean fresh = declareRaw(prototype);
         externReturnTypes.put(prototype.name(), returnType);
         return fresh;
     }
@@ -138,11 +182,6 @@ public class IRBuilder {
     /** @return the symbol table for the function being generated */
     public SymbolTable symbols() {
         return symbols;
-    }
-
-    /** @return the signatures of the functions generated so far */
-    public Map<String, PrototypeAST> signatures() {
-        return signatures;
     }
 
     /**
@@ -304,9 +343,7 @@ public class IRBuilder {
         final String name = ".str." + (stringCount++);
         final int length = bytes.length + 1;
 
-        globals.append("@").append(name)
-                .append(" = private unnamed_addr constant [")
-                .append(length).append(" x i8] c\"");
+        globals.append("@").append(name).append(" = private unnamed_addr constant [").append(length).append(" x i8] c\"");
         for (final byte b : bytes) {
             final int u = b & 0xFF;
             if (u == '"') globals.append("\\22");
@@ -317,6 +354,10 @@ public class IRBuilder {
         globals.append("\\00\"\n");
 
         return name;
+    }
+
+    public void appendToGlobals(final String append) {
+        globals.append(append);
     }
 
     /**

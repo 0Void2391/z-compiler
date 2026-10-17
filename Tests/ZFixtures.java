@@ -37,8 +37,8 @@ final class ZFixtures {
      * @return the parser, positioned on the first token
      * @throws IOException if the input cannot be read
      */
-    static Parser parserFor(final String source) throws IOException {
-        return new Parser(lexerFor(source));
+    static Parser parserFor(final String source, final String filename) throws IOException {
+        return new Parser(lexerFor(source), filename);
     }
 
     /**
@@ -50,7 +50,7 @@ final class ZFixtures {
      */
     static List<FunctionAST> parseAll(final String source) throws IOException {
         final Lexer lexer = lexerFor(source);
-        final Parser parser = new Parser(lexer);
+        final Parser parser = new Parser(lexer, "");
         final List<FunctionAST> definitions = new ArrayList<>();
 
         while (true) {

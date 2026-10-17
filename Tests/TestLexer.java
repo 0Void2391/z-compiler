@@ -90,6 +90,16 @@ public class TestLexer {
     }
 
     @Test
+    void testImport() throws IOException {
+        final String code = "import libc";
+        final Lexer lex = new Lexer(new ByteArrayInputStream(code.getBytes(StandardCharsets.UTF_8)));
+
+        assertEquals(Lexer.Tokens.IMPORT.value, lex.GetTok());
+        assertEquals(Lexer.Tokens.IDENTIFIER.value, lex.GetTok());
+        assertEquals("libc", lex.IdentifierStr);
+    }
+
+    @Test
     void testVariableAssignment() throws IOException {
         final String code = "int32 var -> 30";
         final Lexer lex = new Lexer(new ByteArrayInputStream(code.getBytes(StandardCharsets.UTF_8)));

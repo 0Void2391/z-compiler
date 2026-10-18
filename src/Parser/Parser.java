@@ -138,6 +138,8 @@ public class Parser {
                 parsed = parseDefinition();
             } else if (token == Lexer.Tokens.CN) {
                 parsed = parseConstant();
+            } else if (token == Lexer.Tokens.ARRAY_OPEN) {
+                parsed = parseArray();
             } else if (isTypeToken(token)) {
                 parsed = parseVariable();
             } else if (token == Lexer.Tokens.EXTERN){
@@ -217,6 +219,54 @@ public class Parser {
         if (value == null) return null;
 
         return new DeclaratorExprAST(zType, name, value, true);
+    }
+    public final ArrayAST parseArray() throws IOException {
+        next();
+
+        final Lexer.Tokens typeTok = Lexer.Tokens.fromValues(curTok);
+        if (!isTypeToken(typeTok)) {
+            return error("Expected type after array definition");
+        }
+        final ZType zType = resolveType(typeTok.description);
+        if (zType == null) return null;
+        next();
+
+        if (curTok != Lexer.Tokens.PARAMS.value) {
+            return error("Expected '|' after type definition");
+        }
+        next();
+
+        double size = lex.numVal;
+        ExprAST arraySize = parseNumberExpr(size);
+        next();
+
+        if (curTok != Lexer.Tokens.ARRAY_CLOSE.value) {
+            return error("Expected constant name");
+        }
+        next();
+
+        if (curTok != Lexer.Tokens.IDENTIFIER.value) {
+            return error("Expected constant name");
+        }
+        final String name = lex.identifierStr;
+        next();
+
+        if (curTok != Lexer.Tokens.ASSIGN.value && curTok != Lexer.Tokens.SAME.value) {
+            return error("Expected '->' or '=' in constant declaration");
+        }
+        next();
+
+        final List<NumberExprAST> members = new ArrayList<>();
+
+        for (int i = 0; i < (int) size; ++i) {
+            members.add();
+
+            next();
+
+            next();
+        }
+
+        return new ArrayAST(zType, arraySize, value);
     }
 
     /**
@@ -631,6 +681,8 @@ public class Parser {
             return parseVariable();
         } else if (token == Lexer.Tokens.CN) {
             return parseConstant();
+        } else if (token == Lexer.Tokens.ARRAY_OPEN) {
+            return parseArray();
         } else {
             return parseExpression();
         }
@@ -762,10 +814,6 @@ public class Parser {
 
         final List<ExprAST> bodyStatements = new ArrayList<>();
         while (curTok != Lexer.Tokens.CLOSE_FUNC.value && curTok != Lexer.Tokens.EOF.value) {
-            if (curTok == ';') {
-                next();
-                continue;
-            }
             final ExprAST stmt = parseStatement();
             if (stmt == null) return null;
             bodyStatements.add(stmt);

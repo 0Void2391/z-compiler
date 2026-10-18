@@ -10,5 +10,27 @@
     <img src="https://img.shields.io/github/license/the-big-zed/z-compiler" alt="LGPL-2.1">
   </p>
 
+  <p>
+    <img src="https://github.com/the-big-zed/z-compiler/actions/workflows/ci.yml/badge.svg" alt="CI">
+    <img src="https://github.com/the-big-zed/z-compiler/actions/workflows/lint.yml/badge.svg" alt="Lint">
+    <img src="https://github.com/the-big-zed/z-compiler/actions/workflows/release.yml/badge.svg" alt="Release">
+  </p>
+
   <h1><a href="https://discord.gg/HzDX5HSwP"><b>Discord</b></a></h1>
 </div>
+
+## Development
+
+```sh
+mvn --batch-mode --no-transfer-progress clean verify   # build + all tests
+scripts/ci/local-check.sh                              # exactly what CI runs 
+```
+
+The end-to-end tests need LLVM (`sudo apt-get install -y clang llvm`); without it
+they are silently skipped, so CI checks for the tools explicitly.
+
+## Release 
+```shell
+git tag v1.0.0
+git push origin v1.0.0
+```

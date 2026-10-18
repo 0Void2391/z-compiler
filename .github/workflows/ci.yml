@@ -1,33 +1,124 @@
-name: Java CI (Build & Test)
+name: CI
 
 on:
   push:
     branches: [ "main" ]
   pull_request:
     branches: [ "main" ]
-
+  workflow_dispatch:
+    inputs:
+      native:
+        description: "Also build the GraalVM native image (slow, ~4 min)"
+        type: boolean
+        default: false
 
 permissions:
   contents: read
 
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
   build:
-    name: Build and Test
+    name: Build, test & smoke test (Java ${{ matrix.java }})
     runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    strategy:
+      fail-fast: false
+      matrix:
+        java: [ "21", "25" ]
 
     steps:
-    - uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@v7
 
-    - name: Configura Java 21
-      uses: actions/setup-java@v4
-      with:
-        java-version: '21'
-        distribution: 'temurin'
-        cache: maven
+      - name: Set up Java ${{ matrix.java }}
+        uses: actions/setup-java@v6
+        with:
+          java-version: ${{ matrix.java }}
+          distribution: temurin
+          cache: maven
 
-    - name: compile and test
-      run: mvn --batch-mode clean verify
+      - name: Require the LLVM toolchain
+        shell: bash
+        run: |
+          set -euo pipefail
+          missing=0
+          for tool in clang llc opt llvm-as lli; do
+            if command -v "$tool" >/dev/null 2>&1; then
+              echo "found: $tool -> $(command -v "$tool")"
+            else
+              echo "::error::LLVM tool '$tool' not found; the end-to-end tests would silently skip."
+              echo "Install it with: sudo apt-get update && sudo apt-get install -y clang llvm"
+              missing=1
+            fi
+          done
+          exit "$missing"
 
-    - name: notify if failure
-      if: failure()
-      run: echo "Error"
+      - name: Build and test (mvn clean verify)
+        shell: bash
+        run: |
+          set -euo pipefail
+          mvn --batch-mode --no-transfer-progress clean verify
+
+      - name: Smoke test the runnable jar
+        shell: bash
+        run: |
+          set -euo pipefail
+          jar=(target/z-compiler-*-all.jar)
+          scripts/ci/smoke-test.sh "${jar[0]}"
+
+      - name: Upload test reports
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: surefire-reports-java-${{ matrix.java }}
+          path: target/surefire-reports/
+          if-no-files-found: ignore
+          retention-days: 7
+
+      - name: Upload the runnable jar
+        if: matrix.java == '21'
+        uses: actions/upload-artifact@v7
+        with:
+          name: z-compiler-jar
+          path: target/z-compiler-*-all.jar
+          if-no-files-found: error
+          retention-days: 7
+
+  native:
+    name: Native image (manual)
+    if: github.event_name == 'workflow_dispatch' && inputs.native
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Set up GraalVM (JDK 21)
+        uses: graalvm/setup-graalvm@v1
+        with:
+          java-version: '21'
+          distribution: 'graalvm'
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          cache: maven
+
+      - name: Build the native image (tests included)
+        shell: bash
+        run: |
+          set -euo pipefail
+          mvn --batch-mode --no-transfer-progress -Pnative clean verify
+
+      - name: Smoke test the native image
+        run: scripts/ci/smoke-test.sh target/z-compiler
+
+      - name: Upload the native image
+        uses: actions/upload-artifact@v7
+        with:
+          name: z-compiler-linux-amd64
+          path: target/z-compiler
+          if-no-files-found: error
+          retention-days: 7

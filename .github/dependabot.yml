@@ -5,7 +5,38 @@
 
 version: 2
 updates:
-  - package-ecosystem: "maven" # See documentation for possible values
-    directory: "/" # Location of package manifests
+  # Maven dependencies (pom.xml)
+  - package-ecosystem: "maven"
+    directory: "/"
     schedule:
       interval: "weekly"
+      day: "monday"
+      time: "05:00"
+      timezone: "Europe/Rome"
+    open-pull-requests-limit: 10
+    labels:
+      - "dependencies"
+      - "build"
+    commit-message:
+      prefix: "deps"
+    groups:
+      maven-minor-and-patch:
+        update-types: [ "minor", "patch" ]
+
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "05:00"
+      timezone: "Europe/Rome"
+    open-pull-requests-limit: 10
+    labels:
+      - "dependencies"
+      - "ci-cd"
+    commit-message:
+      prefix: "ci"
+    groups:
+      github-actions:
+        patterns:
+          - "*"

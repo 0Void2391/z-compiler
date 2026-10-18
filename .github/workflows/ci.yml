@@ -41,21 +41,9 @@ jobs:
           distribution: temurin
           cache: maven
 
-      - name: Require the LLVM toolchain
+      - name: Set up the LLVM toolchain
         shell: bash
-        run: |
-          set -euo pipefail
-          missing=0
-          for tool in clang llc opt llvm-as lli; do
-            if command -v "$tool" >/dev/null 2>&1; then
-              echo "found: $tool -> $(command -v "$tool")"
-            else
-              echo "::error::LLVM tool '$tool' not found; the end-to-end tests would silently skip."
-              echo "Install it with: sudo apt-get update && sudo apt-get install -y clang llvm"
-              missing=1
-            fi
-          done
-          exit "$missing"
+        run: scripts/ci/llvm.sh --install
 
       - name: Build and test (mvn clean verify)
         shell: bash

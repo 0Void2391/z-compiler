@@ -36,6 +36,9 @@ if [[ ${#fast[@]} -eq 0 ]]; then
     fi
 fi
 
+section "LLVM toolchain (end-to-end tests)"
+scripts/ci/llvm.sh
+
 section "mvn clean verify (build + tests)"
 mvn --batch-mode --no-transfer-progress clean verify
 

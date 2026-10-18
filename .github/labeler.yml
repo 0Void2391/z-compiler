@@ -1,4 +1,3 @@
-
 parser:
   - changed-files:
       - any-glob-to-any-file: 'src/Parser/**'

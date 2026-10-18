@@ -26,10 +26,12 @@ mvn --batch-mode --no-transfer-progress clean verify   # build + all tests
 scripts/ci/local-check.sh                              # exactly what CI runs 
 ```
 
-The end-to-end tests need LLVM (`sudo apt-get install -y clang llvm`); without it
-they are silently skipped, so CI checks for the tools explicitly.
+The end-to-end tests need LLVM (`sudo apt-get install -y clang llvm`, or run
+`scripts/ci/llvm.sh --install`); without it they are silently skipped, so CI
+checks for the tools explicitly.
 
-## Release 
+## Release
+
 ```shell
 git tag v1.0.0
 git push origin v1.0.0

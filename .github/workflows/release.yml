@@ -48,20 +48,9 @@ jobs:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           cache: maven
 
-      - name: Require the LLVM toolchain
+      - name: Set up the LLVM toolchain
         shell: bash
-        run: |
-          set -euo pipefail
-          missing=0
-          for tool in clang llc opt llvm-as lli; do
-            if command -v "$tool" >/dev/null 2>&1; then
-              echo "found: $tool"
-            else
-              echo "::error::LLVM tool '$tool' not found (sudo apt-get install -y clang llvm)"
-              missing=1
-            fi
-          done
-          exit "$missing"
+        run: scripts/ci/llvm.sh --install
 
       - name: Build
         shell: bash

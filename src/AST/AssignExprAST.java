@@ -1,5 +1,7 @@
 package src.AST;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import src.Codegen.IRBuilder;
 import src.Codegen.SymbolTable;
 import src.Parser.ZType;
@@ -8,6 +10,7 @@ import src.Parser.ZType;
  * Assignment expression
  */
 public final class AssignExprAST extends ExprAST {
+    private static final Logger logger = LoggerFactory.getLogger(AssignExprAST.class);
 
     private final String varName;
     private final ExprAST expr;
@@ -41,21 +44,21 @@ public final class AssignExprAST extends ExprAST {
     }
 
     @Override
-    public Value Codegen(final IRBuilder builder) {
+    public Value codeGen(final IRBuilder builder) {
         final SymbolTable.SymbolInfo info = builder.symbols().lookup(varName);
         if (info == null) {
-            System.err.println("Error: Undefined variable: " + varName);
+            logger.error("Error: Undefined variable: {}", varName);
             builder.markFailed();
             return null;
         }
 
         if (info.isConstant()) {
-            System.err.println("Error: Cannot assign to constant: " + varName);
+            logger.error("Error: Cannot assign to constant: {}", varName);
             builder.markFailed();
             return null;
         }
 
-        final Value value = expr.Codegen(builder);
+        final Value value = expr.codeGen(builder);
         if (value == null) {
             builder.markFailed();
             return null;
@@ -70,7 +73,7 @@ public final class AssignExprAST extends ExprAST {
             }
         }
         if (varType == null) {
-            System.err.println("Error: Unknown LLVM type: " + llvmType);
+            logger.error("Error: Unknown LLVM type: {}", llvmType);
             builder.markFailed();
             return null;
         }

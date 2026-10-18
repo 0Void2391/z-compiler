@@ -1,5 +1,8 @@
 package src.lexer;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.HashMap;
@@ -10,6 +13,7 @@ import java.util.Map;
  * Parses the source code and returns various Tokens, if it's unknown returns the ASCII value
  */
 public class Lexer {
+    private static final Logger logger = LoggerFactory.getLogger(Lexer.class);
 
     /**
      * Enum of Tokens
@@ -76,17 +80,17 @@ public class Lexer {
      * Lastchar is used to store the last char lol, IdentifierStr is used to store the String value of the identifier token (es. variable)
      * NumVal is used to store the value of the number token (es. 10)
      */
-    private int LastChar = ' ';
-    public String IdentifierStr;
-    public double NumVal;
+    private int lastChar = ' ';
+    public String identifierStr;
+    public double numVal;
     /** the number exactly as it was written, which NumVal cannot represent */
-    public String NumberText;
+    public String numberText;
     /** true when the literal had a decimal point or an exponent */
-    public boolean NumIsFloat;
+    public boolean numIsFloat;
     /** true when the literal was written without one */
-    public boolean NumIsInteger;
+    public boolean numIsInteger;
     /** the contents of a string literal, after escape processing */
-    public String StringVal;
+    public String stringVal;
 
     // stream for the input
     private final InputStream input;
@@ -113,7 +117,7 @@ public class Lexer {
     }
 
     private void read() throws IOException {
-        LastChar = input.read();
+        lastChar = input.read();
     }
 
     /**
@@ -121,23 +125,23 @@ public class Lexer {
      * @return the next token
      * @throws IOException if an I/O error occurs
      */
-    public int GetTok() throws IOException {
+    public int getTok() throws IOException {
 
         // skips whitespaces
-        while (Character.isWhitespace(LastChar)) {
+        while (Character.isWhitespace(lastChar)) {
             read();
         }
 
         // EOF for some fucking reason in java is -1
-        if (LastChar == -1) {
+        if (lastChar == -1) {
             return Tokens.EOF.value;
         }
 
         // assignment operator ->
-        if (LastChar == '-') {
+        if (lastChar == '-') {
             read();
 
-            if (LastChar == '>') {
+            if (lastChar == '>') {
                 read();
                 return Tokens.ASSIGN.value;
             }
@@ -147,18 +151,18 @@ public class Lexer {
 
         // chars
 
-        if (Character.isAlphabetic(LastChar)) {
+        if (Character.isAlphabetic(lastChar)) {
             final StringBuilder sb = new StringBuilder();
 
             do {
-                sb.append((char) LastChar);
+                sb.append((char) lastChar);
                 read();
-            } while (Character.isLetterOrDigit(LastChar));
+            } while (Character.isLetterOrDigit(lastChar));
 
-            IdentifierStr = sb.toString();
+            identifierStr = sb.toString();
 
             // hashmap should be faster
-            final Tokens token = keywordMap.get(IdentifierStr);
+            final Tokens token = keywordMap.get(identifierStr);
             if (token != null && token != Tokens.IDENTIFIER && token != Tokens.NUMBER && token != Tokens.EOF) {
                 return token.value;
             }
@@ -168,88 +172,88 @@ public class Lexer {
         }
 
         // Numbers.
-        if (Character.isDigit(LastChar) || LastChar == '.') {
-            final StringBuilder NumStr = new StringBuilder();
+        if (Character.isDigit(lastChar) || lastChar == '.') {
+            final StringBuilder numStr = new StringBuilder();
             boolean floating = false;
 
-            if (LastChar == '.') {
+            if (lastChar == '.') {
                 read();
-                if (!Character.isDigit(LastChar)) {
+                if (!Character.isDigit(lastChar)) {
                     return '.';
                 }
 
-                NumStr.append('.');
+                numStr.append('.');
                 floating = true;
             }
 
             do {
-                if (LastChar == '.' || LastChar == 'e' || LastChar == 'E') {
+                if (lastChar == '.' || lastChar == 'e' || lastChar == 'E') {
                     floating = true;
                 }
-                NumStr.append((char) LastChar);
+                numStr.append((char) lastChar);
                 read();
-            } while (Character.isDigit(LastChar) || LastChar == '.' || LastChar == 'e' || LastChar == 'E');
+            } while (Character.isDigit(lastChar) || lastChar == '.' || lastChar == 'e' || lastChar == 'E');
 
-            NumberText = NumStr.toString();
+            numberText = numStr.toString();
             try {
-                NumVal = Double.parseDouble(NumberText);
+                numVal = Double.parseDouble(numberText);
             } catch (final NumberFormatException e) {
-                System.err.println("Error: malformed number: " + NumberText);
-                NumVal = 0;
+                logger.error("Error: malformed number: {}", numberText);
+                numVal = 0;
             }
-            NumIsFloat = floating;
-            NumIsInteger = !floating;
+            numIsFloat = floating;
+            numIsInteger = !floating;
             return Tokens.NUMBER.value;
         }
 
         // String literals: "hello\n"
-        if (LastChar == '"') {
+        if (lastChar == '"') {
             final StringBuilder sb = new StringBuilder();
-            LastChar = input.read();
-            while (LastChar != '"' && LastChar != -1) {
-                if (LastChar == '\\') {
-                    LastChar = input.read();
-                    switch (LastChar) {
+            lastChar = input.read();
+            while (lastChar != '"' && lastChar != -1) {
+                if (lastChar == '\\') {
+                    lastChar = input.read();
+                    switch (lastChar) {
                         case 'n' -> sb.append('\n');
                         case 't' -> sb.append('\t');
                         case 'r' -> sb.append('\r');
                         case '\\' -> sb.append('\\');
                         case '"' -> sb.append('"');
                         case '0' -> sb.append('\0');
-                        default -> sb.append((char) LastChar);
+                        default -> sb.append((char) lastChar);
                     }
                 } else {
-                    sb.append((char) LastChar);
+                    sb.append((char) lastChar);
                 }
-                LastChar = input.read();
+                lastChar = input.read();
             }
-            if (LastChar == -1) {
-                System.err.println("Error: unterminated string literal");
+            if (lastChar == -1) {
+                logger.error("Error: unterminated string literal");
                 return Tokens.EOF.value;
             }
-            LastChar = input.read();  // consume closing quote
-            StringVal = sb.toString();
+            lastChar = input.read();  // consume closing quote
+            stringVal = sb.toString();
             return Tokens.STRING_LITERAL.value;
         }
 
 
         // Comments
-        if (LastChar == '/') {
+        if (lastChar == '/') {
             read();
 
-            if (LastChar == '/') {
+            if (lastChar == '/') {
                 do {
                     read();
-                } while (LastChar != -1 && LastChar != '\n' && LastChar != '\r');
+                } while (lastChar != -1 && lastChar != '\n' && lastChar != '\r');
 
-                return GetTok();
+                return getTok();
             }
 
             return Tokens.DIV.value;
         }
 
         // symbols
-        final Tokens symbol = keywordMap.get(Character.toString((char) LastChar));
+        final Tokens symbol = keywordMap.get(Character.toString((char) lastChar));
 
         if (symbol != null) {
             read();
@@ -257,7 +261,7 @@ public class Lexer {
         }
 
             // returns the ASCII if unrecognized
-            final int ThisChar = LastChar;
+            final int ThisChar = lastChar;
 
             // next one
             read();

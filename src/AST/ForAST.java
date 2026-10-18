@@ -1,5 +1,7 @@
 package src.AST;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import src.Codegen.IRBuilder;
 import src.Codegen.SymbolTable;
 import src.Parser.ZType;
@@ -12,6 +14,7 @@ import src.Parser.ZType;
  * and stays visible after the loop.
  */
 public final class ForAST extends ExprAST {
+    private static final Logger logger = LoggerFactory.getLogger(ForAST.class);
 
     private final ZType varType;
     private final String varName;
@@ -20,9 +23,7 @@ public final class ForAST extends ExprAST {
     private final ExprAST update;
     private final ExprAST body;
 
-    public ForAST(final ZType varType, final String varName,
-                  final ExprAST init, final ExprAST cond,
-                  final ExprAST update, final ExprAST body) {
+    public ForAST(final ZType varType, final String varName, final ExprAST init, final ExprAST cond, final ExprAST update, final ExprAST body) {
         this.varType = varType;
         this.varName = varName;
         this.init = init;
@@ -55,9 +56,9 @@ public final class ForAST extends ExprAST {
     }
 
     @Override
-    public Value Codegen(final IRBuilder builder) {
+    public Value codeGen(final IRBuilder builder) {
         if (builder.symbols().lookupCurrentScope(varName) != null) {
-            System.err.println("Error: Shadowing o ridichiarazione locale: " + varName);
+            logger.error("Error: Shadowing or local redeclaration of : {}", varName);
             builder.markFailed();
             return null;
         }
@@ -66,7 +67,7 @@ public final class ForAST extends ExprAST {
                 varName, varType, slot, false));
 
         if (init != null) {
-            final Value produced = init.Codegen(builder);
+            final Value produced = init.codeGen(builder);
             if (produced == null) {
                 builder.markFailed();
                 return null;
@@ -100,7 +101,7 @@ public final class ForAST extends ExprAST {
 
 
         builder.emitLabel(bodyLabel);
-        body.Codegen(builder);
+        body.codeGen(builder);
         if (builder.hasFailed()) return null;
         if (builder.isTerminated()) {
             builder.emitLabel(endLabel);
@@ -109,7 +110,7 @@ public final class ForAST extends ExprAST {
         builder.emitBr(incLabel);
 
         builder.emitLabel(incLabel);
-        final Value updateProduced = update.Codegen(builder);
+        final Value updateProduced = update.codeGen(builder);
         if (updateProduced == null) {
             builder.markFailed();
             return null;

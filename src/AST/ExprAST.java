@@ -18,7 +18,7 @@ public abstract class ExprAST {
      * @return the value produced, or {@code null} if generation failed — in which
      *         case an error has already been reported
      */
-    public abstract Value Codegen(final IRBuilder builder);
+    public abstract Value codeGen(final IRBuilder builder);
 
     /**
      * Converts a generated value to {@code target}, emitting the conversion.
@@ -34,33 +34,27 @@ public abstract class ExprAST {
 
         if (from.isFloat() && target.isFloat()) {
             // float is narrower than double; double is widened to it otherwise.
-            builder.appendLine(result + " = "
-                    + (target.bits() < from.bits() ? "fptrunc " : "fpext ")
-                    + from.llvm() + " " + value.text() + " to " + target.llvm());
+            builder.appendLine(result + " = " + (target.bits() < from.bits() ? "fptrunc " : "fpext ") + from.llvm() + " " + value.text() + " to " + target.llvm());
             return new Value(result, target);
         }
         if (from.isFloat() && target.isIntegral()) {
             final String op = target.isUnsigned() ? "fptoui " : "fptosi ";
-            builder.appendLine(result + " = " + op
-                    + from.llvm() + " " + value.text() + " to " + target.llvm());
+            builder.appendLine(result + " = " + op + from.llvm() + " " + value.text() + " to " + target.llvm());
             return new Value(result, target);
         }
         if (from.isIntegral() && target.isFloat()) {
             final String op = from.isUnsigned() ? "uitofp " : "sitofp ";
-            builder.appendLine(result + " = " + op
-                    + from.llvm() + " " + value.text() + " to " + target.llvm());
+            builder.appendLine(result + " = " + op + from.llvm() + " " + value.text() + " to " + target.llvm());
             return new Value(result, target);
         }
         if (from.isIntegral() && target.isIntegral()) {
             if (from.bits() > target.bits()) {
-                builder.appendLine(result + " = trunc "
-                        + from.llvm() + " " + value.text() + " to " + target.llvm());
+                builder.appendLine(result + " = trunc " + from.llvm() + " " + value.text() + " to " + target.llvm());
                 return new Value(result, target);
             }
             if (from.bits() < target.bits()) {
                 final String op = from.isUnsigned() ? "zext " : "sext ";
-                builder.appendLine(result + " = " + op
-                        + from.llvm() + " " + value.text() + " to " + target.llvm());
+                builder.appendLine(result + " = " + op + from.llvm() + " " + value.text() + " to " + target.llvm());
                 return new Value(result, target);
             }
             // Same width, different signedness. The bits don't change; only

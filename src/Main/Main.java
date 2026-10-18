@@ -1,5 +1,7 @@
 package src.Main;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import picocli.CommandLine;
 import picocli.CommandLine.Command;
 import src.AST.ExternExprAST;
@@ -18,35 +20,51 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.Callable;
 
-@Command(name = "compiler", mixinStandardHelpOptions = true, version = "1", description = "Compiler z-code")
 /**
  * Command line interface for the compiler
  */
+@Command(name = "compiler", mixinStandardHelpOptions = true, version = "1", description = "Compiler z-code")
 class CompilerCmd implements Callable<Integer> {
+    private static final Logger logger = LoggerFactory.getLogger(CompilerCmd.class);
+
+    /**
+     * name of the source file
+     */
     @CommandLine.Parameters(index = "0", description = "Source file to be compiled")
     private File sourceFile;
 
+    /**
+     * output path for the binary
+     */
     @CommandLine.Option(names = {"-o", "--out"}, description = "Output path")
     private String outPath;
 
+    /**
+     * libraries to be linked
+     */
     @CommandLine.Option(names = {"-l", "--link"}, description = "Libraries to link against (e.g., -lcurl, -lm)")
     private final List<String> linkLibraries = new ArrayList<>();
 
+    /**
+     * directories in which to search for libraries
+     */
     @CommandLine.Option(names = {"-L", "--library-path"}, description = "Directories to search for libraries")
     private final List<String> libraryPaths = new ArrayList<>();
 
 
-    @Override
     /**
      * Main method for the compiler
      * @return 0 if the compilation is successful, 1 otherwise
      * @throws Exception if an I/O error occurs
      */
+    @Override
     public Integer call() throws Exception {
+        // reads the file
         final String zCode = Files.readString(sourceFile.toPath());
 
-        System.out.println("Starting compilation...");
+        logger.info("Starting compilation...");
 
+        // parses the string in bytes
         try {
             InputStream input = new ByteArrayInputStream(zCode.getBytes(StandardCharsets.UTF_8));
 
@@ -54,6 +72,8 @@ class CompilerCmd implements Callable<Integer> {
             final String binaryName;
             final String optFilePath;
 
+            // handles default parameters and
+            // adds the output_opt.ll file which is the file where the optimized IR is put
             if (outPath == null) {
                 llFilePath = "output.ll";
                 optFilePath = "output_opt.ll";
@@ -68,18 +88,25 @@ class CompilerCmd implements Callable<Integer> {
                 binaryName = outPath;
             }
 
+            // prepares the lexer with the byte input
             final Lexer lexer = new Lexer(input);
-            final Parser parser = new Parser(lexer, sourceFile.getName());
+
+            // prepares the parser with the lexer and the name of the file (for linking reason)
+            final Parser parser = new Parser(lexer);
+
 
             final String llvmIR = Main.generateModule(parser, sourceFile.toPath());
 
+            // returns 1 (error) if the generation failed
             if (llvmIR == null) {
                 return 1;
             }
 
+            // creates a new file and writes the unoptimized IR
             final File irFile = new File(llFilePath);
             Files.writeString(irFile.toPath(), llvmIR);
-            System.out.println("Raw IR built successfully: " + llFilePath);
+
+            logger.info("Raw IR built successfully: {}", llFilePath);
 
             // opt passes
             boolean optSuccess = runOptPasses(llFilePath, optFilePath);
@@ -87,11 +114,11 @@ class CompilerCmd implements Callable<Integer> {
                 return 1;
             }
 
-            // compilation
+            // compilation with linking
             return compileToBinary(new File(optFilePath).getAbsolutePath(), binaryName, libraryPaths, linkLibraries);
 
         } catch (IOException e) {
-            e.printStackTrace();
+            logger.error("IO error during compilation", e);
             return 1;
         }
     }
@@ -103,7 +130,7 @@ class CompilerCmd implements Callable<Integer> {
      * @return true if the optimization passes were successful, false otherwise
      */
     private static boolean runOptPasses(String inputLl, String outputLl) {
-        System.out.println("Running LLVM Optimization passes...");
+        logger.info("Running LLVM Optimization passes...");
         ProcessBuilder processBuilder = new ProcessBuilder(
                 "opt",
                 "-O3",
@@ -120,14 +147,14 @@ class CompilerCmd implements Callable<Integer> {
             int exitCode = process.waitFor();
 
             if (exitCode == 0) {
-                System.out.println("Optimized IR saved to: " + outputLl);
+                logger.info("Optimized IR saved to: {}", outputLl);
                 return true;
             } else {
-                System.err.println("Opt tool failed with exit code " + exitCode + ".");
+                logger.error("Opt tool failed with exit code {}.", exitCode);
                 return false;
             }
         } catch (IOException | InterruptedException e) {
-            System.err.println("Failed to launch 'opt' tool. Is it installed and in your PATH? idiot. Do sudo apt install opt");
+            logger.error("Failed to launch 'opt' tool. Is it installed and in your PATH? idiot. Do sudo apt install opt");
             return false;
         }
     }
@@ -139,7 +166,7 @@ class CompilerCmd implements Callable<Integer> {
      * @return 0 if the executable was produced, 1 otherwise
      */
     private static int compileToBinary(String llFilePath, String outputBinaryName, List<String> libPaths, List<String> libFlags) {
-        System.out.println("Launching Clang...");
+        logger.info("Launching Clang...");
 
         final ProcessBuilder processBuilder = createProcessBuilder(llFilePath, outputBinaryName, libPaths, libFlags);
 
@@ -148,15 +175,14 @@ class CompilerCmd implements Callable<Integer> {
             final int exitCode = process.waitFor();
 
             if (exitCode == 0) {
-                System.out.println("Executable created: ./" + outputBinaryName);
+                logger.info("Executable created: ./{}", outputBinaryName);
                 return 0;
             } else {
-                System.err.println("Error during compilation. Exit code: " + exitCode);
+                logger.error("Error during compilation. Exit code: {}", exitCode);
                 return 1;
             }
         } catch (IOException | InterruptedException e) {
-            System.err.println("Failed to launch Clang");
-            e.printStackTrace();
+            logger.error("Failed to launch Clang", e);
             return 1;
         }
     }
@@ -201,19 +227,32 @@ class CompilerCmd implements Callable<Integer> {
  * Main class, nothing to say
  */
 public class Main {
+    private static final Logger logger = LoggerFactory.getLogger(Main.class);
+
     public static void main(String[] args) {
         final int exitCode = new CommandLine(new CompilerCmd()).execute(args);
         System.exit(exitCode);
     }
 
 
+    /**
+     * Generates the module
+     * @param parser parser class
+     * @param sourceFile in which the code module is contained
+     * @return only the globals externed or also the body (main) or null if an error is present
+     * @throws IOException if an exception is found
+     */
     public static String generateModule(final Parser parser, final Path sourceFile) throws IOException {
+        // prepares classes
         final IRBuilder builder = new IRBuilder();
         final StringBuilder module = new StringBuilder();
 
+        // gets the name of the file removing the final .z
         final String rootName = sourceFile.getFileName().toString().replaceFirst("\\.z$", "");
+
+        // parses an entire module
         final ModuleAST root = ModuleLoader.parseUnit(parser, rootName);
-        if (root == null) return null;
+        if (root == null) return null; // error
 
         final Path fromDir = sourceFile.toAbsolutePath().getParent();
         final List<ModuleAST> dependencies = new ModuleLoader(rootName).loadAll(root.imports(), fromDir);
@@ -225,27 +264,27 @@ public class Main {
         builder.setCurrentModule(null);
 
         for (final ExternExprAST extern : root.externs()) {
-            final Value externValue = extern.Codegen(builder);
+            final Value externValue = extern.codeGen(builder);
             if (externValue == null || builder.hasFailed()) {
-                System.err.println("Error building the IR of the externs");
+                logger.error("Error building the IR of the externs");
                 return null;
             }
             module.append(externValue.text());
         }
 
-        if (!declareAll(root, builder)) return null;
+        if (declareAll(root, builder)) return null;
 
         for (final FunctionAST definition : root.functions()) {
-            final Value function = definition.Codegen(builder);
+            final Value function = definition.codeGen(builder);
             if (function == null || builder.hasFailed()) {
-                System.err.println("Error building the IR");
+                logger.error("Error building the IR");
                 return null;
             }
             module.append(function.text());
         }
 
         if (module.isEmpty()) {
-            System.err.println("Syntax error");
+            logger.error("Syntax error");
             return null;
         }
 
@@ -259,9 +298,11 @@ public class Main {
         builder.setCurrentModule(module.name());
 
         for (final ExternExprAST extern : module.externs()) {
-            final Value externValue = extern.Codegen(builder);
+            final Value externValue = extern.codeGen(builder);
             if (externValue == null || builder.hasFailed()) {
-                System.err.println("Error building the IR of the externs of module '" + module.name() + "'");
+                if (logger.isErrorEnabled()) {
+                    logger.error("Error building the IR of the externs of module '{}'", module.name());
+                }
                 return false;
             }
             unit.append(externValue.text());
@@ -269,17 +310,21 @@ public class Main {
 
         for (final FunctionAST definition : module.functions()) {
             if (definition.prototype().isMain()) {
-                System.err.println("Error: 'main' can only be defined in the root file, not in module '" + module.name() + "'");
+                if (logger.isErrorEnabled()) {
+                    logger.error("Error: 'main' can only be defined in the root file, not in module '{}'", module.name());
+                }
                 return false;
             }
         }
 
-        if (!declareAll(module, builder)) return false;
+        if (declareAll(module, builder)) return false;
 
         for (final FunctionAST definition : module.functions()) {
-            final Value function = definition.Codegen(builder);
+            final Value function = definition.codeGen(builder);
             if (function == null || builder.hasFailed()) {
-                System.err.println("Error building the IR of module '" + module.name() + "'");
+                if (logger.isErrorEnabled()) {
+                    logger.error("Error building the IR of module '{}'", module.name());
+                }
                 return false;
             }
             unit.append(function.text());
@@ -290,10 +335,12 @@ public class Main {
     private static boolean declareAll(final ModuleAST module, final IRBuilder builder) {
         for (final FunctionAST definition : module.functions()) {
             if (!builder.declare(definition.prototype())) {
-                System.err.println("Error: '" + builder.qualify(definition.prototype().name()) + "' is defined more than once");
-                return false;
+                if (logger.isErrorEnabled()) {
+                    logger.error("Error: '{}' is defined more than once", builder.qualify(definition.prototype().name()));
+                }
+                return true;
             }
         }
-        return true;
+        return false;
     }
 }

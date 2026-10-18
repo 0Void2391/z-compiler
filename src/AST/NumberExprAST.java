@@ -43,7 +43,7 @@ public final class NumberExprAST extends ExprAST {
     }
 
     @Override
-    public Value Codegen(final IRBuilder builder) {
+    public Value codeGen(final IRBuilder builder) {
         final ZType type = type(builder);
         return new Value(floating ? type.literal(real) : type.literal(integer), type);
     }

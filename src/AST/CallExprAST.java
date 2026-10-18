@@ -1,5 +1,7 @@
 package src.AST;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import src.Codegen.IRBuilder;
 import src.Parser.ZType;
 
@@ -10,6 +12,7 @@ import java.util.List;
  *
  */
 public final class CallExprAST extends ExprAST {
+    private static final Logger logger = LoggerFactory.getLogger(CallExprAST.class);
 
     private final String callee;
     private final List<ExprAST> arguments;
@@ -35,14 +38,15 @@ public final class CallExprAST extends ExprAST {
         if (externReturn != null) return externReturn;
         final IRBuilder.ResolvedSignature resolved = builder.resolve(callee);
         final PrototypeAST signature = resolved == null ? null : resolved.prototype();
-        return signature == null ? ZType.FLT64 : signature.isMain() ? ZType.INT32 : ZType.FLT64;
+        if (signature != null && signature.isMain()) return ZType.INT32;
+        return ZType.FLT64;
     }
 
     @Override
-    public Value Codegen(final IRBuilder builder) {
+    public Value codeGen(final IRBuilder builder) {
         final IRBuilder.ResolvedSignature resolved = builder.resolve(callee);
         if (resolved == null) {
-            System.err.println("Error: unknown function: " + callee);
+            logger.error("Error: unknown function: {}", callee);
             builder.markFailed();
             return null;
         }
@@ -50,14 +54,14 @@ public final class CallExprAST extends ExprAST {
 
         final List<PrototypeAST.Param> params = signature.params();
         if (params.size() != arguments.size()) {
-            System.err.println("Error: '" + callee + "' takes " + params.size() + " argument(s) but " + arguments.size() + " were given");
+            logger.error("Error: ''{}'' takes {} argument(s) but {} were given", callee, params.size(), arguments.size());
             builder.markFailed();
             return null;
         }
 
         final List<String> printed = new java.util.ArrayList<>();
         for (int i = 0; i < arguments.size(); i++) {
-            final Value argument = arguments.get(i).Codegen(builder);
+            final Value argument = arguments.get(i).codeGen(builder);
             if (argument == null) {
                 builder.markFailed();
                 return null;

@@ -1,5 +1,7 @@
 package Tests;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import src.AST.FunctionAST;
 import src.AST.Value;
 import src.Codegen.IRBuilder;
@@ -14,6 +16,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 final class ZFixtures {
+    private static final Logger logger = LoggerFactory.getLogger(ZFixtures.class);
 
     private ZFixtures() {
     }
@@ -25,8 +28,7 @@ final class ZFixtures {
      * @return the lexer, positioned before the first token
      */
     static Lexer lexerFor(final String source) {
-        final InputStream input =
-                new ByteArrayInputStream(source.getBytes(StandardCharsets.UTF_8));
+        final InputStream input = new ByteArrayInputStream(source.getBytes(StandardCharsets.UTF_8));
         return new Lexer(input);
     }
 
@@ -37,8 +39,8 @@ final class ZFixtures {
      * @return the parser, positioned on the first token
      * @throws IOException if the input cannot be read
      */
-    static Parser parserFor(final String source, final String filename) throws IOException {
-        return new Parser(lexerFor(source), filename);
+    static Parser parserFor(final String source) throws IOException {
+        return new Parser(lexerFor(source));
     }
 
     /**
@@ -50,19 +52,20 @@ final class ZFixtures {
      */
     static List<FunctionAST> parseAll(final String source) throws IOException {
         final Lexer lexer = lexerFor(source);
-        final Parser parser = new Parser(lexer, "");
+        final Parser parser = new Parser(lexer);
         final List<FunctionAST> definitions = new ArrayList<>();
 
         while (true) {
             final java.io.ByteArrayOutputStream reported = new java.io.ByteArrayOutputStream();
+            @SuppressWarnings("squid:S106") // System.err is intentionally captured for test diagnostics
             final java.io.PrintStream diagnostics = System.err;
             final FunctionAST definition;
             final boolean endOfInput;
 
             System.setErr(new java.io.PrintStream(reported, true, StandardCharsets.UTF_8));
             try {
-                definition = parser.ParseDefinition(false);
-                endOfInput = definition == null && lexer.GetTok() == Lexer.Tokens.EOF.value;
+                definition = parser.parseDefinition();
+                endOfInput = definition == null && lexer.getTok() == Lexer.Tokens.EOF.value;
             } finally {
                 System.setErr(diagnostics);
             }
@@ -95,7 +98,7 @@ final class ZFixtures {
 
         final StringBuilder module = new StringBuilder();
         for (final FunctionAST definition : definitions) {
-            final Value function = definition.Codegen(builder);
+            final Value function = definition.codeGen(builder);
             if (function == null || builder.hasFailed()) return null;
             module.append(function.text());
         }
@@ -112,12 +115,11 @@ final class ZFixtures {
      */
     static String failureOf(final String source) {
         final java.io.ByteArrayOutputStream captured = new java.io.ByteArrayOutputStream();
+        @SuppressWarnings("squid:S106") // System.err is intentionally captured for test diagnostics
         final java.io.PrintStream diagnostics = System.err;
         System.setErr(new java.io.PrintStream(captured, true, StandardCharsets.UTF_8));
         try {
-            return module(source) == null
-                    ? captured.toString(StandardCharsets.UTF_8)
-                    : null;
+            return module(source) == null ? captured.toString(StandardCharsets.UTF_8) : null;
         } catch (final IOException e) {
             return null;
         } finally {

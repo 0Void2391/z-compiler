@@ -247,12 +247,13 @@ public class TestCodeGen {
 
     @Test
     public void testSimpleForLoop() throws IOException {
-        final String code = "proc main() {\n"
-                + "  for (int32 i -> 0 | i < 10 | i + 1) {\n"
-                + "    int32 x -> 5\n"
-                + "  }\n"
-                + "  ret 0\n"
-                + "}";
+        final String code = """
+                 proc main() {
+                  for (int32 i -> 0 | i < 10 | i + 1) {
+                    int32 x -> 5
+                  }
+                  ret 0
+                }""";
 
         assertEquals("""
                 define dso_local i32 @main() {
@@ -312,18 +313,19 @@ public class TestCodeGen {
 
     @Test
     public void testReturnInsideForLoopSkipsTheIncrement() throws IOException {
-        final String code = "proc find(int32 n) {\n"
-                + "  for (int32 i -> 0 | i < n | i + 1) {\n"
-                + "    ret i\n"
-                + "  }\n"
-                + "  ret 0\n"
-                + "}";
+        final String code = """
+                proc find(int32 n) {
+                  for (int32 i -> 0 | i < n | i + 1) {
+                    ret i
+                  }
+                  ret 0
+                }""";
 
         final String llvmIR = codeGen(code);
 
         assertNotNull(llvmIR);
         assertTrue(llvmIR.contains("ret double"), llvmIR);
-        assertTrue(!llvmIR.contains("for.inc"), llvmIR);
+        assertFalse(llvmIR.contains("for.inc"), llvmIR);
     }
 
     @Test
@@ -435,7 +437,7 @@ public class TestCodeGen {
         final String diagnostics = ZFixtures.failureOf("proc main() { int32 x -> 1\n int32 x -> 2\n ret x }");
 
         assertNotNull(diagnostics);
-        assertTrue(diagnostics.contains("Shadowing"), diagnostics);
+        assertTrue(diagnostics.contains("local"), diagnostics);
     }
 
     @Test
@@ -443,7 +445,7 @@ public class TestCodeGen {
         final String diagnostics = ZFixtures.failureOf("proc main() { ret ghost }");
 
         assertNotNull(diagnostics);
-        assertTrue(diagnostics.contains("non dichiarata"), diagnostics);
+        assertTrue(diagnostics.contains("undeclared"), diagnostics);
     }
 
     @Test
@@ -456,15 +458,14 @@ public class TestCodeGen {
 
     @Test
     public void testCallWithTooManyArgumentsFails() {
-        final String diagnostics =
-                ZFixtures.failureOf("proc foo(int32 x) { ret x }\nproc main() { ret foo(1 | 2) }");
+        final String diagnostics = ZFixtures.failureOf("proc foo(int32 x) { ret x }\nproc main() { ret foo(1 | 2) }");
 
         assertNotNull(diagnostics);
         assertTrue(diagnostics.contains("takes 1 argument"), diagnostics);
     }
 
     @Test
-    public void testCallWithTooFewArgumentsFails() throws IOException {
+    public void testCallWithTooFewArgumentsFails() {
         assertCodegenFails("proc foo(int32 x | int32 y) { ret x }\nproc main() { ret foo(1) }");
     }
 
@@ -477,12 +478,12 @@ public class TestCodeGen {
     }
 
     @Test
-    public void testStatementAfterReturnFails() throws IOException {
+    public void testStatementAfterReturnFails() {
         assertCodegenFails("proc main() { ret 0\n ret 1 }");
     }
 
     @Test
-    public void testDuplicateParameterFails() throws IOException {
+    public void testDuplicateParameterFails() {
         assertCodegenFails("proc foo(int32 x | int32 x) { ret x }");
     }
 
@@ -694,20 +695,24 @@ public class TestCodeGen {
         final String llvmIR = codeGen("proc main() { if (1 < 2) {\n} else {\n ret 0\n}ret 1\n}\n");
 
         assertNotNull(llvmIR);
-        assertEquals("define dso_local i32 @main() {\n" +
-                "entry:\n" +
-                " br label %if.cond.0\n" +
-                " if.cond.0:\n" +
-                " %1 = icmp slt i32 1, 2\n" +
-                " br i1 %1, label %if.then.1, label %if.else.2\n" +
-                " if.then.1:\n" +
-                " br label %if.end.3\n" +
-                " if.else.2:\n" +
-                " ret i32 0\n" +
-                " if.end.3:\n" +
-                " ret i32 1\n}\n", llvmIR);
+        assertEquals("""
+                define dso_local i32 @main() {
+                entry:
+                 br label %if.cond.0
+                 if.cond.0:
+                 %1 = icmp slt i32 1, 2
+                 br i1 %1, label %if.then.1, label %if.else.2
+                 if.then.1:
+                 br label %if.end.3
+                 if.else.2:
+                 ret i32 0
+                 if.end.3:
+                 ret i32 1
+                }
+                """, llvmIR);
     }
 
+    @Test
     public void testUnsignedDeclarations() throws IOException {
         final String llvmIR = codeGen("proc main() { uint32 a -> 3\n uint64 b -> 4\n ret 0 }");
 

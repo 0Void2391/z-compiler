@@ -33,14 +33,13 @@ public final class StringExprAST extends ExprAST {
     }
 
     @Override
-    public Value Codegen(final IRBuilder builder) {
+    public Value codeGen(final IRBuilder builder) {
         final byte[] bytes = value.getBytes(StandardCharsets.UTF_8);
         final int length = bytes.length + 1;  // +1 for the null terminator
         final String globalName = builder.emitStringConstant(bytes);
 
         final String reg = builder.nextRegister();
-        builder.appendLine(reg + " = getelementptr inbounds ["
-                + length + " x i8], ptr @" + globalName + ", i32 0, i32 0");
+        builder.appendLine(reg + " = getelementptr inbounds [" + length + " x i8], ptr @" + globalName + ", i32 0, i32 0");
         builder.setRegisterType(reg, ZType.STRING.llvm());
         return new Value(reg, ZType.STRING);
     }

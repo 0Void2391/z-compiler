@@ -2,13 +2,14 @@ package Tests;
 
 import org.junit.jupiter.api.Test;
 
+import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.attribute.PosixFilePermission;
+import java.nio.file.attribute.PosixFilePermissions;
+import java.util.Set;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNotEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.*;
 
 public class TestEndToEnd {
 
@@ -16,7 +17,7 @@ public class TestEndToEnd {
     public static final String CLANG = findTool("clang");
 
     public static String findTool(final String name) {
-        final String path = System.getenv("PATH");
+        final String path = getSecurePath();
         if (path == null) return null;
         for (final String directory : path.split(":")) {
             final Path candidate = Path.of(directory, name);
@@ -25,19 +26,51 @@ public class TestEndToEnd {
         return null;
     }
 
-    public Path compile(final String name, final String source) throws Exception {
-        final Path directory = Files.createTempDirectory("zendtoend");
+    private static String getSecurePath() {
+        final String path = System.getenv("PATH");
+        if (path == null) return null;
+        
+        final StringBuilder securePath = new StringBuilder();
+        for (final String directory : path.split(":")) {
+            if (isSecureDirectory(directory)) {
+                if (!securePath.isEmpty()) {
+                    securePath.append(":");
+                }
+                securePath.append(directory);
+            }
+        }
+        return !securePath.isEmpty() ? securePath.toString() : null;
+    }
+
+    private static boolean isSecureDirectory(final String directory) {
+        try {
+            final Path dir = Path.of(directory);
+            if (!Files.exists(dir)) return false;
+            return !Files.isWritable(dir);
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    private static Path createSecureTempDirectory(final String prefix) throws IOException {
+        final Set<PosixFilePermission> permissions = PosixFilePermissions.fromString("rwx------");
+        return Files.createTempDirectory(prefix, PosixFilePermissions.asFileAttribute(permissions));
+    }
+
+    public Path compile(final String name, final String source) throws IOException, InterruptedException {
+        final Path directory = createSecureTempDirectory("zendtoend");
         final Path sourceFile = directory.resolve(name + ".z");
         Files.writeString(sourceFile, source);
 
-        final Process process = new ProcessBuilder(
+        final ProcessBuilder builder = new ProcessBuilder(
                 "java",
                 "-cp", System.getProperty("java.class.path"),
                 "src.Main.Main",
                 sourceFile.toString(),
                 "-o", directory.resolve(name).toString())
-                .redirectErrorStream(true)
-                .start();
+                .redirectErrorStream(true);
+        builder.environment().put("PATH", getSecurePath());
+        final Process process = builder.start();
 
         final String output = new String(process.getInputStream().readAllBytes());
         final int status = process.waitFor();
@@ -45,14 +78,14 @@ public class TestEndToEnd {
         return directory.resolve(name);
     }
 
-    public int run(final Path binary) throws Exception {
+    public int run(final Path binary) throws IOException, InterruptedException {
         final Process process = new ProcessBuilder(binary.toString()).redirectErrorStream(true).start();
         final String output = new String(process.getInputStream().readAllBytes());
         return process.waitFor();
     }
 
     @Test
-    public void testArithmeticProgramRuns() throws Exception {
+    public void testArithmeticProgramRuns() throws IOException, InterruptedException {
         if (OPT == null || CLANG == null) return;
 
         final Path binary = compile("arith", "proc main() { ret 40 + 2 }");
@@ -61,7 +94,7 @@ public class TestEndToEnd {
     }
 
     @Test
-    public void testCallToALaterFunctionRuns() throws Exception {
+    public void testCallToALaterFunctionRuns() throws IOException, InterruptedException {
         if (OPT == null || CLANG == null) return;
 
         final Path binary = compile("forward", """
@@ -78,7 +111,7 @@ public class TestEndToEnd {
     }
 
     @Test
-    public void testMutuallyRecursiveFunctionsRun() throws Exception {
+    public void testMutuallyRecursiveFunctionsRun() throws IOException, InterruptedException {
         if (OPT == null || CLANG == null) return;
 
         final Path binary = compile("mutual", """
@@ -99,7 +132,7 @@ public class TestEndToEnd {
     }
 
     @Test
-    public void testLoopRuns() throws Exception {
+    public void testLoopRuns() throws IOException, InterruptedException {
         if (OPT == null || CLANG == null) return;
 
         final Path binary = compile("loop", """
@@ -115,7 +148,7 @@ public class TestEndToEnd {
     }
 
     @Test
-    public void testReturningFromInsideALoopRuns() throws Exception {
+    public void testReturningFromInsideALoopRuns() throws IOException, InterruptedException {
         if (OPT == null || CLANG == null) return;
 
         final Path binary = compile("earlyexit", """
@@ -131,7 +164,7 @@ public class TestEndToEnd {
     }
 
     @Test
-    public void testVariablesAndConstantsRun() throws Exception {
+    public void testVariablesAndConstantsRun() throws IOException, InterruptedException {
         if (OPT == null || CLANG == null) return;
 
         final Path binary = compile("vars", """
@@ -146,22 +179,23 @@ public class TestEndToEnd {
     }
 
     @Test
-    public void testBinaryIsNotProducedForAFailedCompilation() throws Exception {
+    public void testBinaryIsNotProducedForAFailedCompilation() throws IOException, InterruptedException {
         if (OPT == null || CLANG == null) return;
 
-        final Path directory = Files.createTempDirectory("zendtoend");
+        final Path directory = createSecureTempDirectory("zendtoend");
         final Path sourceFile = directory.resolve("broken.z");
         Files.writeString(sourceFile, "proc main() { ret nope(1) }");
         final Path binary = directory.resolve("broken");
 
-        final Process process = new ProcessBuilder(
+        final ProcessBuilder builder = new ProcessBuilder(
                 "java",
                 "-cp", System.getProperty("java.class.path"),
                 "src.Main.Main",
                 sourceFile.toString(),
                 "-o", binary.toString())
-                .redirectErrorStream(true)
-                .start();
+                .redirectErrorStream(true);
+        builder.environment().put("PATH", getSecurePath());
+        final Process process = builder.start();
 
         final String output = new String(process.getInputStream().readAllBytes());
 
@@ -171,22 +205,23 @@ public class TestEndToEnd {
     }
 
     @Test
-    public void testTwoFunctionsWithTheSameNameAreRejected() throws Exception {
+    public void testTwoFunctionsWithTheSameNameAreRejected() throws IOException, InterruptedException {
         if (OPT == null || CLANG == null) return;
 
-        final Path directory = Files.createTempDirectory("zendtoend");
+        final Path directory = createSecureTempDirectory("zendtoend");
         final Path sourceFile = directory.resolve("dup.z");
         Files.writeString(sourceFile, "proc a() { ret 1 }\nproc a() { ret 2 }\nproc main() { ret a() }");
         final Path binary = directory.resolve("dup");
 
-        final Process process = new ProcessBuilder(
+        final ProcessBuilder builder = new ProcessBuilder(
                 "java",
                 "-cp", System.getProperty("java.class.path"),
                 "src.Main.Main",
                 sourceFile.toString(),
                 "-o", binary.toString())
-                .redirectErrorStream(true)
-                .start();
+                .redirectErrorStream(true);
+        builder.environment().put("PATH", getSecurePath());
+        final Process process = builder.start();
 
         final String output = new String(process.getInputStream().readAllBytes());
 
@@ -196,22 +231,23 @@ public class TestEndToEnd {
     }
 
     @Test
-    public void testAnEmptyFileIsRejected() throws Exception {
+    public void testAnEmptyFileIsRejected() throws IOException, InterruptedException {
         if (OPT == null || CLANG == null) return;
 
-        final Path directory = Files.createTempDirectory("zendtoend");
+        final Path directory = createSecureTempDirectory("zendtoend");
         final Path sourceFile = directory.resolve("empty.z");
         Files.writeString(sourceFile, "");
         final Path binary = directory.resolve("empty");
 
-        final Process process = new ProcessBuilder(
+        final ProcessBuilder builder = new ProcessBuilder(
                 "java",
                 "-cp", System.getProperty("java.class.path"),
                 "src.Main.Main",
                 sourceFile.toString(),
                 "-o", binary.toString())
-                .redirectErrorStream(true)
-                .start();
+                .redirectErrorStream(true);
+        builder.environment().put("PATH", getSecurePath());
+        final Process process = builder.start();
 
         final String output = new String(process.getInputStream().readAllBytes());
 
@@ -220,22 +256,23 @@ public class TestEndToEnd {
     }
 
     @Test
-    public void testATruncatedSecondFunctionIsRejected() throws Exception {
+    public void testATruncatedSecondFunctionIsRejected() throws IOException, InterruptedException {
         if (OPT == null || CLANG == null) return;
 
-        final Path directory = Files.createTempDirectory("zendtoend");
+        final Path directory = createSecureTempDirectory("zendtoend");
         final Path sourceFile = directory.resolve("truncated.z");
         Files.writeString(sourceFile, "proc main() { ret 1 }\nproc broken() { ret 2");
         final Path binary = directory.resolve("truncated");
 
-        final Process process = new ProcessBuilder(
+        final ProcessBuilder builder = new ProcessBuilder(
                 "java",
                 "-cp", System.getProperty("java.class.path"),
                 "src.Main.Main",
                 sourceFile.toString(),
                 "-o", binary.toString())
-                .redirectErrorStream(true)
-                .start();
+                .redirectErrorStream(true);
+        builder.environment().put("PATH", getSecurePath());
+        final Process process = builder.start();
 
         final String output = new String(process.getInputStream().readAllBytes());
 
@@ -245,33 +282,35 @@ public class TestEndToEnd {
     }
 
     @Test
-    public void testMissingSourceFileIsReported() throws Exception {
-        final Process process = new ProcessBuilder(
+    public void testMissingSourceFileIsReported() throws IOException, InterruptedException {
+        final ProcessBuilder builder = new ProcessBuilder(
                 "java",
                 "-cp", System.getProperty("java.class.path"),
                 "src.Main.Main",
                 "/nonexistent/path.z")
-                .redirectErrorStream(true)
-                .start();
+                .redirectErrorStream(true);
+        builder.environment().put("PATH", getSecurePath());
+        final Process process = builder.start();
 
         assertNotEquals(0, process.waitFor());
     }
 
-    public Path compileFiles(final String root, final String... files) throws Exception {
-        final Path directory = Files.createTempDirectory("zendtoend");
+    public Path compileFiles(final String root, final String... files) throws IOException, InterruptedException {
+        final Path directory = createSecureTempDirectory("zendtoend");
         for (final String file : files) {
             final int split = file.indexOf('\n');
             Files.writeString(directory.resolve(file.substring(0, split)), file.substring(split + 1));
         }
 
-        final Process process = new ProcessBuilder(
+        final ProcessBuilder builder = new ProcessBuilder(
                 "java",
                 "-cp", System.getProperty("java.class.path"),
                 "src.Main.Main",
                 directory.resolve(root + ".z").toString(),
                 "-o", directory.resolve(root).toString())
-                .redirectErrorStream(true)
-                .start();
+                .redirectErrorStream(true);
+        builder.environment().put("PATH", getSecurePath());
+        final Process process = builder.start();
 
         final String output = new String(process.getInputStream().readAllBytes());
         assertEquals(0, process.waitFor(), output);
@@ -279,7 +318,7 @@ public class TestEndToEnd {
     }
 
     @Test
-    public void testImportedModuleFunctionRuns() throws Exception {
+    public void testImportedModuleFunctionRuns() throws IOException, InterruptedException {
         if (OPT == null || CLANG == null) return;
 
         final Path binary = compileFiles("main", "main.z\nimport math\n\nproc main() {\n    ret math.twice(21)\n}", "math.z\nproc twice(int32 x) {\n    ret x * 2\n}");
@@ -288,7 +327,7 @@ public class TestEndToEnd {
     }
 
     @Test
-    public void testTransitiveImportsRun() throws Exception {
+    public void testTransitiveImportsRun() throws IOException, InterruptedException {
         if (OPT == null || CLANG == null) return;
 
         final Path binary = compileFiles("main",
@@ -300,23 +339,24 @@ public class TestEndToEnd {
     }
 
     @Test
-    public void testCallingAFunctionTheModuleDoesNotHaveIsRejected() throws Exception {
+    public void testCallingAFunctionTheModuleDoesNotHaveIsRejected() throws IOException, InterruptedException {
         if (OPT == null || CLANG == null) return;
 
-        final Path directory = Files.createTempDirectory("zendtoend");
+        final Path directory = createSecureTempDirectory("zendtoend");
         Files.writeString(directory.resolve("math.z"), "proc twice(int32 x) { ret x * 2 }");
         final Path sourceFile = directory.resolve("main.z");
         Files.writeString(sourceFile, "import math\nproc main() { ret math.nope(1) }");
         final Path binary = directory.resolve("main");
 
-        final Process process = new ProcessBuilder(
+        final ProcessBuilder builder = new ProcessBuilder(
                 "java",
                 "-cp", System.getProperty("java.class.path"),
                 "src.Main.Main",
                 sourceFile.toString(),
                 "-o", binary.toString())
-                .redirectErrorStream(true)
-                .start();
+                .redirectErrorStream(true);
+        builder.environment().put("PATH", getSecurePath());
+        final Process process = builder.start();
 
         final String output = new String(process.getInputStream().readAllBytes());
 

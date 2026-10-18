@@ -22,8 +22,8 @@ public final class UnaryExprAST extends ExprAST {
     }
 
     @Override
-    public Value Codegen(final IRBuilder b) {
-        final Value value = operand.Codegen(b);
+    public Value codeGen(final IRBuilder b) {
+        final Value value = operand.codeGen(b);
         if (value == null) {
             b.markFailed();
             return null;

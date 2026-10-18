@@ -9,6 +9,7 @@ import src.AST.*;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.util.Objects;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -16,12 +17,13 @@ public class TestParser {
 
     private final Parser createParser(final String input) throws IOException {
         final Lexer lex = new Lexer(new ByteArrayInputStream(input.getBytes(StandardCharsets.UTF_8)));
-        return new Parser(lex, "");
+        return new Parser(lex);
     }
+
     @Test
     void testSimpleNumber() throws IOException {
         final Parser parser = createParser("42");
-        final ExprAST ast = parser.ParseExpression();
+        final ExprAST ast = parser.parseExpression();
         assertNotNull(ast);
         assertInstanceOf(NumberExprAST.class, ast);
     }
@@ -29,7 +31,7 @@ public class TestParser {
     @Test
     void testBinaryPrecedence() throws IOException {
         final Parser parser = createParser("5 + 10 * 2");
-        final ExprAST ast = parser.ParseExpression();
+        final ExprAST ast = parser.parseExpression();
         assertNotNull(ast);
         assertInstanceOf(BinaryExprAST.class, ast);
     }
@@ -37,7 +39,7 @@ public class TestParser {
     @Test
     void testParenthesis() throws IOException {
         final Parser parser = createParser("(5 + 10) * 2");
-        final ExprAST ast = parser.ParseExpression();
+        final ExprAST ast = parser.parseExpression();
         assertNotNull(ast);
         assertInstanceOf(BinaryExprAST.class, ast);
     }
@@ -45,7 +47,7 @@ public class TestParser {
     @Test
     void testFunctionCall() throws IOException {
         final Parser parser = createParser("foo(x | y)");
-        final ExprAST ast = parser.ParseExpression();
+        final ExprAST ast = parser.parseExpression();
         assertNotNull(ast);
         assertInstanceOf(CallExprAST.class, ast);
     }
@@ -53,14 +55,14 @@ public class TestParser {
     @Test
     void testLeftParsing() throws IOException {
         final Parser parser = createParser("5 - 3 - 1");
-        final ExprAST ast = parser.ParseExpression();
+        final ExprAST ast = parser.parseExpression();
         assertNotNull(ast);
     }
 
     @Test
     void testFunctionCallWithoutArgs() throws IOException {
         final Parser parser = createParser("foo()");
-        final ExprAST ast = parser.ParseExpression();
+        final ExprAST ast = parser.parseExpression();
         assertNotNull(ast);
         assertInstanceOf(CallExprAST.class, ast);
     }
@@ -68,35 +70,35 @@ public class TestParser {
     @Test
     void testFunctionCallWithExpression() throws IOException {
         final Parser parser = createParser("foo(x + 5 | 42)");
-        final ExprAST ast = parser.ParseExpression();
+        final ExprAST ast = parser.parseExpression();
         assertNotNull(ast);
     }
 
     @Test
     void testErrorUnclosedParenthesis() throws IOException {
         final Parser parser = createParser("(5 + x");
-        final ExprAST ast = parser.ParseExpression();
+        final ExprAST ast = parser.parseExpression();
         assertNull(ast);
     }
 
     @Test
     void testOrphanOperation() throws IOException {
         final Parser parser = createParser("5 +");
-        final ExprAST ast = parser.ParseExpression();
+        final ExprAST ast = parser.parseExpression();
         assertNull(ast);
     }
 
     @Test
     void testUnexpectedToken() throws IOException {
         final Parser parser = createParser("+ 5");
-        final ExprAST ast = parser.ParseExpression();
+        final ExprAST ast = parser.parseExpression();
         assertNull(ast);
     }
 
     @Test
     void testPrecedenceGroupsMultiplicationFirst() throws IOException {
         final Parser parser = createParser("5 + 10 * 2");
-        final ExprAST ast = parser.ParseExpression();
+        final ExprAST ast = parser.parseExpression();
         final BinaryExprAST root = assertInstanceOf(BinaryExprAST.class, ast);
 
         assertEquals('+', root.operator());
@@ -108,11 +110,11 @@ public class TestParser {
     void testSubtractionIsLeftAssociative() throws IOException {
         final Parser parser = createParser("5 - 3 - 1");
         final BinaryExprAST root =
-                assertInstanceOf(BinaryExprAST.class, parser.ParseExpression());
+                assertInstanceOf(BinaryExprAST.class, parser.parseExpression());
 
         // (5 - 3) - 1: the first subtraction has to end up on the left, or
         // 5 - 3 - 1 would be read as 5 - (3 - 1).
-        assertEquals('-', root.operator());
+        assertEquals('-', Objects.requireNonNull(root).operator());
         final BinaryExprAST left = assertInstanceOf(BinaryExprAST.class, root.left());
         assertEquals('-', left.operator());
         assertEquals("5", assertInstanceOf(NumberExprAST.class, left.left()).text());
@@ -124,9 +126,9 @@ public class TestParser {
     void testParenthesisOverridesPrecedence() throws IOException {
         final Parser parser = createParser("(5 + 10) * 2");
         final BinaryExprAST root =
-                assertInstanceOf(BinaryExprAST.class, parser.ParseExpression());
+                assertInstanceOf(BinaryExprAST.class, parser.parseExpression());
 
-        assertEquals('*', root.operator());
+        assertEquals('*', Objects.requireNonNull(root).operator());
         final ParenExprAST left = assertInstanceOf(ParenExprAST.class, root.left());
         assertEquals('+', assertInstanceOf(BinaryExprAST.class, left.inner()).operator());
     }
@@ -134,17 +136,17 @@ public class TestParser {
     @Test
     void testUnaryMinusWrapsTheOperand() throws IOException {
         final Parser parser = createParser("-5");
-        final UnaryExprAST unary = assertInstanceOf(UnaryExprAST.class, parser.ParseExpression());
+        final UnaryExprAST unary = assertInstanceOf(UnaryExprAST.class, parser.parseExpression());
 
-        assertInstanceOf(NumberExprAST.class, unary.operand());
+        assertInstanceOf(NumberExprAST.class, Objects.requireNonNull(unary).operand());
     }
 
     @Test
     void testFunctionCallKeepsItsArguments() throws IOException {
         final Parser parser = createParser("foo(x | y)");
-        final CallExprAST call = assertInstanceOf(CallExprAST.class, parser.ParseExpression());
+        final CallExprAST call = assertInstanceOf(CallExprAST.class, parser.parseExpression());
 
-        assertEquals("foo", call.callee());
+        assertEquals("foo", Objects.requireNonNull(call).callee());
         assertEquals(2, call.arguments().size());
         assertEquals("x", assertInstanceOf(VarRefExprAST.class, call.arguments().getFirst()).name());
         assertEquals("y", assertInstanceOf(VarRefExprAST.class, call.arguments().get(1)).name());
@@ -153,47 +155,47 @@ public class TestParser {
     @Test
     void testFunctionCallWithAnExpressionArgument() throws IOException {
         final Parser parser = createParser("foo(x + 5 | 42)");
-        final CallExprAST call = assertInstanceOf(CallExprAST.class, parser.ParseExpression());
+        final CallExprAST call = assertInstanceOf(CallExprAST.class, parser.parseExpression());
 
-        assertEquals(2, call.arguments().size());
+        assertEquals(2, Objects.requireNonNull(call).arguments().size());
         assertEquals('+', assertInstanceOf(BinaryExprAST.class, call.arguments().getFirst()).operator());
     }
 
     @Test
     void testFunctionCallWithNoArgumentsHasAnEmptyList() throws IOException {
         final Parser parser = createParser("foo()");
-        final CallExprAST call = assertInstanceOf(CallExprAST.class, parser.ParseExpression());
+        final CallExprAST call = assertInstanceOf(CallExprAST.class, parser.parseExpression());
 
-        assertTrue(call.arguments().isEmpty());
+        assertTrue(Objects.requireNonNull(call).arguments().isEmpty());
     }
 
     @Test
     void testFunctionCallWithoutArguments() throws IOException {
         final Parser parser = createParser("foo()");
-        final CallExprAST call = assertInstanceOf(CallExprAST.class, parser.ParseExpression());
+        final CallExprAST call = assertInstanceOf(CallExprAST.class, parser.parseExpression());
 
-        assertEquals("foo", call.callee());
+        assertEquals("foo", Objects.requireNonNull(call).callee());
     }
 
     @Test
     void testVariableReferenceIsNotACall() throws IOException {
         final Parser parser = createParser("x");
         final VarRefExprAST reference =
-                assertInstanceOf(VarRefExprAST.class, parser.ParseExpression());
+                assertInstanceOf(VarRefExprAST.class, parser.parseExpression());
 
-        assertEquals("x", reference.name());
+        assertEquals("x", Objects.requireNonNull(reference).name());
     }
 
     @Test
     void testReturnStatement() throws IOException {
         final Parser parser = createParser("ret 1 + 2");
-        assertInstanceOf(RetAST.class, parser.ParseStatement());
+        assertInstanceOf(RetAST.class, parser.parseStatement());
     }
 
     @Test
     void testForLoopIsParsed() throws IOException {
         final Parser parser = createParser("for (int32 i -> 0 | i < 10 | i + 1) { }");
-        final ForAST loop = assertInstanceOf(ForAST.class, parser.ParseStatement());
+        final ForAST loop = assertInstanceOf(ForAST.class, parser.parseStatement());
 
         assertEquals("i", loop.varName());
         assertEquals(src.Parser.ZType.INT32, loop.varType());
@@ -202,15 +204,15 @@ public class TestParser {
     @Test
     void testForLoopMissingSeparatorFails() throws IOException {
         final Parser parser = createParser("for (int32 i -> 0, i < 10 | i + 1) { }");
-        assertNull(parser.ParseStatement());
+        assertNull(parser.parseStatement());
     }
 
     @Test
     void testPrototypeIsParsed() throws IOException {
         final Parser parser = createParser("foo(int32 x | flt64 y)");
-        final PrototypeAST prototype = parser.ParsePrototype(false);
+        final PrototypeAST prototype = parser.parsePrototype(false);
 
-        assertEquals("foo", prototype.name());
+        assertEquals("foo", Objects.requireNonNull(prototype).name());
         assertEquals(2, prototype.params().size());
         assertEquals("x", prototype.params().getFirst().name());
         assertEquals("int32", prototype.params().getFirst().type());
@@ -220,7 +222,7 @@ public class TestParser {
     @Test
     void testFunctionDefinitionCarriesItsBody() throws IOException {
         final Parser parser = createParser("proc foo(int32 x) { ret x }");
-        final FunctionAST function = parser.ParseDefinition(false);
+        final FunctionAST function = parser.parseDefinition();
 
         assertNotNull(function);
         assertEquals("foo", function.prototype().name());
@@ -231,9 +233,9 @@ public class TestParser {
     @Test
     void testMainIsTheOnlyFunctionReturningAnInteger() throws IOException {
         final Parser parser = createParser("proc main() { ret 1 }");
-        final FunctionAST function = parser.ParseDefinition(false);
+        final FunctionAST function = parser.parseDefinition();
 
-        assertEquals(src.Parser.ZType.INT32, function.returnType());
+        assertEquals(src.Parser.ZType.INT32, Objects.requireNonNull(function).returnType());
     }
 
     @Test
@@ -268,7 +270,7 @@ public class TestParser {
     }
 
     @Test
-    void testGoodDefinitionIsNotLostToALaterSyntaxError() throws IOException {
+    void testGoodDefinitionIsNotLostToALaterSyntaxError() {
         final String diagnostics =
                 ZFixtures.failureOf("proc main() { ret 1 }\nproc broken() { ret 2");
 
@@ -277,7 +279,7 @@ public class TestParser {
     }
 
     @Test
-    void testStatementAfterAFunctionIsNotReadAsAFunction() throws IOException {
+    void testStatementAfterAFunctionIsNotReadAsAFunction() {
         final String diagnostics =
                 ZFixtures.failureOf("proc main() { ret 1 }\nint32 x -> ");
 
@@ -298,13 +300,13 @@ public class TestParser {
     @Test
     void testPrototypeWithMissingParameterNameFails() throws IOException {
         final Parser parser = createParser("foo(int32)");
-        assertNull(parser.ParsePrototype(false));
+        assertNull(parser.parsePrototype(false));
     }
 
     @Test
     void testPrototypeWithUnknownTypeFails() throws IOException {
         final Parser parser = createParser("foo(int7 x)");
-        assertNull(parser.ParsePrototype(false));
+        assertNull(parser.parsePrototype(false));
     }
 
     @Test
@@ -320,7 +322,7 @@ public class TestParser {
     void testSimpleConstant() throws IOException {
         // cn int64 PI -> 314
         final Parser parser = createParser("cn int64 PI -> 314");
-        final DeclaratorExprAST c = parser.ParseConstant();
+        final DeclaratorExprAST c = parser.parseConstant();
 
         assertNotNull(c);
     }
@@ -329,7 +331,7 @@ public class TestParser {
     void testConstantWithEquals() throws IOException {
         // 也支持 = 赋值
         final Parser parser = createParser("cn int32 X = 42");
-        final DeclaratorExprAST c = parser.ParseConstant();
+        final DeclaratorExprAST c = parser.parseConstant();
 
         assertNotNull(c);
     }
@@ -338,7 +340,7 @@ public class TestParser {
     void testConstantWithExpressionValue() throws IOException {
         // 值可以是表达式
         final Parser parser = createParser("cn int64 X -> 2 + 3");
-        final DeclaratorExprAST c = parser.ParseConstant();
+        final DeclaratorExprAST c = parser.parseConstant();
 
         assertNotNull(c);
     }
@@ -347,7 +349,7 @@ public class TestParser {
     void testConstantWithVariableValue() throws IOException {
         // 值可以是变量引用
         final Parser parser = createParser("cn int64 Y -> X");
-        final DeclaratorExprAST c = parser.ParseConstant();
+        final DeclaratorExprAST c = parser.parseConstant();
 
         assertNotNull(c);
     }
@@ -355,7 +357,7 @@ public class TestParser {
     @Test
     void testConstantFloatType() throws IOException {
         final Parser parser = createParser("cn flt64 PI -> 3.14");
-        final DeclaratorExprAST c = parser.ParseConstant();
+        final DeclaratorExprAST c = parser.parseConstant();
 
         assertNotNull(c);
     }
@@ -363,7 +365,7 @@ public class TestParser {
     @Test
     void testConstantStringType() throws IOException {
         final Parser parser = createParser("cn int32 NAME -> 42");
-        final DeclaratorExprAST c = parser.ParseConstant();
+        final DeclaratorExprAST c = parser.parseConstant();
 
         assertNotNull(c);
     }
@@ -371,27 +373,27 @@ public class TestParser {
     @Test
     void testConstantMissingType() throws IOException {
         final Parser parser = createParser("cn PI -> 314");
-        final DeclaratorExprAST c = parser.ParseConstant();
+        final DeclaratorExprAST c = parser.parseConstant();
         assertNull(c);
     }
 
     @Test
     void testConstantMissingName() throws IOException {
         final Parser parser = createParser("cn int64 -> 314");
-        final DeclaratorExprAST c = parser.ParseConstant();
+        final DeclaratorExprAST c = parser.parseConstant();
         assertNull(c);
     }
 
     @Test
     void testConstantMissingAssign() throws IOException {
         final Parser parser = createParser("cn int64 PI 314");
-        final DeclaratorExprAST c = parser.ParseConstant();
+        final DeclaratorExprAST c = parser.parseConstant();
         assertNull(c);
     }
 
     @Test
     void testMainLoopWithConstants() throws IOException {
-        // MainLoop 能连续处理多个常量
+        // mainLoop 能连续处理多个常量
         final String code = """
                 cn int64 A -> 1
                 cn int64 B -> 2
@@ -399,7 +401,7 @@ public class TestParser {
                 """;
 
         final Parser parser = createParser(code);
-        assertDoesNotThrow(parser::MainLoop);
+        assertDoesNotThrow(parser::mainLoop);
     }
 
     @Test
@@ -408,14 +410,14 @@ public class TestParser {
         final String code = "cn int64 PI -> 314\nproc foo(int64 x | int64 y) { ret x }\n";
 
         final Parser parser = createParser(code);
-        assertDoesNotThrow(parser::MainLoop);
+        assertDoesNotThrow(parser::mainLoop);
     }
 
     @Test
     void testVariableDeclaration() throws IOException {
         final String code = "int32 var";
         final Parser parser = createParser(code);
-        final DeclaratorExprAST v = parser.ParseVariable();
+        final DeclaratorExprAST v = parser.parseVariable();
         assertInstanceOf(DeclaratorExprAST.class, v);
     }
 
@@ -423,14 +425,14 @@ public class TestParser {
     void testVariableWithAssignment() throws IOException {
         final String code = "flt32 var = 2";
         final Parser parser = createParser(code);
-        final DeclaratorExprAST v = parser.ParseVariable();
+        final DeclaratorExprAST v = parser.parseVariable();
         assertInstanceOf(DeclaratorExprAST.class, v);
     }
 
     @Test
     void testIfParsed() throws IOException {
         final Parser parser = createParser("if (1 < 2) { ret 1 }");
-        final IfAST ifAst = assertInstanceOf(IfAST.class, parser.ParseStatement());
+        final IfAST ifAst = assertInstanceOf(IfAST.class, parser.parseStatement());
 
         assertEquals(1, ifAst.branches().size());
         assertNull(ifAst.elseBody());
@@ -440,7 +442,7 @@ public class TestParser {
     void testIfEifElseParsed() throws IOException {
         final Parser parser = createParser(
                 "if (1 > 2) { ret 1 } eif (2 > 3) { ret 2 } else { ret 3 }");
-        final IfAST ifAst = assertInstanceOf(IfAST.class, parser.ParseStatement());
+        final IfAST ifAst = assertInstanceOf(IfAST.class, parser.parseStatement());
 
         assertEquals(2, ifAst.branches().size());
         assertNotNull(ifAst.elseBody());
@@ -449,12 +451,12 @@ public class TestParser {
     @Test
     void testIfMissingConditionFails() throws IOException {
         final Parser parser = createParser("if { ret 1 }");
-        assertNull(parser.ParseStatement());
+        assertNull(parser.parseStatement());
     }
 
     @Test
     void testIfMissingBodyFails() throws IOException {
         final Parser parser = createParser("if (1 < 2) ret 1");
-        assertNull(parser.ParseStatement());
+        assertNull(parser.parseStatement());
     }
 }

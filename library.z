@@ -1,0 +1,3 @@
+proc math(int32 a) {
+    ret a + 1
+}

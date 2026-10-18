@@ -17,9 +17,9 @@ public final class RetAST extends ExprAST {
     }
 
     @Override
-    public Value Codegen(final IRBuilder builder) {
+    public Value codeGen(final IRBuilder builder) {
         if (value == null) return null;
-        final Value produced = value.Codegen(builder);
+        final Value produced = value.codeGen(builder);
         if (produced == null) {
             builder.markFailed();
             return null;

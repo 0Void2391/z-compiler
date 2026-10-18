@@ -221,7 +221,7 @@ public class Parser {
         return new DeclaratorExprAST(zType, name, value, true);
     }
     public final ArrayAST parseArray() throws IOException {
-        next();
+        //next(); (I believe this isn't necessary here)
 
         final Lexer.Tokens typeTok = Lexer.Tokens.fromValues(curTok);
         if (!isTypeToken(typeTok)) {
@@ -237,18 +237,23 @@ public class Parser {
         next();
 
         double size = lex.numVal;
-        ExprAST arraySize = parseNumberExpr(size);
+        NumberExprAST arraySize = (NumberExprAST) parseNumberExpr(size);
         next();
 
         if (curTok != Lexer.Tokens.ARRAY_CLOSE.value) {
-            return error("Expected constant name");
+            return error("Expected closing bracket");
         }
         next();
 
         if (curTok != Lexer.Tokens.IDENTIFIER.value) {
-            return error("Expected constant name");
+            return error("Expected identifier name");
         }
         final String name = lex.identifierStr;
+        next();
+
+        if (curTok != Lexer.Tokens.OPEN_FUNC.value) {
+            return new ArrayAST(zType, arraySize, name, new ArrayList<NumberExprAST>());
+        }
         next();
 
         if (curTok != Lexer.Tokens.ASSIGN.value && curTok != Lexer.Tokens.SAME.value) {
@@ -256,17 +261,21 @@ public class Parser {
         }
         next();
 
-        final List<NumberExprAST> members = new ArrayList<>();
+        final List<NumberExprAST> members = new ArrayList<>((int) size);
 
         for (int i = 0; i < (int) size; ++i) {
-            members.add();
 
-            next();
-
+            NumberExprAST valAST = (NumberExprAST) parseNumberExpr(lex.numVal); //qua dentro fa già un next
+            members.add(valAST);
+            if (curTok != Lexer.Tokens.PARAMS.value && curTok != Lexer.Tokens.CLOSE_FUNC.value) {
+                return error("Expected '|' after type definition");
+            } else if (curTok == Lexer.Tokens.CLOSE_FUNC.value) {
+                break;
+            }
             next();
         }
 
-        return new ArrayAST(zType, arraySize, value);
+        return new ArrayAST(zType, arraySize, name, members);
     }
 
     /**
@@ -392,6 +401,7 @@ public class Parser {
             idName.append(".").append(lex.identifierStr);
             next();
         }
+        //TODO: add support for array indexing here
 
         final boolean qualified = idName.toString().contains(".");
 

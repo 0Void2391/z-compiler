@@ -69,8 +69,10 @@ public class IRBuilder {
         return root == null ? null : new ResolvedSignature(root, irName(callee));
     }
 
+    private static final String DOUBLE = "double";
+    private static final String FLT = "float";
     private boolean terminated;
-    private String returnType = "double";
+    private String returnType = DOUBLE;
 
     /**.
      */
@@ -161,11 +163,11 @@ public class IRBuilder {
     }
 
     private static String conversionOpcode(final String from, final String to) {
-        final boolean fromFloat = from.equals("float") || from.equals("double");
-        final boolean toFloat = to.equals("float") || to.equals("double");
+        final boolean fromFloat = from.equals(FLT) || from.equals(DOUBLE);
+        final boolean toFloat = to.equals(FLT) || to.equals(DOUBLE);
         if (fromFloat && !toFloat) return "fptosi ";
         if (!fromFloat && toFloat) return "sitofp ";
-        if (fromFloat) return to.equals("float") ? "fptrunc " : "fpext ";
+        if (fromFloat) return to.equals(FLT) ? "fptrunc " : "fpext ";
         return from.equals("i64") && to.equals("i32") ? "trunc " : "sext ";
     }
 
@@ -206,10 +208,10 @@ public class IRBuilder {
         return irCode.toString();
     }
 
-    @Override
     /**
      * return the String form of the IR
      */
+    @Override
     public final String toString() {
         return getIR();
     }
@@ -270,12 +272,12 @@ public class IRBuilder {
         return registerTypes.get(reg);
     }
 
+    private int labelCount = 0;
     /**
      * nextLabel emits the next available label
      * @param prefix the prefix of the label
      * @return the label
      */
-    private int labelCount = 0;
     public final String nextLabel(final String prefix) {
         return prefix + "." + (labelCount++);
     }

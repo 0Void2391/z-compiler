@@ -1,10 +1,13 @@
 package src.AST;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import src.Codegen.IRBuilder;
 import src.Parser.ZType;
 
 
 public final class BinaryExprAST extends ExprAST {
+    private static final Logger logger = LoggerFactory.getLogger(BinaryExprAST.class);
 
     private final char op;
     private final ExprAST left;
@@ -41,7 +44,7 @@ public final class BinaryExprAST extends ExprAST {
         try {
             return ZType.unify(a, b);
         } catch (final IllegalArgumentException e) {
-            System.err.println("Error: " + e.getMessage());
+            logger.error("Error: {}", e.getMessage());
             return a;
         }
     }
@@ -52,13 +55,13 @@ public final class BinaryExprAST extends ExprAST {
     }
 
     @Override
-    public Value Codegen(final IRBuilder builder) {
-        final Value lhs = left.Codegen(builder);
+    public Value codeGen(final IRBuilder builder) {
+        final Value lhs = left.codeGen(builder);
         if (lhs == null) {
             builder.markFailed();
             return null;
         }
-        final Value rhs = right.Codegen(builder);
+        final Value rhs = right.codeGen(builder);
         if (rhs == null) {
             builder.markFailed();
             return null;
@@ -87,7 +90,7 @@ public final class BinaryExprAST extends ExprAST {
 
         final String opcode = arithmeticOpcode(a.type());
         if (opcode == null) {
-            System.err.println("Operazione non supportata: " + op);
+            logger.error("Operazione non supportata: {}",op);
             builder.markFailed();
             return null;
         }

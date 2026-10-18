@@ -36,7 +36,7 @@ Tokens
 -**type** `int`
 -**purpose :** it is used to store the last char.
 
-#### `IdentifierStr`
+#### `identifierStr`
 -**type** `String`
 -**purpose :** Stores the text of an identifier, such as a variable or function name.
 

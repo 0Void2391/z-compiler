@@ -18,19 +18,19 @@ public class TestLexer {
 
         final Lexer lex = new Lexer(new ByteArrayInputStream(code.getBytes()));
 
-        assertEquals(Lexer.Tokens.FUNC.value, lex.GetTok());
-        assertEquals(Lexer.Tokens.IDENTIFIER.value, lex.GetTok());
-        assertEquals(Lexer.Tokens.OPEN_PAR.value, lex.GetTok());
-        assertEquals(Lexer.Tokens.INT64.value, lex.GetTok());
-        assertEquals(Lexer.Tokens.IDENTIFIER.value, lex.GetTok());
-        assertEquals(Lexer.Tokens.PARAMS.value, lex.GetTok());
-        assertEquals(Lexer.Tokens.INT64.value, lex.GetTok());
-        assertEquals(Lexer.Tokens.IDENTIFIER.value, lex.GetTok());
-        assertEquals(Lexer.Tokens.CLOSE_PAR.value, lex.GetTok());
-        assertEquals(Lexer.Tokens.OPEN_FUNC.value, lex.GetTok());
-        assertEquals(Lexer.Tokens.RET.value, lex.GetTok());
-        assertEquals(Lexer.Tokens.NUMBER.value, lex.GetTok());
-        assertEquals(Lexer.Tokens.CLOSE_FUNC.value, lex.GetTok());
+        assertEquals(Lexer.Tokens.FUNC.value, lex.getTok());
+        assertEquals(Lexer.Tokens.IDENTIFIER.value, lex.getTok());
+        assertEquals(Lexer.Tokens.OPEN_PAR.value, lex.getTok());
+        assertEquals(Lexer.Tokens.INT64.value, lex.getTok());
+        assertEquals(Lexer.Tokens.IDENTIFIER.value, lex.getTok());
+        assertEquals(Lexer.Tokens.PARAMS.value, lex.getTok());
+        assertEquals(Lexer.Tokens.INT64.value, lex.getTok());
+        assertEquals(Lexer.Tokens.IDENTIFIER.value, lex.getTok());
+        assertEquals(Lexer.Tokens.CLOSE_PAR.value, lex.getTok());
+        assertEquals(Lexer.Tokens.OPEN_FUNC.value, lex.getTok());
+        assertEquals(Lexer.Tokens.RET.value, lex.getTok());
+        assertEquals(Lexer.Tokens.NUMBER.value, lex.getTok());
+        assertEquals(Lexer.Tokens.CLOSE_FUNC.value, lex.getTok());
     }
 
     @Test
@@ -40,21 +40,21 @@ public class TestLexer {
 
         final Lexer lex = new Lexer(new ByteArrayInputStream(code.getBytes()));
 
-        assertEquals(Lexer.Tokens.IF.value, lex.GetTok());
-        assertEquals(Lexer.Tokens.IDENTIFIER.value, lex.GetTok());
-        assertEquals(Lexer.Tokens.MORE.value, lex.GetTok());
-        assertEquals(Lexer.Tokens.NUMBER.value, lex.GetTok());
-        assertEquals(Lexer.Tokens.OPEN_FUNC.value, lex.GetTok());
-        assertEquals(Lexer.Tokens.CLOSE_FUNC.value, lex.GetTok());
-        assertEquals(Lexer.Tokens.EIF.value, lex.GetTok());
-        assertEquals(Lexer.Tokens.IDENTIFIER.value, lex.GetTok());
-        assertEquals(Lexer.Tokens.LESS.value, lex.GetTok());
-        assertEquals(Lexer.Tokens.NUMBER.value, lex.GetTok());
-        assertEquals(Lexer.Tokens.OPEN_FUNC.value, lex.GetTok());
-        assertEquals(Lexer.Tokens.CLOSE_FUNC.value, lex.GetTok());
-        assertEquals(Lexer.Tokens.ELSE.value, lex.GetTok());
-        assertEquals(Lexer.Tokens.OPEN_FUNC.value, lex.GetTok());
-        assertEquals(Lexer.Tokens.CLOSE_FUNC.value, lex.GetTok());
+        assertEquals(Lexer.Tokens.IF.value, lex.getTok());
+        assertEquals(Lexer.Tokens.IDENTIFIER.value, lex.getTok());
+        assertEquals(Lexer.Tokens.MORE.value, lex.getTok());
+        assertEquals(Lexer.Tokens.NUMBER.value, lex.getTok());
+        assertEquals(Lexer.Tokens.OPEN_FUNC.value, lex.getTok());
+        assertEquals(Lexer.Tokens.CLOSE_FUNC.value, lex.getTok());
+        assertEquals(Lexer.Tokens.EIF.value, lex.getTok());
+        assertEquals(Lexer.Tokens.IDENTIFIER.value, lex.getTok());
+        assertEquals(Lexer.Tokens.LESS.value, lex.getTok());
+        assertEquals(Lexer.Tokens.NUMBER.value, lex.getTok());
+        assertEquals(Lexer.Tokens.OPEN_FUNC.value, lex.getTok());
+        assertEquals(Lexer.Tokens.CLOSE_FUNC.value, lex.getTok());
+        assertEquals(Lexer.Tokens.ELSE.value, lex.getTok());
+        assertEquals(Lexer.Tokens.OPEN_FUNC.value, lex.getTok());
+        assertEquals(Lexer.Tokens.CLOSE_FUNC.value, lex.getTok());
     }
 
     @Test
@@ -63,7 +63,7 @@ public class TestLexer {
 
         final Lexer lex = new Lexer(new ByteArrayInputStream(code.getBytes()));
 
-        assertEquals(Lexer.Tokens.ASSIGN.value, lex.GetTok());
+        assertEquals(Lexer.Tokens.ASSIGN.value, lex.getTok());
     }
 
     @Test
@@ -72,7 +72,7 @@ public class TestLexer {
 
         final Lexer lex = new Lexer(new ByteArrayInputStream(code.getBytes()));
 
-        assertEquals(Lexer.Tokens.RET.value, lex.GetTok());
+        assertEquals(Lexer.Tokens.RET.value, lex.getTok());
     }
 
     @Test
@@ -80,13 +80,13 @@ public class TestLexer {
         final String code = "cn int64 PI -> 314";
         final Lexer lex = new Lexer(new ByteArrayInputStream(code.getBytes()));
 
-        assertEquals(Lexer.Tokens.CN.value, lex.GetTok());
-        assertEquals(Lexer.Tokens.INT64.value, lex.GetTok());
-        assertEquals(Lexer.Tokens.IDENTIFIER.value, lex.GetTok());
-        assertEquals("PI", lex.IdentifierStr);
-        assertEquals(Lexer.Tokens.ASSIGN.value, lex.GetTok());
-        assertEquals(Lexer.Tokens.NUMBER.value, lex.GetTok());
-        assertEquals(314.0, lex.NumVal);
+        assertEquals(Lexer.Tokens.CN.value, lex.getTok());
+        assertEquals(Lexer.Tokens.INT64.value, lex.getTok());
+        assertEquals(Lexer.Tokens.IDENTIFIER.value, lex.getTok());
+        assertEquals("PI", lex.identifierStr);
+        assertEquals(Lexer.Tokens.ASSIGN.value, lex.getTok());
+        assertEquals(Lexer.Tokens.NUMBER.value, lex.getTok());
+        assertEquals(314.0, lex.numVal);
     }
 
     @Test
@@ -94,9 +94,9 @@ public class TestLexer {
         final String code = "import libc";
         final Lexer lex = new Lexer(new ByteArrayInputStream(code.getBytes(StandardCharsets.UTF_8)));
 
-        assertEquals(Lexer.Tokens.IMPORT.value, lex.GetTok());
-        assertEquals(Lexer.Tokens.IDENTIFIER.value, lex.GetTok());
-        assertEquals("libc", lex.IdentifierStr);
+        assertEquals(Lexer.Tokens.IMPORT.value, lex.getTok());
+        assertEquals(Lexer.Tokens.IDENTIFIER.value, lex.getTok());
+        assertEquals("libc", lex.identifierStr);
     }
 
     @Test
@@ -104,21 +104,21 @@ public class TestLexer {
         final String code = "int32 var -> 30";
         final Lexer lex = new Lexer(new ByteArrayInputStream(code.getBytes(StandardCharsets.UTF_8)));
 
-        assertEquals(Lexer.Tokens.INT32.value, lex.GetTok());
-        assertEquals(Lexer.Tokens.IDENTIFIER.value, lex.GetTok());
-        assertEquals(Lexer.Tokens.ASSIGN.value, lex.GetTok());
-        assertEquals(Lexer.Tokens.NUMBER.value, lex.GetTok());
+        assertEquals(Lexer.Tokens.INT32.value, lex.getTok());
+        assertEquals(Lexer.Tokens.IDENTIFIER.value, lex.getTok());
+        assertEquals(Lexer.Tokens.ASSIGN.value, lex.getTok());
+        assertEquals(Lexer.Tokens.NUMBER.value, lex.getTok());
     }
 
     @Test
     void testExtern() throws IOException {
         final Lexer lex = new Lexer(new ByteArrayInputStream("extern test(int32)".getBytes(StandardCharsets.UTF_8)));
 
-        assertEquals(Lexer.Tokens.EXTERN.value, lex.GetTok());
-        assertEquals(Lexer.Tokens.IDENTIFIER.value, lex.GetTok());
-        assertEquals(Lexer.Tokens.OPEN_PAR.value, lex.GetTok());
-        assertEquals(Lexer.Tokens.INT32.value, lex.GetTok());
-        assertEquals(Lexer.Tokens.CLOSE_PAR.value, lex.GetTok());
+        assertEquals(Lexer.Tokens.EXTERN.value, lex.getTok());
+        assertEquals(Lexer.Tokens.IDENTIFIER.value, lex.getTok());
+        assertEquals(Lexer.Tokens.OPEN_PAR.value, lex.getTok());
+        assertEquals(Lexer.Tokens.INT32.value, lex.getTok());
+        assertEquals(Lexer.Tokens.CLOSE_PAR.value, lex.getTok());
     }
 
     @Test
@@ -126,10 +126,10 @@ public class TestLexer {
         final Lexer lex = new Lexer(new ByteArrayInputStream(
                 "9007199254740993".getBytes(StandardCharsets.UTF_8)));
 
-        assertEquals(Lexer.Tokens.NUMBER.value, lex.GetTok());
-        assertEquals("9007199254740993", lex.NumberText);
-        assertTrue(lex.NumIsInteger);
-        assertFalse(lex.NumIsFloat);
+        assertEquals(Lexer.Tokens.NUMBER.value, lex.getTok());
+        assertEquals("9007199254740993", lex.numberText);
+        assertTrue(lex.numIsInteger);
+        assertFalse(lex.numIsFloat);
     }
 
     @Test
@@ -137,9 +137,9 @@ public class TestLexer {
         final Lexer lex = new Lexer(new ByteArrayInputStream(
                 "3.14".getBytes(StandardCharsets.UTF_8)));
 
-        assertEquals(Lexer.Tokens.NUMBER.value, lex.GetTok());
-        assertEquals("3.14", lex.NumberText);
-        assertTrue(lex.NumIsFloat);
+        assertEquals(Lexer.Tokens.NUMBER.value, lex.getTok());
+        assertEquals("3.14", lex.numberText);
+        assertTrue(lex.numIsFloat);
     }
 
     @Test
@@ -147,10 +147,10 @@ public class TestLexer {
         final Lexer lex = new Lexer(new ByteArrayInputStream(
                 "1e3".getBytes(StandardCharsets.UTF_8)));
 
-        assertEquals(Lexer.Tokens.NUMBER.value, lex.GetTok());
-        assertEquals("1e3", lex.NumberText);
-        assertTrue(lex.NumIsFloat);
-        assertEquals(1000.0, lex.NumVal);
+        assertEquals(Lexer.Tokens.NUMBER.value, lex.getTok());
+        assertEquals("1e3", lex.numberText);
+        assertTrue(lex.numIsFloat);
+        assertEquals(1000.0, lex.numVal);
     }
 
     @Test
@@ -158,8 +158,8 @@ public class TestLexer {
         final Lexer lex = new Lexer(new ByteArrayInputStream(
                 "- 5".getBytes(StandardCharsets.UTF_8)));
 
-        assertEquals(Lexer.Tokens.SUB.value, lex.GetTok());
-        assertEquals(Lexer.Tokens.NUMBER.value, lex.GetTok());
+        assertEquals(Lexer.Tokens.SUB.value, lex.getTok());
+        assertEquals(Lexer.Tokens.NUMBER.value, lex.getTok());
     }
 
     @Test
@@ -167,9 +167,9 @@ public class TestLexer {
         final Lexer lex = new Lexer(new ByteArrayInputStream(
                 "ret".getBytes(StandardCharsets.UTF_8)));
 
-        assertEquals(Lexer.Tokens.RET.value, lex.GetTok());
-        assertEquals(Lexer.Tokens.EOF.value, lex.GetTok());
-        assertEquals(Lexer.Tokens.EOF.value, lex.GetTok());
+        assertEquals(Lexer.Tokens.RET.value, lex.getTok());
+        assertEquals(Lexer.Tokens.EOF.value, lex.getTok());
+        assertEquals(Lexer.Tokens.EOF.value, lex.getTok());
     }
 
     @Test
@@ -178,11 +178,11 @@ public class TestLexer {
 
         final Lexer lex = new Lexer(new ByteArrayInputStream(code.getBytes(StandardCharsets.UTF_8)));
 
-        assertEquals(Lexer.Tokens.INT32.value, lex.GetTok());
-        assertEquals(Lexer.Tokens.INT64.value, lex.GetTok());
-        assertEquals(Lexer.Tokens.FLOAT32.value, lex.GetTok());
-        assertEquals(Lexer.Tokens.FLOAT64.value, lex.GetTok());
-        assertEquals(Lexer.Tokens.EOF.value, lex.GetTok());
+        assertEquals(Lexer.Tokens.INT32.value, lex.getTok());
+        assertEquals(Lexer.Tokens.INT64.value, lex.getTok());
+        assertEquals(Lexer.Tokens.FLOAT32.value, lex.getTok());
+        assertEquals(Lexer.Tokens.FLOAT64.value, lex.getTok());
+        assertEquals(Lexer.Tokens.EOF.value, lex.getTok());
     }
 
     @Test
@@ -191,23 +191,23 @@ public class TestLexer {
 
         final Lexer lex = new Lexer(new ByteArrayInputStream(code.getBytes(StandardCharsets.UTF_8)));
 
-        assertEquals(Lexer.Tokens.FOR.value, lex.GetTok());
-        assertEquals(Lexer.Tokens.OPEN_PAR.value, lex.GetTok());
-        assertEquals(Lexer.Tokens.INT32.value, lex.GetTok());
-        assertEquals(Lexer.Tokens.IDENTIFIER.value, lex.GetTok());
-        assertEquals("i", lex.IdentifierStr);
-        assertEquals(Lexer.Tokens.ASSIGN.value, lex.GetTok());
-        assertEquals(Lexer.Tokens.NUMBER.value, lex.GetTok());
-        assertEquals(Lexer.Tokens.PARAMS.value, lex.GetTok());
-        assertEquals(Lexer.Tokens.IDENTIFIER.value, lex.GetTok());
-        assertEquals(Lexer.Tokens.LESS.value, lex.GetTok());
-        assertEquals(Lexer.Tokens.NUMBER.value, lex.GetTok());
-        assertEquals(Lexer.Tokens.PARAMS.value, lex.GetTok());
-        assertEquals(Lexer.Tokens.IDENTIFIER.value, lex.GetTok());
-        assertEquals(Lexer.Tokens.ADD.value, lex.GetTok());
-        assertEquals(Lexer.Tokens.NUMBER.value, lex.GetTok());
-        assertEquals(Lexer.Tokens.CLOSE_PAR.value, lex.GetTok());
-        assertEquals(Lexer.Tokens.OPEN_FUNC.value, lex.GetTok());
+        assertEquals(Lexer.Tokens.FOR.value, lex.getTok());
+        assertEquals(Lexer.Tokens.OPEN_PAR.value, lex.getTok());
+        assertEquals(Lexer.Tokens.INT32.value, lex.getTok());
+        assertEquals(Lexer.Tokens.IDENTIFIER.value, lex.getTok());
+        assertEquals("i", lex.identifierStr);
+        assertEquals(Lexer.Tokens.ASSIGN.value, lex.getTok());
+        assertEquals(Lexer.Tokens.NUMBER.value, lex.getTok());
+        assertEquals(Lexer.Tokens.PARAMS.value, lex.getTok());
+        assertEquals(Lexer.Tokens.IDENTIFIER.value, lex.getTok());
+        assertEquals(Lexer.Tokens.LESS.value, lex.getTok());
+        assertEquals(Lexer.Tokens.NUMBER.value, lex.getTok());
+        assertEquals(Lexer.Tokens.PARAMS.value, lex.getTok());
+        assertEquals(Lexer.Tokens.IDENTIFIER.value, lex.getTok());
+        assertEquals(Lexer.Tokens.ADD.value, lex.getTok());
+        assertEquals(Lexer.Tokens.NUMBER.value, lex.getTok());
+        assertEquals(Lexer.Tokens.CLOSE_PAR.value, lex.getTok());
+        assertEquals(Lexer.Tokens.OPEN_FUNC.value, lex.getTok());
     }
 
     @Test
@@ -215,9 +215,9 @@ public class TestLexer {
         final Lexer lex = new Lexer(new ByteArrayInputStream(
                 "7 / 2".getBytes(StandardCharsets.UTF_8)));
 
-        assertEquals(Lexer.Tokens.NUMBER.value, lex.GetTok());
-        assertEquals(Lexer.Tokens.DIV.value, lex.GetTok());
-        assertEquals(Lexer.Tokens.NUMBER.value, lex.GetTok());
+        assertEquals(Lexer.Tokens.NUMBER.value, lex.getTok());
+        assertEquals(Lexer.Tokens.DIV.value, lex.getTok());
+        assertEquals(Lexer.Tokens.NUMBER.value, lex.getTok());
     }
 
     @Test
@@ -225,8 +225,8 @@ public class TestLexer {
         final Lexer lex = new Lexer(new ByteArrayInputStream(
                 "myVar42".getBytes(StandardCharsets.UTF_8)));
 
-        assertEquals(Lexer.Tokens.IDENTIFIER.value, lex.GetTok());
-        assertEquals("myVar42", lex.IdentifierStr);
+        assertEquals(Lexer.Tokens.IDENTIFIER.value, lex.getTok());
+        assertEquals("myVar42", lex.identifierStr);
     }
 
     @Test
@@ -234,8 +234,8 @@ public class TestLexer {
         final Lexer lex = new Lexer(new ByteArrayInputStream(
                 "ret // trailing".getBytes(StandardCharsets.UTF_8)));
 
-        assertEquals(Lexer.Tokens.RET.value, lex.GetTok());
-        assertEquals(Lexer.Tokens.EOF.value, lex.GetTok());
+        assertEquals(Lexer.Tokens.RET.value, lex.getTok());
+        assertEquals(Lexer.Tokens.EOF.value, lex.getTok());
     }
 
     @Test
@@ -243,7 +243,7 @@ public class TestLexer {
         final Lexer lex = new Lexer(new ByteArrayInputStream(
                 "@".getBytes(StandardCharsets.UTF_8)));
 
-        assertEquals('@', lex.GetTok());
+        assertEquals('@', lex.getTok());
     }
 
     @Test
@@ -251,8 +251,8 @@ public class TestLexer {
         final Lexer lex = new Lexer(new ByteArrayInputStream(
                 "\"hello\"".getBytes(StandardCharsets.UTF_8)));
 
-        assertEquals(Lexer.Tokens.STRING_LITERAL.value, lex.GetTok());
-        assertEquals("hello", lex.StringVal);
+        assertEquals(Lexer.Tokens.STRING_LITERAL.value, lex.getTok());
+        assertEquals("hello", lex.stringVal);
     }
 
     @Test
@@ -260,8 +260,8 @@ public class TestLexer {
         final Lexer lex = new Lexer(new ByteArrayInputStream(
                 "\"a\\nb\\t\\\\\\\"c\"".getBytes(StandardCharsets.UTF_8)));
 
-        assertEquals(Lexer.Tokens.STRING_LITERAL.value, lex.GetTok());
-        assertEquals("a\nb\t\\\"c", lex.StringVal);
+        assertEquals(Lexer.Tokens.STRING_LITERAL.value, lex.getTok());
+        assertEquals("a\nb\t\\\"c", lex.stringVal);
     }
 
     @Test
@@ -269,6 +269,6 @@ public class TestLexer {
         final Lexer lex = new Lexer(new ByteArrayInputStream(
                 "\"hello".getBytes(StandardCharsets.UTF_8)));
 
-        assertEquals(Lexer.Tokens.EOF.value, lex.GetTok());
+        assertEquals(Lexer.Tokens.EOF.value, lex.getTok());
     }
 }

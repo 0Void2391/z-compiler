@@ -1,5 +1,7 @@
 package src.AST;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import src.Codegen.IRBuilder;
 import src.Codegen.SymbolTable;
 import src.Parser.ZType;
@@ -7,6 +9,7 @@ import src.Parser.ZType;
 import java.util.List;
 
 public final class FunctionAST extends ExprAST {
+    private static final Logger logger = LoggerFactory.getLogger(FunctionAST.class);
 
     private final PrototypeAST proto;
     private final ExprAST body;
@@ -32,7 +35,7 @@ public final class FunctionAST extends ExprAST {
     }
 
     @Override
-    public Value Codegen(final IRBuilder builder) {
+    public Value codeGen(final IRBuilder builder) {
         builder.reset();
         builder.symbols().enterScope();
         builder.declare(proto);
@@ -56,13 +59,13 @@ public final class FunctionAST extends ExprAST {
             parametersAreDistinct &= builder.symbols().define(param.name(), new SymbolTable.SymbolInfo(param.name(), type, slot, false));
         }
         if (!parametersAreDistinct) {
-            System.err.println("Error: '" + proto.name() + "' declares the same parameter twice");
+            logger.error("Error: '{}' declares the same parameter twice", proto.name());
             builder.markFailed();
             builder.symbols().exitScope();
             return null;
         }
 
-        if (body != null) body.Codegen(builder);
+        if (body != null) body.codeGen(builder);
 
         if (builder.hasFailed()) {
             builder.symbols().exitScope();
@@ -71,7 +74,7 @@ public final class FunctionAST extends ExprAST {
 
         if (!builder.isTerminated()) {
             if (!isMain) {
-                System.err.println("Error: '" + proto.name() + "' can reach the end without returning");
+                logger.error("Error: '{}' can reach the end without returning" , proto.name());
                 builder.markFailed();
                 builder.symbols().exitScope();
                 return null;

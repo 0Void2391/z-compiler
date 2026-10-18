@@ -1,5 +1,7 @@
 package src.AST;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import src.Codegen.IRBuilder;
 import src.Parser.ZType;
 
@@ -11,6 +13,7 @@ import src.Parser.ZType;
  * {@code zext} that {@link BinaryExprAST} emits for comparisons.
  */
 final class Conditions {
+    private static final Logger logger = LoggerFactory.getLogger(Conditions.class);
 
     private Conditions() {}
 
@@ -22,16 +25,16 @@ final class Conditions {
         if (condition instanceof BinaryExprAST bin) {
             final char op = bin.operator();
             if (op == '<' || op == '>') {
-                final Value a = bin.left().Codegen(builder);
+                final Value a = bin.left().codeGen(builder);
                 if (a == null) return null;
-                final Value b = bin.right().Codegen(builder);
+                final Value b = bin.right().codeGen(builder);
                 if (b == null) return null;
 
                 final ZType common;
                 try {
                     common = ZType.unify(a.type(), b.type());
                 } catch (final IllegalArgumentException e) {
-                    System.err.println("Error: " + e.getMessage());
+                    logger.error("Error: {}", e.getMessage());
                     return null;
                 }
                 final Value left = bin.left().coerce(builder, a, common);
@@ -39,26 +42,26 @@ final class Conditions {
                 if (left == null || right == null) return null;
 
                 final boolean ordered = common.isFloat();
-                final String pred = ordered
-                        ? (op == '<' ? "olt" : "ogt")
-                        : (op == '<' ? "slt" : "sgt");
+                final String pred;
+                if (ordered) {
+                    if (op == '<') pred = "olt";
+                    else pred = "ogt";
+                } else {
+                    pred = (op == '<' ? "slt" : "sgt");
+                }
                 final String cmp = builder.nextRegister();
-                builder.appendLine(cmp + " = " + (ordered ? "fcmp " : "icmp ")
-                        + pred + " " + common.llvm() + " "
-                        + left.text() + ", " + right.text());
+                builder.appendLine(cmp + " = " + (ordered ? "fcmp " : "icmp ") + pred + " " + common.llvm() + " " + left.text() + ", " + right.text());
                 return cmp;
             }
         }
 
-        final Value v = condition.Codegen(builder);
+        final Value v = condition.codeGen(builder);
         if (v == null) return null;
         final String cmp = builder.nextRegister();
         if (v.type().isFloat()) {
-            builder.appendLine(cmp + " = fcmp one " + v.type().llvm()
-                    + " " + v.text() + ", 0.0");
+            builder.appendLine(cmp + " = fcmp one " + v.type().llvm() + " " + v.text() + ", 0.0");
         } else {
-            builder.appendLine(cmp + " = icmp ne " + v.type().llvm()
-                    + " " + v.text() + ", 0");
+            builder.appendLine(cmp + " = icmp ne " + v.type().llvm() + " " + v.text() + ", 0");
         }
         return cmp;
     }

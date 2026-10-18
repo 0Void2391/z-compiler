@@ -1,23 +1,27 @@
 package src.Parser;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import src.AST.*;
 import src.lexer.Lexer;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 
 /**
  */
 public class Parser {
+    private static final Logger logger = LoggerFactory.getLogger(Parser.class);
+
     /**
      * curTok stores the current Token from the Lexer
      * lex stores the Lexer
      */
     private int curTok;
     private Lexer lex = null;
-    private final String fileName;
 
     /**
      * BinOpPrecedence stores the precedence of binary operators
@@ -35,17 +39,16 @@ public class Parser {
     }
 
 
-    private static final double LONG_EXACT_LIMIT = 1L << 53; // nice, right?
+    private static final double LONG_EXACT_LIMIT = 9007199254740992L; // nice, right?
 
     /**
      * Constructor for Parser
      * @param lex the lexer object
-     * @throws IOException
+     * @throws IOException if an exception is found
      */
-    public Parser(final Lexer lex, final String fileName) throws IOException {
+    public Parser(final Lexer lex) throws IOException {
         this.lex = lex;
-        this.curTok = lex.GetTok();
-        this.fileName = fileName;
+        this.curTok = lex.getTok();
     }
 
     /**
@@ -53,7 +56,9 @@ public class Parser {
      * @return null
      */
     private static <T> T error(final String message) {
-        System.err.printf("Error: %s%n", message);
+        if (logger.isErrorEnabled()) {
+            logger.error("Error: {}", message);
+        }
         return null;
     }
 
@@ -67,7 +72,9 @@ public class Parser {
         try {
             return ZType.fromZName(name);
         } catch (final IllegalArgumentException e) {
-            System.err.printf("Error: %s%n", e.getMessage());
+            if (logger.isErrorEnabled()) {
+                logger.error("Error: {}", e.getMessage());
+            }
             return null;
         }
     }
@@ -109,11 +116,12 @@ public class Parser {
 
 
     /**
-     * MainLoop method to parse the input
-     * @throws IOException
+     * mainLoop method to parse the input
+     * @throws IOException if an exception is found
      * @deprecated
      */
-    public void MainLoop() throws IOException {
+    @Deprecated
+    public void mainLoop() throws IOException {
         while (true) {
             final Lexer.Tokens token = Lexer.Tokens.fromValues(curTok);
 
@@ -121,22 +129,22 @@ public class Parser {
                 return;
             }
             if (curTok == ';') {
-                Next();
+                next();
                 continue;
             }
 
             ExprAST parsed = null;
             if (token == Lexer.Tokens.FUNC) {
-                parsed = ParseDefinition(false);
+                parsed = parseDefinition();
             } else if (token == Lexer.Tokens.CN) {
-                parsed = ParseConstant();
+                parsed = parseConstant();
             } else if (isTypeToken(token)) {
-                parsed = ParseVariable();
+                parsed = parseVariable();
             } else if (token == Lexer.Tokens.EXTERN){
-                ParseExtern();
+                parseExtern();
             } else {
                 error("Unknown token in main loop: " + curTok);
-                Next();
+                next();
                 continue;
             }
 
@@ -150,11 +158,11 @@ public class Parser {
      * Parses a variable
      *
      * @return an AST node or an error
-     * @throws IOException
+     * @throws IOException if an exception is found
      */
-    public final DeclaratorExprAST ParseVariable() throws IOException {
+    public final DeclaratorExprAST parseVariable() throws IOException {
         final Lexer.Tokens typeTok = Lexer.Tokens.fromValues(curTok);
-        Next();
+        next();
 
         final ZType zType = resolveType(typeTok.description);
         if (zType == null) return null;
@@ -163,15 +171,15 @@ public class Parser {
             return error("Expected name after type");
         }
 
-        final String name = lex.IdentifierStr;
-        Next();
+        final String name = lex.identifierStr;
+        next();
 
         if (curTok != Lexer.Tokens.ASSIGN.value && curTok != Lexer.Tokens.SAME.value) {
             return new DeclaratorExprAST(zType, name, null, false);
         }
 
-        Next();
-        final ExprAST val = ParseExpression();
+        next();
+        final ExprAST val = parseExpression();
         if (val == null) return null;
 
         return new DeclaratorExprAST(zType, name, val, false);
@@ -181,10 +189,10 @@ public class Parser {
      * Parses a definition and assignment of a constant
      *
      * @return an AST node or an error
-     * @throws IOException
+     * @throws IOException if an exception is found
      */
-    public final DeclaratorExprAST ParseConstant() throws IOException {
-        Next();
+    public final DeclaratorExprAST parseConstant() throws IOException {
+        next();
 
         final Lexer.Tokens typeTok = Lexer.Tokens.fromValues(curTok);
         if (!isTypeToken(typeTok)) {
@@ -192,20 +200,20 @@ public class Parser {
         }
         final ZType zType = resolveType(typeTok.description);
         if (zType == null) return null;
-        Next();
+        next();
 
         if (curTok != Lexer.Tokens.IDENTIFIER.value) {
             return error("Expected constant name");
         }
-        final String name = lex.IdentifierStr;
-        Next();
+        final String name = lex.identifierStr;
+        next();
 
         if (curTok != Lexer.Tokens.ASSIGN.value && curTok != Lexer.Tokens.SAME.value) {
             return error("Expected '->' or '=' in constant declaration");
         }
-        Next();
+        next();
 
-        final ExprAST value = ParseExpression();
+        final ExprAST value = parseExpression();
         if (value == null) return null;
 
         return new DeclaratorExprAST(zType, name, value, true);
@@ -213,12 +221,11 @@ public class Parser {
 
     /**
      * Helper method to get the next token from the lexer
-     * @return the next token
-     * @throws IOException
+     *
+     * @throws IOException if an exception is found
      */
-    private final int Next() throws IOException {
-        curTok = lex.GetTok();
-        return curTok;
+    private final void next() throws IOException {
+        curTok = lex.getTok();
     }
 
     /**
@@ -226,53 +233,53 @@ public class Parser {
      *
      * @param numVal double value
      * @return a number Expression
-     * @throws IOException
+     * @throws IOException if an exception is found
      */
-    public final ExprAST ParseNumberExpr(final double numVal) throws IOException {
-        final ExprAST result = literal(numVal, lex.NumberText, lex.NumIsFloat);
-        Next();
+    public final ExprAST parseNumberExpr(final double numVal) throws IOException {
+        final ExprAST result = literal(numVal, lex.numberText, lex.numIsFloat);
+        next();
         return result;
     }
 
 
-    public final ImportAST ParseImport() throws IOException {
+    public final ImportAST parseImport() throws IOException {
         if (curTok != Lexer.Tokens.IMPORT.value) {
             return null;
         }
 
-        Next();  // consume 'import'
+        next();  // consume 'import'
 
         if (curTok != Lexer.Tokens.IDENTIFIER.value) {
             return error("Expected module name after 'import'");
         }
 
-        final String moduleName = lex.IdentifierStr;
-        Next();
+        final String moduleName = lex.identifierStr;
+        next();
 
         return new ImportAST(moduleName);
     }
 
-    public final ExternExprAST ParseExtern() throws IOException {
+    public final ExternExprAST parseExtern() throws IOException {
         if (curTok != Lexer.Tokens.EXTERN.value) {
             return null;
         }
-        Next();  // consume 'extern'
+        next();  // consume 'extern'
 
-        final PrototypeAST proto = ParsePrototype(true);
+        final PrototypeAST proto = parsePrototype(true);
         if (proto == null) return null;
 
         if (curTok != Lexer.Tokens.ASSIGN.value) {
             return error("Missing return value for extern function: " + proto.name());
         }
 
-        Next();
+        next();
         final Lexer.Tokens token = Lexer.Tokens.fromValues(curTok);
         if (!isTypeToken(token)) {
             return error("Invalid return type for extern function: " + proto.name());
         }
         final ZType returnType = resolveType(token.description);
         if (returnType == null) return null;
-        Next();
+        next();
 
         return new ExternExprAST(proto, token.description);
     }
@@ -289,6 +296,7 @@ public class Parser {
             try {
                 return new NumberExprAST(Long.toString(Long.parseLong(text)), Long.parseLong(text));
             } catch (final NumberFormatException ignored) {
+                // nothing
             }
         }
         if (!floating && numVal == Math.rint(numVal) && Math.abs(numVal) <= LONG_EXACT_LIMIT) {
@@ -302,37 +310,37 @@ public class Parser {
      * Parses a parenthesis expression
      *
      * @return an Expression node or an error
-     * @throws IOException
+     * @throws IOException if an exception is found
      */
-    public final ExprAST ParseParenExpr() throws IOException {
-        Next();
-        final ExprAST V = ParseExpression();
-        if (V == null) return null;
+    public final ExprAST parseParenExpr() throws IOException {
+        next();
+        final ExprAST v = parseExpression();
+        if (v == null) return null;
 
         if (curTok != Lexer.Tokens.CLOSE_PAR.value) {
             return error("expected ')'");
         }
-        Next();
-        return new ParenExprAST(V);
+        next();
+        return new ParenExprAST(v);
     }
 
     /**
      * Parses an identifier expression
      *
      * @return an Expression node or an error
-     * @throws IOException
+     * @throws IOException if an exception is found
      */
-    public final ExprAST ParseIdentifierExpr() throws IOException {
-        StringBuilder idName = new StringBuilder(lex.IdentifierStr);
-        Next();
+    public final ExprAST parseIdentifierExpr() throws IOException {
+        StringBuilder idName = new StringBuilder(lex.identifierStr);
+        next();
 
         while (curTok == '.') {
-            Next();
+            next();
             if (curTok != Lexer.Tokens.IDENTIFIER.value) {
                 return error("Expected a name after '.' in '" + idName + "'");
             }
-            idName.append(".").append(lex.IdentifierStr);
-            Next();
+            idName.append(".").append(lex.identifierStr);
+            next();
         }
 
         final boolean qualified = idName.toString().contains(".");
@@ -341,8 +349,8 @@ public class Parser {
             if (qualified) {
                 return error("Cannot assign to module member '" + idName + "'");
             }
-            Next();
-            final ExprAST expr = ParseExpression();
+            next();
+            final ExprAST expr = parseExpression();
             if (expr == null) return null;
             return new AssignExprAST(idName.toString(), expr);
         }
@@ -355,11 +363,11 @@ public class Parser {
             return new VarRefExprAST(idName.toString());
         }
 
-        Next();
+        next();
         final List<ExprAST> args = new ArrayList<>();
         if (curTok != Lexer.Tokens.CLOSE_PAR.value) {
             while (true) {
-                final ExprAST arg = ParseExpression();
+                final ExprAST arg = parseExpression();
                 if (arg == null) return null;
                 args.add(arg);
 
@@ -368,10 +376,10 @@ public class Parser {
                 if (curTok != Lexer.Tokens.PARAMS.value) {
                     return error("Expected ')' or '|' in argument list");
                 }
-                Next();
+                next();
             }
         }
-        Next();
+        next();
         return new CallExprAST(idName.toString(), args);
     }
 
@@ -379,26 +387,26 @@ public class Parser {
      * Parses a primary expression (general one)
      *
      * @return an Expression node or an error
-     * @throws IOException
+     * @throws IOException if an exception is found
      */
-    public final ExprAST ParsePrimary() throws IOException {
+    public final ExprAST parsePrimary() throws IOException {
         if (curTok == Lexer.Tokens.OPEN_FUNC.value) {
-            Next();
+            next();
         }
 
         if (curTok == Lexer.Tokens.IDENTIFIER.value) {
-            return ParseIdentifierExpr();
+            return parseIdentifierExpr();
         } else if (curTok == Lexer.Tokens.NUMBER.value) {
-            return ParseNumberExpr(lex.NumVal);
+            return parseNumberExpr(lex.numVal);
         } else if (curTok == Lexer.Tokens.STRING_LITERAL.value) {
-            final String value = lex.StringVal;
-            Next();
+            final String value = lex.stringVal;
+            next();
             return new StringExprAST(value);
         } else if (curTok == Lexer.Tokens.OPEN_PAR.value) {
-            return ParseParenExpr();
+            return parseParenExpr();
         } else if (curTok == Lexer.Tokens.SUB.value) {
-            Next();
-            final ExprAST operand = ParsePrimary();
+            next();
+            final ExprAST operand = parsePrimary();
             if (operand == null) return null;
             return new UnaryExprAST(operand);
         } else {
@@ -410,21 +418,21 @@ public class Parser {
      * Returns the precedence of the current token
      * @return the precedence of the operator or -1 if it's not a binary operator
      */
-    public final int GetTokPrecedence() {
-        final Integer TokPrec = BinOpPrecedence.get(curTok);
-        if (TokPrec == null || TokPrec <= 0) return -1;
-        return TokPrec;
+    public final int getTokPrecedence() {
+        final Integer TokPrev = BinOpPrecedence.get(curTok);
+        if (TokPrev == null || TokPrev <= 0) return -1;
+        return TokPrev;
     }
 
     /**
      * Parses a Ret instruction
      *
      * @return an RetAST node
-     * @throws IOException
+     * @throws IOException if an exception is found
      */
-    public final ExprAST ParseRet() throws IOException {
-        Next();
-        final ExprAST rightSide = ParseExpression();
+    public final ExprAST parseRet() throws IOException {
+        next();
+        final ExprAST rightSide = parseExpression();
         if (rightSide == null) return null;
 
         return new RetAST(rightSide);
@@ -434,15 +442,15 @@ public class Parser {
      * Parses a for loop: {@code for (type name -> init | cond | op) { body }}
      *
      * @return a ForAST node or an error
-     * @throws IOException
+     * @throws IOException if an exception is found
      */
-    public final ForAST ParseFor() throws IOException {
-        Next();  // skip 'for'
+    public final ForAST parseFor() throws IOException {
+        next();  // skip 'for'
 
         if (curTok != Lexer.Tokens.OPEN_PAR.value) {
             return error("Expected '(' after 'for'");
         }
-        Next();
+        next();
 
         // Parse type
         final Lexer.Tokens typeTok = Lexer.Tokens.fromValues(curTok);
@@ -451,62 +459,62 @@ public class Parser {
         }
         final ZType varType = resolveType(typeTok.description);
         if (varType == null) return null;
-        Next();
+        next();
 
         // Parse name
         if (curTok != Lexer.Tokens.IDENTIFIER.value) {
             return error("Expected variable name in for");
         }
-        final String varName = lex.IdentifierStr;
-        Next();
+        final String varName = lex.identifierStr;
+        next();
 
         // Parse initial value
         if (curTok != Lexer.Tokens.ASSIGN.value && curTok != Lexer.Tokens.SAME.value) {
             return error("Expected '->' or '=' for initial value in for");
         }
-        Next();
-        final ExprAST init = ParseExpression();
+        next();
+        final ExprAST init = parseExpression();
         if (init == null) return null;
 
         // Expect '|'
         if (curTok != Lexer.Tokens.PARAMS.value) {
             return error("Expected '|' after initial value in for");
         }
-        Next();
+        next();
 
         // Parse condition
-        final ExprAST cond = ParseExpression();
+        final ExprAST cond = parseExpression();
         if (cond == null) return null;
 
         // Expect '|'
         if (curTok != Lexer.Tokens.PARAMS.value) {
             return error("Expected '|' after condition in for");
         }
-        Next();
+        next();
 
         // Parse update
-        final ExprAST update = ParseExpression();
+        final ExprAST update = parseExpression();
         if (update == null) return null;
 
         // Expect ')'
         if (curTok != Lexer.Tokens.CLOSE_PAR.value) {
             return error("Expected ')' after for header");
         }
-        Next();
+        next();
 
         // Parse body
         if (curTok != Lexer.Tokens.OPEN_FUNC.value) {
             return error("Expected '{' for for body");
         }
-        Next();
+        next();
 
         final List<ExprAST> bodyStatements = new ArrayList<>();
         while (curTok != Lexer.Tokens.CLOSE_FUNC.value && curTok != Lexer.Tokens.EOF.value) {
             if (curTok == ';') {
-                Next();
+                next();
                 continue;
             }
-            final ExprAST stmt = ParseStatement();
+            final ExprAST stmt = parseStatement();
             if (stmt == null) return null;
             bodyStatements.add(stmt);
         }
@@ -514,9 +522,9 @@ public class Parser {
         if (curTok != Lexer.Tokens.CLOSE_FUNC.value) {
             return error("Expected '}' at the end of the for body");
         }
-        Next();
+        next();
 
-        final ExprAST body = bodyStatements.size() == 1 ? bodyStatements.get(0) : new BlockAST(bodyStatements);
+        final ExprAST body = bodyStatements.size() == 1 ? bodyStatements.getFirst() : new BlockAST(bodyStatements);
 
         return new ForAST(varType, varName, init, cond, update, body);
     }
@@ -525,10 +533,10 @@ public class Parser {
      * Parses a conditional: {@code if (cond) { } eif (cond) { } else { }}.
      *
      * @return an IfAST node or an error
-     * @throws IOException
+     * @throws IOException if an exception is found
      */
-    public final IfAST ParseIf() throws IOException {
-        Next();  // skip 'if'
+    public final IfAST parseIf() throws IOException {
+        next();  // skip 'if'
 
         final List<IfAST.Branch> branches = new ArrayList<>();
         ExprAST elseBody = null;
@@ -538,21 +546,21 @@ public class Parser {
         branches.add(first);
 
         while (Lexer.Tokens.fromValues(curTok) == Lexer.Tokens.EIF) {
-            Next();  // skip 'eif'
+            next();  // skip 'eif'
             final IfAST.Branch branch = parseIfBranch("eif");
             if (branch == null) return null;
             branches.add(branch);
         }
 
         if (Lexer.Tokens.fromValues(curTok) == Lexer.Tokens.ELSE) {
-            Next();  // skip 'else'
+            next();  // skip 'else'
             if (curTok != Lexer.Tokens.OPEN_FUNC.value) {
                 return error("Expected '{' after 'else'");
             }
-            Next();
+            next();
             final List<ExprAST> stmts = parseBlockBody();
             if (stmts == null) return null;
-            elseBody = stmts.size() == 1 ? stmts.get(0) : new BlockAST(stmts);
+            elseBody = stmts.size() == 1 ? stmts.getFirst() : new BlockAST(stmts);
         }
 
         return new IfAST(branches, elseBody);
@@ -565,26 +573,26 @@ public class Parser {
         if (curTok != Lexer.Tokens.OPEN_PAR.value) {
             return error("Expected '(' after '" + keyword + "'");
         }
-        Next();
-        final ExprAST cond = ParseExpression();
+        next();
+        final ExprAST cond = parseExpression();
         if (cond == null) return null;
         if (curTok != Lexer.Tokens.CLOSE_PAR.value) {
             return error("Expected ')' after condition in " + keyword);
         }
-        Next();
+        next();
 
         if (curTok != Lexer.Tokens.OPEN_FUNC.value) {
             return error("Expected '{' after condition in " + keyword);
         }
-        Next();
+        next();
         final List<ExprAST> stmts = parseBlockBody();
         if (stmts == null) return null;
-        final ExprAST body = stmts.size() == 1 ? stmts.get(0) : new BlockAST(stmts);
+        final ExprAST body = stmts.size() == 1 ? stmts.getFirst() : new BlockAST(stmts);
         return new IfAST.Branch(cond, body);
     }
 
     /**
-     * Parses {@code stmt*} and consumes the closing {@code '}'}.
+     * Parses {@code stmt*} and consumes the closing {@code '}'}'.
      *
      * @return the statements, or null on error
      */
@@ -592,102 +600,102 @@ public class Parser {
         final List<ExprAST> stmts = new ArrayList<>();
         while (curTok != Lexer.Tokens.CLOSE_FUNC.value && curTok != Lexer.Tokens.EOF.value) {
             if (curTok == ';') {
-                Next();
+                next();
                 continue;
             }
-            final ExprAST s = ParseStatement();
-            if (s == null) return null;
+            final ExprAST s = parseStatement();
+            if (s == null) return Collections.emptyList();
             stmts.add(s);
         }
         if (curTok != Lexer.Tokens.CLOSE_FUNC.value) {
             return error("Expected '}' at the end of the block");
         }
-        Next();
+        next();
         return stmts;
     }
 
     /**
      * Parses a statement
      * @return a node, in reality it just calls other functions
-     * @throws IOException
+     * @throws IOException if an exception is found
      */
-    public final ExprAST ParseStatement() throws IOException {
+    public final ExprAST parseStatement() throws IOException {
         final Lexer.Tokens token = Lexer.Tokens.fromValues(curTok);
         if (token == Lexer.Tokens.RET) {
-            return ParseRet();
+            return parseRet();
         } else if (token == Lexer.Tokens.IF) {
-            return ParseIf();
+            return parseIf();
         } else if (token == Lexer.Tokens.FOR) {
-            return ParseFor();
+            return parseFor();
         } else if (isTypeToken(token)) {
-            return ParseVariable();
+            return parseVariable();
         } else if (token == Lexer.Tokens.CN) {
-            return ParseConstant();
+            return parseConstant();
         } else {
-            return ParseExpression();
+            return parseExpression();
         }
     }
 
     /**
      * Parses an expression (general use)
      * @return null or calls other functions
-     * @throws IOException
+     * @throws IOException if an exception is found
      */
-    public final ExprAST ParseExpression() throws IOException {
-        final ExprAST LHS = ParsePrimary();
-        if (LHS == null) return null;
+    public final ExprAST parseExpression() throws IOException {
+        final ExprAST leftOperandSide = parsePrimary();
+        if (leftOperandSide == null) return null;
 
-        return ParseBinOpRHS(0, LHS);
+        return parseBinOpRHS(0, leftOperandSide);
     }
 
     /**
      * Parses a binary operation
-     * @param ExprPrec precedence of the operator
-     * @param LHS left side
+     * @param ExprPrev precedence of the operator
+     * @param leftOperandSide left side
      * @return null or a BinaryExprAST node
-     * @throws IOException
+     * @throws IOException if an exception is found
      */
-    public final ExprAST ParseBinOpRHS(final int ExprPrec, ExprAST LHS) throws IOException {
+    public final ExprAST parseBinOpRHS(final int ExprPrev, ExprAST leftOperandSide) throws IOException {
         while (true) {
-            final int TokPrec = GetTokPrecedence();
+            final int TokPrev = getTokPrecedence();
 
-            if (TokPrec < ExprPrec) {
-                return LHS;
+            if (TokPrev < ExprPrev) {
+                return leftOperandSide;
             }
 
             final int BinOp = curTok;
-            Next();
+            next();
 
-            ExprAST RHS = ParsePrimary();
-            if (RHS == null) return null;
+            ExprAST rightOperandSide = parsePrimary();
+            if (rightOperandSide == null) return null;
 
-            final int NextPrec = GetTokPrecedence();
-            if (TokPrec < NextPrec) {
-                RHS = ParseBinOpRHS(TokPrec + 1, RHS);
-                if (RHS == null) return null;
+            final int NextPrev = getTokPrecedence();
+            if (TokPrev < NextPrev) {
+                rightOperandSide = parseBinOpRHS(TokPrev + 1, rightOperandSide);
+                if (rightOperandSide == null) return null;
             }
 
-            LHS = new BinaryExprAST(Lexer.Tokens.fromValues(BinOp).description.charAt(0), LHS, RHS);
+            leftOperandSide = new BinaryExprAST(Lexer.Tokens.fromValues(BinOp).description.charAt(0), leftOperandSide, rightOperandSide);
         }
     }
 
     /**
      * Parses a function prototype
      * @return an error or a PrototypeAST node
-     * @throws IOException
+     * @throws IOException if an exception is found
      */
-    public final PrototypeAST ParsePrototype(final boolean extern) throws IOException {
+    public final PrototypeAST parsePrototype(final boolean extern) throws IOException {
         if (curTok != Lexer.Tokens.IDENTIFIER.value) {
             return error("Expected function name in prototype, got " + describeToken(curTok) + " instead");
         }
-        final String fnName = lex.IdentifierStr;
-        Next();
+        final String fnName = lex.identifierStr;
+        next();
 
         // Expect '('
         if (curTok != Lexer.Tokens.OPEN_PAR.value ) {
             return error("Expected '(' in prototype, got " + describeToken(curTok) + " instead");
         }
-        Next();
+        next();
 
         final List<PrototypeAST.Param> params = new ArrayList<>();
         if (curTok != Lexer.Tokens.CLOSE_PAR.value ) {
@@ -698,7 +706,7 @@ public class Parser {
                 }
                 final ZType paramType = resolveType(typeTok.description);
                 if (paramType == null) return null;
-                Next();
+                next();
 
                 if (extern) {
                     params.add(new PrototypeAST.Param(paramType.zName(), ""));
@@ -706,14 +714,14 @@ public class Parser {
                     if (curTok != Lexer.Tokens.IDENTIFIER.value) {
                         return error("Expected parameter name");
                     }
-                    final String paramName = lex.IdentifierStr;
-                    Next();
+                    final String paramName = lex.identifierStr;
+                    next();
 
                     params.add(new PrototypeAST.Param(paramType.zName(), paramName));
                 }
 
                 if (curTok == Lexer.Tokens.PARAMS.value) {
-                    Next();
+                    next();
                     continue;
                 }
                 if (curTok == Lexer.Tokens.CLOSE_PAR.value) {
@@ -723,10 +731,7 @@ public class Parser {
             }
         }
 
-        if (curTok != Lexer.Tokens.CLOSE_PAR.value) {
-            return error("Expected ')' in prototype");
-        }
-        Next();
+        next();
 
         return new PrototypeAST(fnName, params);
     }
@@ -735,9 +740,9 @@ public class Parser {
      * Parses a function definition
      *
      * @return null or a FunctionAST node
-     * @throws IOException
+     * @throws IOException if an exception is found
      */
-    public final FunctionAST ParseDefinition(final boolean foundExtern) throws IOException {
+    public final FunctionAST parseDefinition() throws IOException {
         if (curTok == Lexer.Tokens.EOF.value) {
             return null;
         }
@@ -747,21 +752,21 @@ public class Parser {
         }
 
         // consume 'proc' so the prototype starts on the function name
-        Next();
-        final PrototypeAST proto = ParsePrototype(false);
+        next();
+        final PrototypeAST proto = parsePrototype(false);
         if (proto == null) return null;
 
         if (curTok == Lexer.Tokens.OPEN_FUNC.value) {
-            Next();
+            next();
         }
 
         final List<ExprAST> bodyStatements = new ArrayList<>();
         while (curTok != Lexer.Tokens.CLOSE_FUNC.value && curTok != Lexer.Tokens.EOF.value) {
             if (curTok == ';') {
-                Next();
+                next();
                 continue;
             }
-            final ExprAST stmt = ParseStatement();
+            final ExprAST stmt = parseStatement();
             if (stmt == null) return null;
             bodyStatements.add(stmt);
         }
@@ -769,7 +774,7 @@ public class Parser {
         if (curTok != Lexer.Tokens.CLOSE_FUNC.value) {
             return error("Expected '}' at the end of the function body");
         }
-        Next();
+        next();
 
         final ExprAST body = bodyStatements.size() == 1 ? bodyStatements.getFirst() : new BlockAST(bodyStatements);
         return new FunctionAST(proto, body);

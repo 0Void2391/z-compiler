@@ -2,6 +2,7 @@ package Tests;
 
 import org.junit.jupiter.api.Test;
 
+import java.io.IOException;
 import java.nio.file.Path;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -10,12 +11,12 @@ public class TestBinding {
     private final TestEndToEnd end = new TestEndToEnd();
 
     private static boolean verifyTools() {
-        return TestEndToEnd.OPT != null && TestEndToEnd.CLANG != null;
+        return TestEndToEnd.OPT == null || TestEndToEnd.CLANG == null;
     }
 
     @Test
-    void testBasic() throws Exception {
-        if (!verifyTools()) return;
+    void testBasic() throws InterruptedException, IOException {
+        if (verifyTools()) return;
 
         final Path binary = end.compile("test", """
                 extern isalpha(int32) -> bool
@@ -30,8 +31,8 @@ public class TestBinding {
     }
 
     @Test
-    void testSqrt() throws Exception {
-        if(!verifyTools()) return;
+    void testSqrt() throws IOException, InterruptedException {
+        if(verifyTools()) return;
 
         final Path binary = end.compile("test2", """
                 extern sqrt(flt64) -> flt64
@@ -47,8 +48,8 @@ public class TestBinding {
     }
 
     @Test
-    void testIsDigit() throws Exception {
-        if (!verifyTools()) return;
+    void testIsDigit() throws IOException, InterruptedException {
+        if (verifyTools()) return;
 
         final Path binary = end.compile("test3", """
                 extern isdigit(int32) -> int32
@@ -64,8 +65,8 @@ public class TestBinding {
     }
 
     @Test
-    void testExit() throws Exception {
-        if(!verifyTools()) return;
+    void testExit() throws IOException, InterruptedException {
+        if(verifyTools()) return;
 
         final Path binary = end.compile("test", """
                 extern exit(int32) -> void

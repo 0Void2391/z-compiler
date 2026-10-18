@@ -1,5 +1,6 @@
 package src.AST;
 
+import org.jspecify.annotations.Nullable;
 import src.Codegen.IRBuilder;
 import src.Parser.ZType;
 
@@ -14,18 +15,10 @@ import java.util.List;
  */
 public final class IfAST extends ExprAST {
 
-    /** One condition and its body. The first is the {@code if}, the rest are {@code eif}s. */
-    public static final class Branch {
-        private final ExprAST cond;
-        private final ExprAST body;
-
-        public Branch(final ExprAST cond, final ExprAST body) {
-            this.cond = cond;
-            this.body = body;
-        }
-
-        public ExprAST cond() { return cond; }
-        public ExprAST body() { return body; }
+    /**
+     * One condition and its body. The first is the {@code if}, the rest are {@code eif}s.
+     */
+    public record Branch(ExprAST cond, ExprAST body) {
     }
 
     private final List<Branch> branches;
@@ -48,7 +41,7 @@ public final class IfAST extends ExprAST {
     }
 
     @Override
-    public Value Codegen(final IRBuilder builder) {
+    public @Nullable Value codeGen(final IRBuilder builder) {
         final List<String> condLabels = new ArrayList<>();
         final List<String> thenLabels = new ArrayList<>();
         for (int i = 0; i < branches.size(); i++) {
@@ -58,7 +51,7 @@ public final class IfAST extends ExprAST {
         final String elseLabel = elseBody != null ? builder.nextLabel("if.else") : null;
         final String endLabel = builder.nextLabel("if.end");
 
-        builder.emitBr(condLabels.get(0));
+        builder.emitBr(condLabels.getFirst());
 
         for (int i = 0; i < branches.size(); i++) {
             builder.emitLabel(condLabels.get(i));
@@ -79,7 +72,7 @@ public final class IfAST extends ExprAST {
             builder.emitCondBr(condReg, thenLabels.get(i), falseTarget);
 
             builder.emitLabel(thenLabels.get(i));
-            branches.get(i).body().Codegen(builder);
+            branches.get(i).body().codeGen(builder);
             if (builder.hasFailed()) return null;
             if (!builder.isTerminated()) {
                 builder.emitBr(endLabel);
@@ -88,7 +81,7 @@ public final class IfAST extends ExprAST {
 
         if (elseBody != null) {
             builder.emitLabel(elseLabel);
-            elseBody.Codegen(builder);
+            elseBody.codeGen(builder);
             if (builder.hasFailed()) return null;
             if (!builder.isTerminated()) {
                 builder.emitBr(endLabel);

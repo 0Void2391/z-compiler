@@ -38,7 +38,9 @@ public final class CallExprAST extends ExprAST {
         if (externReturn != null) return externReturn;
         final IRBuilder.ResolvedSignature resolved = builder.resolve(callee);
         final PrototypeAST signature = resolved == null ? null : resolved.prototype();
-        if (signature != null && signature.isMain()) return ZType.INT32;
+        if (signature == null) return ZType.FLT64;
+        if (signature.returnType() != null) return signature.returnType();
+        if (signature.isMain()) return ZType.INT32;
         return ZType.FLT64;
     }
 
@@ -76,9 +78,12 @@ public final class CallExprAST extends ExprAST {
         final ZType result;
         if (externReturn != null) {
             result = externReturn;
+        } else if (signature.returnType() != null) {
+            result = signature.returnType();
+        } else if (signature.isMain()) {
+            result = ZType.INT32;
         } else {
-            if (signature.isMain()) result = ZType.INT32;
-            else result = ZType.FLT64;
+            result = ZType.FLT64;
         }
 
         final String call = "call " + result.llvm() + " @" + resolved.irName() + "(" + String.join(", ", printed) + ")";

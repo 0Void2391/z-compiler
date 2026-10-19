@@ -30,6 +30,13 @@ public abstract class ExprAST {
         final ZType from = value.type();
         if (from == target) return value;
 
+        if (from.isString() || target.isString()) {
+            System.err.println("Error: cannot convert between str and "
+                    + (from.isString() ? target.zName() : from.zName()));
+            builder.markFailed();
+            return null;
+        }
+
         final String result = builder.nextRegister();
 
         if (from.isFloat() && target.isFloat()) {

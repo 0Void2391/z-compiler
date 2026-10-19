@@ -839,4 +839,58 @@ public class TestCodeGen {
 
         assertTrue(llvmIR.contains("@id(i8* %s)"), llvmIR);
     }
+
+    @Test
+    public void testStrReturnTypeAppearsInSignature() throws IOException {
+        final String llvmIR = codeGen(
+                "proc greet(str s) -> str { ret s }\nproc main() { ret 0 }");
+
+        assertNotNull(llvmIR);
+        assertTrue(llvmIR.contains("define private dso_local i8* @greet(i8* %s)"), llvmIR);
+    }
+
+    @Test
+    public void testInt32ReturnType() throws IOException {
+        final String llvmIR = codeGen("proc answer() -> int32 { ret 42 }");
+
+        assertNotNull(llvmIR);
+        assertTrue(llvmIR.contains("define private dso_local i32 @answer()"), llvmIR);
+        assertTrue(llvmIR.contains("ret i32 42"), llvmIR);
+    }
+
+    @Test
+    public void testCallingAStrReturningFunction() throws IOException {
+        final String llvmIR = codeGen(
+                "proc greet(str s) -> str { ret s }\n"
+                        + "proc main() { str r -> greet(\"hi\")\n ret 0 }");
+
+        assertNotNull(llvmIR);
+        assertTrue(llvmIR.contains("call i8* @greet(i8*"), llvmIR);
+    }
+
+    @Test
+    public void testReturningAnIntFromAStrFunctionFails() {
+        final String diagnostics = ZFixtures.failureOf(
+                "proc foo() -> str { ret 42 }");
+
+        assertNotNull(diagnostics);
+        assertTrue(diagnostics.contains("cannot convert between str and"), diagnostics);
+    }
+
+    @Test
+    public void testReturningStrFromAnIntFunctionFails() {
+        final String diagnostics = ZFixtures.failureOf(
+                "proc foo() -> int32 { str s -> \"x\"\n ret s }");
+
+        assertNotNull(diagnostics);
+        assertTrue(diagnostics.contains("cannot convert between str and"), diagnostics);
+    }
+
+    @Test
+    public void testMainWithStrReturnFallsOffWithNull() throws IOException {
+        final String llvmIR = codeGen("proc main() -> str { }");
+
+        assertNotNull(llvmIR);
+        assertTrue(llvmIR.contains("ret i8* null"), llvmIR);
+    }
 }

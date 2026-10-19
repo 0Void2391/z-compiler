@@ -150,6 +150,14 @@ public class IRBuilder {
             terminated = true;
             return;
         }
+        // str is an i8*. It is not a number, and the conversion opcodes
+        // below would produce invalid IR for it.
+        if (from.equals("i8*") || target.equals("i8*")) {
+            System.err.println("Error: cannot convert between str and "
+                    + (from.equals("i8*") ? target : from));
+            markFailed();
+            return;
+        }
         final String converted = nextRegister();
         appendLine(converted + " = " + conversionOpcode(value.type().llvm(), target) + from + " " + value.text() + " to " + target);
         appendLine("ret " + target + " " + converted);

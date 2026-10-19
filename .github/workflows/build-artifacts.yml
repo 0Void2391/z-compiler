@@ -1,0 +1,152 @@
+name: Build release artifacts
+
+on:
+  workflow_call:
+    inputs:
+      channel:
+        description: "Distribution channel: nightly, staging or production"
+        type: string
+        required: true
+      version:
+        description: "Version written in the release notes (e.g. v1.2.0 or nightly)"
+        type: string
+        required: true
+
+jobs:
+  build:
+    name: Build (${{ inputs.channel }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Set up GraalVM (JDK 21, includes native-image)
+        uses: graalvm/setup-graalvm@v1
+        with:
+          java-version: '21'
+          distribution: 'graalvm'
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          cache: maven
+
+      - name: Set up the LLVM toolchain
+        shell: bash
+        run: scripts/ci/llvm.sh --install
+
+      - name: Build (tests + jar + native image)
+        shell: bash
+        run: |
+          set -euo pipefail
+          mvn --batch-mode --no-transfer-progress -Pnative clean verify
+
+      - name: Smoke test the native image
+        run: scripts/ci/smoke-test.sh target/z-compiler
+
+      - name: Smoke test the runnable jar
+        shell: bash
+        run: |
+          set -euo pipefail
+          jar=(target/z-compiler-*-all.jar)
+          scripts/ci/smoke-test.sh "${jar[0]}"
+
+      - name: Collect the artifacts, checksums and notes
+        shell: bash
+        env:
+          CHANNEL: ${{ inputs.channel }}
+          VERSION: ${{ inputs.version }}
+        run: |
+          set -euo pipefail
+          jar=(target/z-compiler-*-all.jar)
+
+          mkdir -p dist
+          mv target/z-compiler dist/z-linux-amd64
+          mv "${jar[0]}" dist/z-compiler.jar
+          chmod +x dist/z-linux-amd64
+
+          {
+            echo "## Z-Compiler ${VERSION} (${CHANNEL} channel)"
+            echo
+            echo "Built from commit \`${GITHUB_SHA}\` on $(date -u +'%Y-%m-%d %H:%M UTC')."
+            echo
+            echo "## Downloads"
+            echo
+            echo "| File | SHA-256 |"
+            echo "| ---- | ------- |"
+            ( cd dist && sha256sum z-linux-amd64 z-compiler.jar > SHA256SUMS.txt )
+            while read -r sum file; do
+              echo "| $file | \`$sum\` |"
+            done < dist/SHA256SUMS.txt
+            echo
+            echo "### Verify"
+            echo '```sh'
+            echo "sha256sum -c SHA256SUMS.txt"
+            echo '```'
+          } > dist/RELEASE_NOTES.md
+
+          cat dist/RELEASE_NOTES.md
+
+      - name: Upload the artifacts
+        uses: actions/upload-artifact@v7
+        with:
+          name: release-artifacts
+          path: dist/
+          if-no-files-found: error
+          retention-days: 30
+
+  docker:
+    name: Docker image (${{ inputs.channel }})
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout the image definition
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+          sparse-checkout: docker
+
+      - name: Download the tested binaries
+        uses: actions/download-artifact@v8
+        with:
+          name: release-artifacts
+          path: dist
+
+      - name: Log in to the GitHub Container Registry
+        uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Date used by the nightly tags
+        if: inputs.channel == 'nightly'
+        run: echo "NIGHTLY_DATE=$(date -u +%Y%m%d)" >> "$GITHUB_ENV"
+
+      - name: Docker metadata
+        id: meta
+        uses: docker/metadata-action@v6
+        with:
+          images: ghcr.io/${{ github.repository }}
+          tags: |
+            type=raw,value=nightly,enable=${{ inputs.channel == 'nightly' }}
+            type=raw,value=nightly-${{ env.NIGHTLY_DATE }},enable=${{ inputs.channel == 'nightly' }}
+            type=raw,value=rc,enable=${{ inputs.channel == 'staging' }}
+            type=raw,value=latest,enable=${{ inputs.channel == 'production' }}
+            type=semver,pattern={{version}},enable=${{ inputs.channel == 'production' }}
+            type=semver,pattern={{major}}.{{minor}},enable=${{ inputs.channel == 'production' }}
+
+      - name: Build and push
+        uses: docker/build-push-action@v7
+        with:
+          context: dist
+          file: docker/Dockerfile
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}

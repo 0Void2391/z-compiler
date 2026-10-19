@@ -30,9 +30,19 @@ The end-to-end tests need LLVM (`sudo apt-get install -y clang llvm`, or run
 `scripts/ci/llvm.sh --install`); without it they are silently skipped, so CI
 checks for the tools explicitly.
 
-## Release
+## Release channels
+
+| Channel | Trigger | Published as |
+| ------- | ------- | ------------ |
+| **Nightly** | every night at 03:00 UTC (or manually) | rolling prerelease [`nightly`](https://github.com/the-big-zed/z-compiler/releases/tag/nightly), image `ghcr.io/the-big-zed/z-compiler:nightly` |
+| **Staging** | tag `v1.2.0-rc.1` | prerelease on the tag, image `ghcr.io/the-big-zed/z-compiler:rc` |
+| **Production** | tag `v1.2.0` | release marked *latest* with a provenance attestation, images `:1.2.0` and `:latest` |
 
 ```shell
-git tag v1.0.0
-git push origin v1.0.0
+git tag v1.2.0-rc.1 && git push origin v1.2.0-rc.1   # staging
+git tag v1.0.0 && git push origin v1.0.0             # production
+```
+
+```shell
+docker run --rm -v "$PWD:/workspace" ghcr.io/the-big-zed/z-compiler:nightly test.z -o out
 ```

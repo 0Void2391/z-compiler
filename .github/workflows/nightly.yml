@@ -1,0 +1,63 @@
+name: Nightly
+
+on:
+  schedule:
+    - cron: '0 3 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: nightly
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: Build the nightly artifacts
+    uses: ./.github/workflows/build-artifacts.yml
+    with:
+      channel: nightly
+      version: nightly
+    permissions:
+      contents: read
+      packages: write
+
+  publish:
+    name: Roll the nightly prerelease
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: write
+
+    steps:
+      - name: Remove the previous nightly release and tag
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          # The nightly tag must always point at the newest main commit.
+          gh release delete nightly --repo "$GITHUB_REPOSITORY" --yes 2>/dev/null || true
+          gh api --method DELETE "repos/$GITHUB_REPOSITORY/git/refs/tags/nightly" 2>/dev/null || true
+
+      - name: Download the artifacts
+        uses: actions/download-artifact@v8
+        with:
+          name: release-artifacts
+          path: dist
+
+      - name: Publish the rolling prerelease
+        uses: softprops/action-gh-release@v3
+        with:
+          tag_name: nightly
+          name: Nightly build
+          body_path: dist/RELEASE_NOTES.md
+          prerelease: true
+          make_latest: false
+          fail_on_unmatched_files: true
+          files: |
+            dist/z-linux-amd64
+            dist/z-compiler.jar
+            dist/SHA256SUMS.txt

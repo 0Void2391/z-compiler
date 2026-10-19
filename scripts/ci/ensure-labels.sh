@@ -50,16 +50,33 @@ fi
 export GH_TOKEN="${GH_TOKEN:-$GITHUB_TOKEN}"
 repo="${GITHUB_REPOSITORY:?GITHUB_REPOSITORY is not set}"
 
-existing="$(gh label list --repo "$repo" --json name --jq '.[].name')"
+list_labels() {
+    gh label list --repo "$repo" --limit 1000 --json name --jq '.[].name'
+}
+
+existing="$(list_labels)"
 
 created=0
+raced=0
 for spec in "${labels[@]}"; do
     IFS='|' read -r name color description <<<"$spec"
-    if grep -qxF "$name" <<<"$existing"; then
+    if grep -qiFx "$name" <<<"$existing"; then
         continue
     fi
-    gh label create "$name" --repo "$repo" --color "$color" --description "$description"
-    created=$((created + 1))
+
+    if error="$(gh label create "$name" --repo "$repo" --color "$color" --description "$description" 2>&1)"; then
+        created=$((created + 1))
+        continue
+    fi
+
+    if grep -qiFx "$name" <<<"$(list_labels)"; then
+        echo "label '$name' was created by a concurrent run"
+        raced=$((raced + 1))
+        continue
+    fi
+
+    echo "::error::cannot create label '$name': $error" >&2
+    exit 1
 done
 
-echo "Labels present: $(wc -l <<<"$existing" | tr -d ' '), created: $created"
+echo "Labels: ${#labels[@]} configured, $created created, $raced created concurrently"

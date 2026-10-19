@@ -252,6 +252,7 @@
                             <buildArgs>
                                 <buildArg>-O3</buildArg>
                                 <buildArg>--no-fallback</buildArg>
+                                <buildArg>-H:ReflectionConfigurationFiles=${project.basedir}/native-config/reflect-config.json</buildArg>
                             </buildArgs>
                         </configuration>
                     </plugin>

@@ -1,36 +1,136 @@
-name: Create Binary for Linux (Release)
+name: Release
 
 on:
   push:
     tags:
-      - 'v*'
+      - 'v*.*.*'
+  workflow_dispatch:
 
 permissions:
   contents: read
 
+concurrency:
+  group: release-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
 jobs:
-  build-native:
-    name: Compiles
+  build:
+    name: Build & verify release binaries
     runs-on: ubuntu-latest
+    timeout-minutes: 60
 
     steps:
-    - uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
 
-    - name: Configures GraalVM (JDK 21)
-      uses: graalvm/setup-graalvm@v1
-      with:
-        java-version: '21'
-        distribution: 'graalvm'
-        github-token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Validate the tag
+        if: github.event_name == 'push'
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ ! "$GITHUB_REF_NAME" =~ ^v[0-9]+\.[0-9]+(\.[0-9]+)?(-[0-9A-Za-z.-]+)?$ ]]; then
+            echo "::error::Tag '$GITHUB_REF_NAME' is not a semantic version tag (expected vMAJOR.MINOR.PATCH)."
+            exit 1
+          fi
+          if ! git merge-base --is-ancestor "$GITHUB_SHA" origin/main; then
+            echo "::error::Tag '$GITHUB_REF_NAME' does not point to a commit of the 'main' branch."
+            exit 1
+          fi
+          echo "Releasing $GITHUB_REF_NAME"
 
-    - name: Compiles
-      run: mvn --batch-mode -Pnative package
+      - name: Set up GraalVM (JDK 21, includes native-image)
+        uses: graalvm/setup-graalvm@v1
+        with:
+          java-version: '21'
+          distribution: 'graalvm'
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          cache: maven
 
-    - name: Renames the exe
-      run: mv target/z-compiler z-linux-amd64
+      - name: Set up the LLVM toolchain
+        shell: bash
+        run: scripts/ci/llvm.sh --install
 
-    - name: Publish it
-      uses: softprops/action-gh-release@v2
-      with:
-        files: z-linux-amd64
-        generate_release_notes: true
+      - name: Build
+        shell: bash
+        run: |
+          set -euo pipefail
+          mvn --batch-mode --no-transfer-progress -Pnative clean verify
+
+      - name: Smoke test the native image
+        run: scripts/ci/smoke-test.sh target/z-compiler
+
+      - name: Smoke test the runnable jar
+        shell: bash
+        run: |
+          set -euo pipefail
+          jar=(target/z-compiler-*-all.jar)
+          scripts/ci/smoke-test.sh "${jar[0]}"
+
+      - name: Collect release assets and checksums
+        shell: bash
+        run: |
+          set -euo pipefail
+          jar=(target/z-compiler-*-all.jar)
+
+          mkdir -p dist
+          mv target/z-compiler dist/z-linux-amd64
+          mv "${jar[0]}" dist/z-compiler.jar
+          chmod +x dist/z-linux-amd64
+
+          {
+            echo "## Downloads"
+            echo
+            echo "| File | SHA-256 |"
+            echo "| ---- | ------- |"
+            ( cd dist && sha256sum z-linux-amd64 z-compiler.jar > SHA256SUMS.txt )
+            while read -r sum file; do
+              echo "| $file | \`$sum\` |"
+            done < dist/SHA256SUMS.txt
+            echo
+            echo "### Verify"
+            echo '```sh'
+            echo "sha256sum -c SHA256SUMS.txt"
+            echo '```'
+          } > dist/RELEASE_NOTES.md
+
+          cat dist/RELEASE_NOTES.md
+
+      - name: Upload release assets as workflow artifacts
+        uses: actions/upload-artifact@v7
+        with:
+          name: release-assets
+          path: dist/
+          if-no-files-found: error
+          retention-days: 30
+
+  publish:
+    name: Publish the GitHub release
+    needs: build
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+
+    steps:
+      - name: Download release assets
+        uses: actions/download-artifact@v8
+        with:
+          name: release-assets
+          path: dist
+
+      - name: Publish
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: Z-Compiler ${{ github.ref_name }}
+          body_path: dist/RELEASE_NOTES.md
+          generate_release_notes: true
+          fail_on_unmatched_files: true
+          make_latest: true
+          files: |
+            dist/z-linux-amd64
+            dist/z-compiler.jar
+            dist/SHA256SUMS.txt

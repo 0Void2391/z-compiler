@@ -8,8 +8,25 @@
 *.ipr
 out/
 
+# VS Code / JetBrains run configurations (local, not shared)
+.vscode/
+.run/
+
 # Maven
 target/
+
+# Build output produced by the compiler when run from the repository root
+bin/
+output
+output.ll
+output_opt.ll
+z.out
+z.ll
+
+# Release packaging (created by .github/workflows/release.yml)
+dist/
+z-linux-*
+SHA256SUMS.txt
 
 # Java
 *.class
@@ -17,8 +34,3 @@ target/
 *.war
 *.ear
 hs_err_pid*
-
-output.ll
-output_opt.ll
-z.out
-z.ll

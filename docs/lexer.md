@@ -68,7 +68,6 @@ Tokens
 - Identifies identifiers, numbers, operators, comments, and symbols.
 - Returns the corresponding Token value.
 
-
 ## `Tokens` Enum
 
 ### What is `Tokens`?
@@ -144,7 +143,6 @@ The enum constants are initialized only once.
 | `EOF` | `eof` | `-31` |
 | `SAME` | `=` | `-32` |
 | `CN` | `cn` | `-35` |
-
 
 ### Methods
 

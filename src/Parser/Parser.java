@@ -760,7 +760,7 @@ public class Parser {
         next();
 
         final List<PrototypeAST.Param> params = new ArrayList<>();
-        if (curTok != Lexer.Tokens.CLOSE_PAR.value ) {
+        if (curTok != Lexer.Tokens.CLOSE_PAR.value) {
             while (true) {
                 final Lexer.Tokens typeTok = Lexer.Tokens.fromValues(curTok);
                 if (!isTypeToken(typeTok)) {
@@ -778,7 +778,6 @@ public class Parser {
                     }
                     final String paramName = lex.identifierStr;
                     next();
-
                     params.add(new PrototypeAST.Param(paramType.zName(), paramName));
                 }
 
@@ -795,7 +794,23 @@ public class Parser {
 
         next();
 
-        return new PrototypeAST(fnName, params);
+        ZType returnType = null;
+        if (!extern && curTok == Lexer.Tokens.ASSIGN.value) {
+            next();
+            final Lexer.Tokens retTok = Lexer.Tokens.fromValues(curTok);
+            if (!isTypeToken(retTok)) {
+                return error("Expected return type after '->', got "
+                        + describeToken(curTok) + " instead");
+            }
+            returnType = resolveType(retTok.description);
+            if (returnType == null) return null;
+            if (returnType.isVoid()) {
+                return error("A function cannot return void");
+            }
+            next();
+        }
+
+        return new PrototypeAST(fnName, params, returnType);
     }
 
     /**
@@ -834,7 +849,9 @@ public class Parser {
         }
         next();
 
-        final ExprAST body = bodyStatements.size() == 1 ? bodyStatements.getFirst() : new BlockAST(bodyStatements);
+        final ExprAST body = bodyStatements.size() == 1
+                ? bodyStatements.getFirst()
+                : new BlockAST(bodyStatements);
         return new FunctionAST(proto, body);
     }
 }

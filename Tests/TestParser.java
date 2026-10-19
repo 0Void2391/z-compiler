@@ -3,6 +3,7 @@ package Tests;
 import org.junit.jupiter.api.Test;
 import src.AST.ExprAST;
 import src.Parser.Parser;
+import src.Parser.ZType;
 import src.lexer.Lexer;
 import src.AST.*;
 
@@ -458,5 +459,56 @@ public class TestParser {
     void testIfMissingBodyFails() throws IOException {
         final Parser parser = createParser("if (1 < 2) ret 1");
         assertNull(parser.parseStatement());
+    }
+
+    @Test
+    void testPrototypeWithStrReturnType() throws IOException {
+        final Parser parser = createParser("greet(str s) -> str");
+        final PrototypeAST proto = parser.parsePrototype(false);
+
+        assertNotNull(proto);
+        assertEquals(ZType.STRING, proto.returnType());
+    }
+
+    @Test
+    void testPrototypeWithInt32ReturnType() throws IOException {
+        final Parser parser = createParser("answer() -> int32");
+        final PrototypeAST proto = parser.parsePrototype(false);
+
+        assertNotNull(proto);
+        assertEquals(ZType.INT32, proto.returnType());
+    }
+
+    @Test
+    void testPrototypeWithoutReturnTypeIsNull() throws IOException {
+        final Parser parser = createParser("answer()");
+        final PrototypeAST proto = parser.parsePrototype(false);
+
+        assertNotNull(proto);
+        assertNull(proto.returnType());
+    }
+
+    @Test
+    void testFunctionDeclaresStrReturnType() throws IOException {
+        final Parser parser = createParser("proc greet(str s) -> str { ret s }");
+        final FunctionAST fn = parser.parseDefinition();
+
+        assertEquals(ZType.STRING, fn.returnType());
+    }
+
+    @Test
+    void testFunctionWithoutReturnTypeFallsBackToDouble() throws IOException {
+        final Parser parser = createParser("proc foo() { ret 1 }");
+        final FunctionAST fn = parser.parseDefinition();
+
+        assertEquals(ZType.FLT64, fn.returnType());
+    }
+
+    @Test
+    void testMainWithoutReturnTypeIsInt32() throws IOException {
+        final Parser parser = createParser("proc main() { ret 0 }");
+        final FunctionAST fn = parser.parseDefinition();
+
+        assertEquals(ZType.INT32, fn.returnType());
     }
 }

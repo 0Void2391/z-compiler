@@ -252,12 +252,6 @@
                             <buildArgs>
                                 <buildArg>-O3</buildArg>
                                 <buildArg>--no-fallback</buildArg>
-                                <!-- picocli injects the @Parameters/@Option fields of CompilerCmd
-                                     through reflection. GraalVM native-image works closed-world, so
-                                     without an explicit registration those fields are invisible at
-                                     runtime and every command line is rejected as "Unmatched
-                                     arguments". This is why the native binary failed the release
-                                     smoke test even though the runnable jar passed. -->
                                 <buildArg>-H:ReflectionConfigurationFiles=${project.basedir}/native-config/reflect-config.json</buildArg>
                             </buildArgs>
                         </configuration>

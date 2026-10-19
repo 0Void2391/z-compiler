@@ -24,8 +24,11 @@ public final class FunctionAST extends ExprAST {
         return proto;
     }
 
-    /** @return what this function returns: {@code int32} for main, else {@code flt64} */
+    /** @return the declared return type, or the historical default */
     public ZType returnType() {
+        if (proto.returnType() != null) {
+            return proto.returnType();
+        }
         return proto.isMain() ? ZType.INT32 : ZType.FLT64;
     }
 
@@ -79,7 +82,28 @@ public final class FunctionAST extends ExprAST {
                 builder.symbols().exitScope();
                 return null;
             }
-            builder.emitBareReturn("i32 0");
+            final ZType ret = returnType();
+            final String zero;
+            if (ret.isVoid()) {
+                logger.error("Error: cannot produce a default return for '{}'", ret.zName());
+                builder.markFailed();
+                builder.symbols().exitScope();
+                return null;
+            } else if (ret.isBoolean()) {
+                zero = "i1 false";
+            } else if (ret.isString()) {
+                zero = "i8* null";
+            } else if (ret.isFloat()) {
+                zero = ret.llvm() + " 0.0";
+            } else if (ret.isIntegral()) {
+                zero = ret.llvm() + " 0";
+            } else {
+                logger.error("Error: cannot produce a default return for '{}'", ret.zName());
+                builder.markFailed();
+                builder.symbols().exitScope();
+                return null;
+            }
+            builder.emitBareReturn(zero);
         }
 
         final String text = "define " + (isMain ? "dso_local" : "private dso_local") + " " + returnType().llvm() + " @" + builder.irNameOf(proto.name()) + "(" + parameters + ") {\nentry:\n" + builder.getIR() + "}\n";

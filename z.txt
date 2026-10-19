@@ -1,4 +1,4 @@
-proc name (int64 name | int64 name) {
+proc name (int64 name | int64 name) -> returnType {
 
 
 	ret 281

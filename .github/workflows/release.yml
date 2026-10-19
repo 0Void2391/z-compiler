@@ -1,10 +1,10 @@
+# Release: triggered by a `v*.*.*` tag.
 name: Release
 
 on:
   push:
     tags:
       - 'v*.*.*'
-  workflow_dispatch:
 
 permissions:
   contents: read
@@ -14,19 +14,22 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  build:
-    name: Build & verify release binaries
+  prepare:
+    name: Validate the tag and pick the channel
     runs-on: ubuntu-latest
-    timeout-minutes: 60
+    timeout-minutes: 5
+    outputs:
+      channel: ${{ steps.channel.outputs.value }}
 
     steps:
       - name: Checkout
         uses: actions/checkout@v7
         with:
           fetch-depth: 0
+          persist-credentials: false
 
       - name: Validate the tag
-        if: github.event_name == 'push'
+        id: channel
         shell: bash
         run: |
           set -euo pipefail
@@ -38,88 +41,51 @@ jobs:
             echo "::error::Tag '$GITHUB_REF_NAME' does not point to a commit of the 'main' branch."
             exit 1
           fi
-          echo "Releasing $GITHUB_REF_NAME"
 
-      - name: Set up GraalVM (JDK 21, includes native-image)
-        uses: graalvm/setup-graalvm@v1
-        with:
-          java-version: '21'
-          distribution: 'graalvm'
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          cache: maven
+          if [[ "$GITHUB_REF_NAME" == *-* ]]; then
+            channel=staging
+          else
+            channel=production
+          fi
 
-      - name: Set up the LLVM toolchain
-        shell: bash
-        run: scripts/ci/llvm.sh --install
+          echo "Releasing $GITHUB_REF_NAME on the $channel channel"
+          echo "value=$channel" >> "$GITHUB_OUTPUT"
 
-      - name: Build
-        shell: bash
-        run: |
-          set -euo pipefail
-          mvn --batch-mode --no-transfer-progress -Pnative clean verify
-
-      - name: Smoke test the native image
-        run: scripts/ci/smoke-test.sh target/z-compiler
-
-      - name: Smoke test the runnable jar
-        shell: bash
-        run: |
-          set -euo pipefail
-          jar=(target/z-compiler-*-all.jar)
-          scripts/ci/smoke-test.sh "${jar[0]}"
-
-      - name: Collect release assets and checksums
-        shell: bash
-        run: |
-          set -euo pipefail
-          jar=(target/z-compiler-*-all.jar)
-
-          mkdir -p dist
-          mv target/z-compiler dist/z-linux-amd64
-          mv "${jar[0]}" dist/z-compiler.jar
-          chmod +x dist/z-linux-amd64
-
-          {
-            echo "## Downloads"
-            echo
-            echo "| File | SHA-256 |"
-            echo "| ---- | ------- |"
-            ( cd dist && sha256sum z-linux-amd64 z-compiler.jar > SHA256SUMS.txt )
-            while read -r sum file; do
-              echo "| $file | \`$sum\` |"
-            done < dist/SHA256SUMS.txt
-            echo
-            echo "### Verify"
-            echo '```sh'
-            echo "sha256sum -c SHA256SUMS.txt"
-            echo '```'
-          } > dist/RELEASE_NOTES.md
-
-          cat dist/RELEASE_NOTES.md
-
-      - name: Upload release assets as workflow artifacts
-        uses: actions/upload-artifact@v7
-        with:
-          name: release-assets
-          path: dist/
-          if-no-files-found: error
-          retention-days: 30
+  build:
+    name: Build the release binaries
+    needs: prepare
+    uses: ./.github/workflows/build-artifacts.yml
+    with:
+      channel: ${{ needs.prepare.outputs.channel }}
+      version: ${{ github.ref_name }}
+    permissions:
+      contents: read
+      packages: write
 
   publish:
     name: Publish the GitHub release
-    needs: build
-    if: github.event_name == 'push'
+    needs: [prepare, build]
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 15
     permissions:
       contents: write
+      id-token: write        # provenance attestation
+      attestations: write
 
     steps:
-      - name: Download release assets
+      - name: Download the artifacts
         uses: actions/download-artifact@v8
         with:
-          name: release-assets
+          name: release-artifacts
           path: dist
+
+      - name: Attest the build provenance (production only)
+        if: needs.prepare.outputs.channel == 'production'
+        uses: actions/attest-build-provenance@v4
+        with:
+          subject-path: |
+            dist/z-linux-amd64
+            dist/z-compiler.jar
 
       - name: Publish
         uses: softprops/action-gh-release@v3
@@ -128,8 +94,9 @@ jobs:
           name: Z-Compiler ${{ github.ref_name }}
           body_path: dist/RELEASE_NOTES.md
           generate_release_notes: true
+          prerelease: ${{ needs.prepare.outputs.channel == 'staging' }}
+          make_latest: ${{ needs.prepare.outputs.channel == 'production' }}
           fail_on_unmatched_files: true
-          make_latest: true
           files: |
             dist/z-linux-amd64
             dist/z-compiler.jar

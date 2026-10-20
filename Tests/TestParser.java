@@ -418,7 +418,7 @@ public class TestParser {
     void testVariableDeclaration() throws IOException {
         final String code = "int32 var";
         final Parser parser = createParser(code);
-        final DeclaratorExprAST v = parser.parseVariable();
+        final DeclaratorExprAST v = parser.parseVariable(false);
         assertInstanceOf(DeclaratorExprAST.class, v);
     }
 
@@ -426,7 +426,7 @@ public class TestParser {
     void testVariableWithAssignment() throws IOException {
         final String code = "flt32 var = 2";
         final Parser parser = createParser(code);
-        final DeclaratorExprAST v = parser.parseVariable();
+        final DeclaratorExprAST v = parser.parseVariable(false);
         assertInstanceOf(DeclaratorExprAST.class, v);
     }
 

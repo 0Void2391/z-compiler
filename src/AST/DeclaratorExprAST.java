@@ -17,12 +17,14 @@ public final class DeclaratorExprAST extends ExprAST {
     private final String name;
     private final ExprAST initialiser;
     private final boolean constant;
+    private final boolean global;
 
-    public DeclaratorExprAST(final ZType type, final String name, final ExprAST initialiser, final boolean constant) {
+    public DeclaratorExprAST(final ZType type, final String name, final ExprAST initialiser, final boolean constant, boolean globals) {
         this.type = type;
         this.name = name;
         this.initialiser = initialiser;
         this.constant = constant;
+        this.global = globals;
     }
 
     /** @return the declared type */
@@ -42,7 +44,7 @@ public final class DeclaratorExprAST extends ExprAST {
 
     @Override
     public @Nullable Value codeGen(final IRBuilder builder) {
-        if (builder.symbols().lookupCurrentScope(name) != null) {
+        if (builder.symbols().lookupCurrentScope(name) != null && !global) {
             logger.error("Error: Shadowing or redeclaration of the local variable: {}",  name);
             builder.markFailed();
             return null;
@@ -63,9 +65,17 @@ public final class DeclaratorExprAST extends ExprAST {
             text = fitted.text();
         }
 
-        final String slot = builder.emitAlloca(name, type.llvm());
-        builder.emitStore(text, type.llvm(), slot);
-        builder.symbols().define(name, new SymbolTable.SymbolInfo(name, type, slot, constant));
+        if(!global) {
+            final String slot = builder.emitAlloca(name, type.llvm());
+            builder.emitStore(text, type.llvm(), slot);
+            builder.symbols().define(name, new SymbolTable.SymbolInfo(name, type, slot, constant));
+        }
+        else {
+            final String slot = builder.emitAllocaGlobal(name, type.llvm());
+            builder.emitStore(text, type.llvm(), slot);
+        }
+
+
         return null;
     }
 }

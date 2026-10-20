@@ -2,10 +2,7 @@ package src.Main;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import src.AST.ExternExprAST;
-import src.AST.FunctionAST;
-import src.AST.ImportAST;
-import src.AST.ModuleAST;
+import src.AST.*;
 import src.Parser.Parser;
 import src.lexer.Lexer;
 
@@ -96,6 +93,13 @@ public final class ModuleLoader {
         }
 
         while (true) {
+            final Outcome<DeclaratorExprAST> outcome = captured(() -> parser.parseVariable(true));
+            if (outcome.reportedError()) return null;
+            if (outcome.value() == null) break;
+            module.addVar(outcome.value());
+        }
+
+        while (true) {
             final Outcome<ExternExprAST> outcome = captured(parser::parseExtern);
             if (outcome.reportedError()) return null;
             if (outcome.value() == null) break;
@@ -103,7 +107,7 @@ public final class ModuleLoader {
         }
 
         while (true) {
-            final Outcome<FunctionAST> outcome = captured(() -> parser.parseDefinition());
+            final Outcome<FunctionAST> outcome = captured(parser::parseDefinition);
             if (outcome.reportedError()) return null;
             if (outcome.value() == null) {
                 if (parser.atEOF()) break;

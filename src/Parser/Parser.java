@@ -139,7 +139,7 @@ public class Parser {
             } else if (token == Lexer.Tokens.CN) {
                 parsed = parseConstant();
             } else if (isTypeToken(token)) {
-                parsed = parseVariable();
+                parsed = parseVariable(false);
             } else if (token == Lexer.Tokens.EXTERN){
                 parseExtern();
             } else {
@@ -160,7 +160,11 @@ public class Parser {
      * @return an AST node or an error
      * @throws IOException if an exception is found
      */
-    public final DeclaratorExprAST parseVariable() throws IOException {
+    public final DeclaratorExprAST parseVariable(boolean globals) throws IOException {
+        if (curTok == Lexer.Tokens.FUNC.value)  {
+            return null;
+        }
+
         final Lexer.Tokens typeTok = Lexer.Tokens.fromValues(curTok);
         next();
 
@@ -175,14 +179,14 @@ public class Parser {
         next();
 
         if (curTok != Lexer.Tokens.ASSIGN.value && curTok != Lexer.Tokens.SAME.value) {
-            return new DeclaratorExprAST(zType, name, null, false);
+            return new DeclaratorExprAST(zType, name, null, false, globals);
         }
 
         next();
         final ExprAST val = parseExpression();
         if (val == null) return null;
 
-        return new DeclaratorExprAST(zType, name, val, false);
+        return new DeclaratorExprAST(zType, name, val, false, globals);
     }
 
     /**
@@ -216,7 +220,7 @@ public class Parser {
         final ExprAST value = parseExpression();
         if (value == null) return null;
 
-        return new DeclaratorExprAST(zType, name, value, true);
+        return new DeclaratorExprAST(zType, name, value, true, false);
     }
 
     /**
@@ -628,7 +632,7 @@ public class Parser {
         } else if (token == Lexer.Tokens.FOR) {
             return parseFor();
         } else if (isTypeToken(token)) {
-            return parseVariable();
+            return parseVariable(false);
         } else if (token == Lexer.Tokens.CN) {
             return parseConstant();
         } else {

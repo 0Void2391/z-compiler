@@ -153,8 +153,7 @@ public class IRBuilder {
         // str is an i8*. It is not a number, and the conversion opcodes
         // below would produce invalid IR for it.
         if (from.equals("i8*") || target.equals("i8*")) {
-            System.err.println("Error: cannot convert between str and "
-                    + (from.equals("i8*") ? target : from));
+            System.err.println("Error: cannot convert between str and " + (from.equals("i8*") ? target : from));
             markFailed();
             return;
         }
@@ -256,6 +255,12 @@ public class IRBuilder {
      */
     public void emitStore(final String val, final String llvmType, final String ptr) {
         appendLine("store " + llvmType + " " + val + ", ptr " + ptr);
+    }
+
+    public final String emitAllocaGlobal(final String varName, final String llvmType) {
+        final String ptr = "%" + varName;
+        appendLine(ptr + " = global " + llvmType);
+        return ptr;
     }
 
     /**

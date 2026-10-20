@@ -263,7 +263,7 @@ public class Main {
         }
         builder.setCurrentModule(null);
 
-        for (final ExternExprAST extern : root.externs()) {
+        for (final ExternExprAST extern : root.externals()) {
             final Value externValue = extern.codeGen(builder);
             if (externValue == null || builder.hasFailed()) {
                 logger.error("Error building the IR of the externs");
@@ -297,7 +297,7 @@ public class Main {
     private static boolean emitModule(final ModuleAST module, final IRBuilder builder, final StringBuilder unit) {
         builder.setCurrentModule(module.name());
 
-        for (final ExternExprAST extern : module.externs()) {
+        for (final ExternExprAST extern : module.externals()) {
             final Value externValue = extern.codeGen(builder);
             if (externValue == null || builder.hasFailed()) {
                 if (logger.isErrorEnabled()) {

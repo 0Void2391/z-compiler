@@ -41,8 +41,7 @@ public class SymbolTable {
          * @param pointerReg the register in which the pointer is stored
          * @param isConstant is it a constant?
          */
-        public SymbolInfo(final String name, final ZType type,
-                          final String pointerReg, final boolean isConstant) {
+        public SymbolInfo(final String name, final ZType type, final String pointerReg, final boolean isConstant) {
             this.name = name;
             this.type = type;
             this.pointerReg = pointerReg;
@@ -65,6 +64,11 @@ public class SymbolTable {
         public final int getCallCount() { return callCount; }
         public void incrementCallCount() { this.callCount++; }
     }
+
+    /**
+     * map of globals
+     */
+    private final Map<String, SymbolInfo> globals = new HashMap<>();
 
     /**
      * Deque of maps of symbol info
@@ -96,6 +100,15 @@ public class SymbolTable {
     }
 
     /**
+     * defines a new global
+     * @param name name
+     * @param info info
+     */
+    public void defineGlobal(final String name, final SymbolInfo info) {
+        globals.put(name, info);
+    }
+
+    /**
      * defines a symbol in the current scope
      * returns false if the symbol is already present
      */
@@ -119,6 +132,8 @@ public class SymbolTable {
                 return info;
             }
         }
+        final SymbolInfo info = globals.get(name);
+        if (name != null) return info;
         return null; // symbol not found
     }
 

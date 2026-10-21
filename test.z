@@ -2,5 +2,6 @@ import library
 
 proc main() {
     int32 test -> library.math(60)
-    int32 prova -> libray.test
+    int32 prova -> library.global
+    ret prova
 }

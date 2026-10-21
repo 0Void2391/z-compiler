@@ -22,13 +22,17 @@ public final class VarRefExprAST extends ExprAST {
 
     @Override
     public ZType type(final IRBuilder builder) {
-        final SymbolTable.SymbolInfo info = builder.symbols().lookup(name);
+        SymbolTable.SymbolInfo info = builder.symbols().lookup(name);
+        if (info == null && !name.contains(".")) info = builder.symbols().lookup(builder.qualify(name));
         return info == null ? ZType.INT32 : info.getZType();
     }
 
     @Override
     public Value codeGen(final IRBuilder builder) {
-        final SymbolTable.SymbolInfo info = builder.symbols().lookup(name);
+        SymbolTable.SymbolInfo info = builder.symbols().lookup(name);
+        if (info == null && !name.contains(".")) {
+            info = builder.symbols().lookup(builder.qualify(name));
+        }
         if (info == null) {
             logger.error("Error: undeclared variable: {}", name);
             builder.markFailed();

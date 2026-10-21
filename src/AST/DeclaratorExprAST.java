@@ -44,8 +44,10 @@ public final class DeclaratorExprAST extends ExprAST {
 
     @Override
     public @Nullable Value codeGen(final IRBuilder builder) {
-        if (builder.symbols().lookupCurrentScope(name) != null && !global) {
-            logger.error("Error: Shadowing or redeclaration of the local variable: {}",  name);
+        if (global) return genGlobal(builder);
+
+        if (builder.symbols().lookupCurrentScope(name) != null) {
+            logger.error("Error: Shadowing or redeclaration of the local variable: {}", name);
             builder.markFailed();
             return null;
         }
@@ -59,23 +61,43 @@ public final class DeclaratorExprAST extends ExprAST {
                 builder.markFailed();
                 return null;
             }
-
             final Value fitted = initialiser.coerce(builder, value, type);
             if (fitted == null) return null;
             text = fitted.text();
         }
 
-        if(!global) {
-            final String slot = builder.emitAlloca(name, type.llvm());
-            builder.emitStore(text, type.llvm(), slot);
-            builder.symbols().define(name, new SymbolTable.SymbolInfo(name, type, slot, constant));
-        }
-        else {
-            final String slot = builder.emitAllocaGlobal(name, type.llvm());
-            builder.emitStore(text, type.llvm(), slot);
+        final String slot = builder.emitAlloca(name, type.llvm());
+        builder.emitStore(text, type.llvm(), slot);
+        builder.symbols().define(name, new SymbolTable.SymbolInfo(name, type, slot, constant));
+        return null;
+    }
+
+    private @Nullable Value genGlobal(final IRBuilder builder) {
+        final String key = builder.qualify(name);          // es. "library.global"
+        if (builder.symbols().lookup(key) != null) {
+            logger.error("Error: global '{}' is defined more than once", key);
+            builder.markFailed();
+            return null;
         }
 
+        String init = type.initial();
+        if (initialiser != null) {
+            final Value value = initialiser.codeGen(builder);
+            if (value == null) {
+                builder.markFailed();
+                return null;
+            }
+            final Value fitted = initialiser.coerce(builder, value, type);
+            if (fitted == null) {
+                builder.markFailed();
+                return null;
+            }
+            init = fitted.text();
+        }
 
+        final String irName = "@" + builder.irNameOf(name);   // es. "@library_global"
+        builder.appendToGlobals(irName + " = global " + type.llvm() + " " + init + "\n");
+        builder.symbols().defineGlobal(key, new SymbolTable.SymbolInfo(name, type, irName, constant));
         return null;
     }
 }

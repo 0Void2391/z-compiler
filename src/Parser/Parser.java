@@ -3,6 +3,7 @@ package src.Parser;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import src.AST.*;
+import src.Codegen.SymbolTable;
 import src.lexer.Lexer;
 
 import java.io.IOException;
@@ -360,9 +361,6 @@ public class Parser {
         }
 
         if (curTok != Lexer.Tokens.OPEN_PAR.value) {
-            if (qualified) {
-                return error("Module function '" + idName + "' can only be called");
-            }
 
             return new VarRefExprAST(idName.toString());
         }

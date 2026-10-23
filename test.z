@@ -1,6 +1,8 @@
 import library
+extern sqrt(flt64) -> flt64
 
 proc main() {
     int32 test -> library.math(60)
-    ret test
+    int32 prova -> library.global
+    ret test + prova
 }

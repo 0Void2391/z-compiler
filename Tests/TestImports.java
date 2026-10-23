@@ -79,9 +79,9 @@ public class TestImports {
 
     @Test
     void testQualifiedReferenceThatIsNotCalledFails() {
-        final String error = errorReportedBy("math.sqrt");
+        final String error = ZFixtures.failureOf("proc main() { ret math.sqrt }");
         assertNotNull(error);
-        assertTrue(error.contains("can only be called"), error);
+        assertTrue(error.contains("undeclared variable"), error);
     }
 
     @Test
@@ -170,19 +170,19 @@ public class TestImports {
                 "b.z\nimport c\nproc fb() { ret 1 }",
                 "c.z\nimport b\nproc fc() { ret 1 }");
 
-        assertNotNull(ir);
+        assertNull(ir);
     }
 
     @Test
     void testImportingTheRootFileFails() throws IOException {
-        assertNotNull(compile("main.z",
+        assertNull(compile("main.z",
                 "main.z\nimport math\nproc main() { ret 1 }",
                 "math.z\nimport main\nproc square(int32 x) { ret x * 2 }"));
     }
 
     @Test
     void testMissingImportFileFails() throws IOException {
-        assertNotNull(compile("main.z", "main.z\nimport nosuch\nproc main() { ret 1 }"));
+        assertNull(compile("main.z", "main.z\nimport nosuch\nproc main() { ret 1 }"));
     }
 
     @Test
@@ -236,6 +236,49 @@ public class TestImports {
         assertTrue(ir.contains("declare double @sqrt(double)"), ir);
         assertTrue(ir.contains("call double @sqrt(double"), ir);
         assertTrue(ir.contains("call double @libm_halve(double"), ir);
+    }
+
+    @Test
+    void testExternAfterADefinitionParses() throws IOException {
+        final String ir = compile("main.z",
+                "main.z\nimport math\nproc main() { ret math.twice(2) }",
+                "math.z\nproc twice(int32 x) { ret x * 2 }\nextern sqrt(flt64) -> flt64");
+
+        assertNotNull(ir);
+        assertTrue(ir.contains("declare double @sqrt(double)"), ir);
+    }
+
+    @Test
+    void testSameExternInTwoModulesIsDeclaredOnce() throws IOException {
+        final String ir = compile("main.z",
+                "main.z\nimport a\nimport b\nproc main() { ret a.fa() + b.fb() }",
+                "a.z\nextern sqrt(flt64) -> flt64\nproc fa() { ret sqrt(4.0) }",
+                "b.z\nextern sqrt(flt64) -> flt64\nproc fb() { ret sqrt(9.0) }");
+
+        assertNotNull(ir);
+        assertEquals(1, count(ir, "declare double @sqrt(double)"), ir);
+    }
+
+    @Test
+    void testConflictingExternDeclarationsFail() throws IOException {
+        assertNull(compile("main.z",
+                "main.z\nimport a\nimport b\nproc main() { ret 0 }",
+                "a.z\nextern sqrt(flt64) -> flt64\nproc fa() { ret 1 }",
+                "b.z\nextern sqrt(int32) -> int32\nproc fb() { ret 2 }"));
+    }
+
+    @Test
+    void testGlobalLiteralInitializerCompiles() throws IOException {
+        final String ir = compile("main.z", "main.z\nint32 g -> 3\nproc main() { ret g }");
+
+        assertNotNull(ir);
+        assertTrue(ir.contains("@g = global i32 3"), ir);
+        assertTrue(ir.contains("load i32, ptr @g"), ir);
+    }
+
+    @Test
+    void testNonConstantGlobalInitializerFails() throws IOException {
+        assertNull(compile("main.z", "main.z\nint32 g -> 1 + 2\nproc main() { ret g }"));
     }
 
     @Test

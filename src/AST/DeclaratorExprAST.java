@@ -17,12 +17,14 @@ public final class DeclaratorExprAST extends ExprAST {
     private final String name;
     private final ExprAST initialiser;
     private final boolean constant;
+    private final boolean global;
 
-    public DeclaratorExprAST(final ZType type, final String name, final ExprAST initialiser, final boolean constant) {
+    public DeclaratorExprAST(final ZType type, final String name, final ExprAST initialiser, final boolean constant, boolean globals) {
         this.type = type;
         this.name = name;
         this.initialiser = initialiser;
         this.constant = constant;
+        this.global = globals;
     }
 
     /** @return the declared type */
@@ -42,8 +44,10 @@ public final class DeclaratorExprAST extends ExprAST {
 
     @Override
     public @Nullable Value codeGen(final IRBuilder builder) {
+        if (global) return genGlobal(builder);
+
         if (builder.symbols().lookupCurrentScope(name) != null) {
-            logger.error("Error: Shadowing or redeclaration of the local variable: {}",  name);
+            logger.error("Error: Shadowing or redeclaration of the local variable: {}", name);
             builder.markFailed();
             return null;
         }
@@ -57,7 +61,6 @@ public final class DeclaratorExprAST extends ExprAST {
                 builder.markFailed();
                 return null;
             }
-
             final Value fitted = initialiser.coerce(builder, value, type);
             if (fitted == null) return null;
             text = fitted.text();
@@ -66,6 +69,42 @@ public final class DeclaratorExprAST extends ExprAST {
         final String slot = builder.emitAlloca(name, type.llvm());
         builder.emitStore(text, type.llvm(), slot);
         builder.symbols().define(name, new SymbolTable.SymbolInfo(name, type, slot, constant));
+        return null;
+    }
+
+    private @Nullable Value genGlobal(final IRBuilder builder) {
+        final String key = builder.qualify(name);          // es. "library.global"
+        if (builder.symbols().lookup(key) != null) {
+            logger.error("Error: global '{}' is defined more than once", key);
+            builder.markFailed();
+            return null;
+        }
+
+        String init = type.initial();
+        if (initialiser != null) {
+            final int emittedBefore = builder.getIR().length();
+            final Value value = initialiser.constantValue(builder);
+            if (value == null) {
+                logger.error("Error: global '{}' must be initialized with a constant expression", key);
+                builder.markFailed();
+                return null;
+            }
+            final Value fitted = initialiser.coerce(builder, value, type);
+            if (fitted == null) {
+                builder.markFailed();
+                return null;
+            }
+            if (builder.getIR().length() != emittedBefore) {
+                logger.error("Error: global '{}' must be initialized with a constant expression", key);
+                builder.markFailed();
+                return null;
+            }
+            init = fitted.text();
+        }
+
+        final String irName = "@" + builder.irNameOf(name);   // es. "@library_global"
+        builder.appendToGlobals(irName + " = global " + type.llvm() + " " + init + "\n");
+        builder.symbols().defineGlobal(key, new SymbolTable.SymbolInfo(name, type, irName, constant));
         return null;
     }
 }

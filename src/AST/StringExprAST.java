@@ -43,4 +43,11 @@ public final class StringExprAST extends ExprAST {
         builder.setRegisterType(reg, ZType.STRING.llvm());
         return new Value(reg, ZType.STRING);
     }
+
+    @Override
+    public Value constantValue(final IRBuilder builder) {
+        final byte[] bytes = value.getBytes(StandardCharsets.UTF_8);
+        final String globalName = builder.emitStringConstant(bytes);
+        return new Value("@" + globalName, ZType.STRING);
+    }
 }

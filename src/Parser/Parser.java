@@ -1,5 +1,6 @@
 package src.Parser;
 
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import src.AST.*;
@@ -114,6 +115,20 @@ public class Parser {
         return curTok == Lexer.Tokens.EOF.value;
     }
 
+    /**
+     * @return the value of the token the parser is positioned on
+     */
+    public final int currentToken() {
+        return curTok;
+    }
+
+    /**
+     * @return whether the parser is positioned on a type keyword
+     */
+    public final boolean atTypeDeclaration() {
+        return isTypeToken(Lexer.Tokens.fromValues(curTok));
+    }
+
 
     /**
      * mainLoop method to parse the input
@@ -141,9 +156,9 @@ public class Parser {
             } else if (token == Lexer.Tokens.ARRAY_OPEN) {
                 parsed = parseArray();
             } else if (isTypeToken(token)) {
-                parsed = parseVariable();
+                parsed = parseVariable(false);
             } else if (token == Lexer.Tokens.EXTERN){
-                parseExtern();
+                parsed = parseExtern();
             } else {
                 error("Unknown token in main loop: " + curTok);
                 next();
@@ -162,8 +177,11 @@ public class Parser {
      * @return an AST node or an error
      * @throws IOException if an exception is found
      */
-    public final DeclaratorExprAST parseVariable() throws IOException {
+    public final DeclaratorExprAST parseVariable(boolean globals) throws IOException {
         final Lexer.Tokens typeTok = Lexer.Tokens.fromValues(curTok);
+        if (!isTypeToken(typeTok)) {
+            return null;
+        }
         next();
 
         final ZType zType = resolveType(typeTok.description);
@@ -177,14 +195,14 @@ public class Parser {
         next();
 
         if (curTok != Lexer.Tokens.ASSIGN.value && curTok != Lexer.Tokens.SAME.value) {
-            return new DeclaratorExprAST(zType, name, null, false);
+            return new DeclaratorExprAST(zType, name, null, false, globals);
         }
 
         next();
         final ExprAST val = parseExpression();
         if (val == null) return null;
 
-        return new DeclaratorExprAST(zType, name, val, false);
+        return new DeclaratorExprAST(zType, name, val, false, globals);
     }
 
     /**
@@ -218,7 +236,7 @@ public class Parser {
         final ExprAST value = parseExpression();
         if (value == null) return null;
 
-        return new DeclaratorExprAST(zType, name, value, true);
+        return new DeclaratorExprAST(zType, name, value, true, false);
     }
     public final ArrayAST parseArray() throws IOException {
         //next(); (I believe this isn't necessary here)
@@ -416,9 +434,6 @@ public class Parser {
         }
 
         if (curTok != Lexer.Tokens.OPEN_PAR.value) {
-            if (qualified) {
-                return error("Module function '" + idName + "' can only be called");
-            }
 
             return new VarRefExprAST(idName.toString());
         }
@@ -504,7 +519,7 @@ public class Parser {
      * @return a ForAST node or an error
      * @throws IOException if an exception is found
      */
-    public final ForAST parseFor() throws IOException {
+    public final @Nullable ForAST parseFor() throws IOException {
         next();  // skip 'for'
 
         if (curTok != Lexer.Tokens.OPEN_PAR.value) {
@@ -688,7 +703,7 @@ public class Parser {
         } else if (token == Lexer.Tokens.FOR) {
             return parseFor();
         } else if (isTypeToken(token)) {
-            return parseVariable();
+            return parseVariable(false);
         } else if (token == Lexer.Tokens.CN) {
             return parseConstant();
         } else if (token == Lexer.Tokens.ARRAY_OPEN) {
@@ -746,7 +761,7 @@ public class Parser {
      * @return an error or a PrototypeAST node
      * @throws IOException if an exception is found
      */
-    public final PrototypeAST parsePrototype(final boolean extern) throws IOException {
+    public final @Nullable PrototypeAST parsePrototype(final boolean extern) throws IOException {
         if (curTok != Lexer.Tokens.IDENTIFIER.value) {
             return error("Expected function name in prototype, got " + describeToken(curTok) + " instead");
         }
@@ -819,13 +834,17 @@ public class Parser {
      * @return null or a FunctionAST node
      * @throws IOException if an exception is found
      */
-    public final FunctionAST parseDefinition() throws IOException {
+    public final @Nullable FunctionAST parseDefinition() throws IOException {
         if (curTok == Lexer.Tokens.EOF.value) {
             return null;
         }
 
         if (Lexer.Tokens.fromValues(curTok) == Lexer.Tokens.IMPORT) {
             return error("'import' must appear before any 'extern' or definition");
+        }
+
+        if (curTok != Lexer.Tokens.FUNC.value) {
+            return error("Expected 'proc' at the start of a definition, got " + describeToken(curTok) + " instead");
         }
 
         // consume 'proc' so the prototype starts on the function name

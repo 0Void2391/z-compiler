@@ -110,28 +110,41 @@ public class IRBuilder {
     }
 
 
-    private boolean declareRaw(final PrototypeAST prototype) {
-        if (signatures.containsKey(prototype.name())) return false;
-        signatures.put(prototype.name(), prototype);
-        return true;
-    }
-
     /**
      * The return types of the extern (C) functions declared so far.
      */
     private final Map<String, ZType> externReturnTypes = new HashMap<>();
+
+    /** What happened when an extern was declared. */
+    public enum ExternDeclaration {
+        DECLARED,
+        ALREADY_DECLARED,
+        CONFLICT
+    }
 
     /**
      * Declares an extern function together with the type it returns.
      *
      * @param prototype the signature to declare
      * @param returnType what the C function returns
-     * @return false when the name is already taken
+     * @return whether the declaration is new, already present, or conflicts
      */
-    public boolean declareExtern(final PrototypeAST prototype, final ZType returnType) {
-        final boolean fresh = declareRaw(prototype);
-        externReturnTypes.put(prototype.name(), returnType);
-        return fresh;
+    public ExternDeclaration declareExtern(final PrototypeAST prototype, final ZType returnType) {
+        final PrototypeAST existing = signatures.get(prototype.name());
+        if (existing == null) {
+            signatures.put(prototype.name(), prototype);
+            externReturnTypes.put(prototype.name(), returnType);
+            return ExternDeclaration.DECLARED;
+        }
+
+        final ZType existingReturn = externReturnTypes.get(prototype.name());
+        if (existingReturn == null) {
+            return ExternDeclaration.CONFLICT;
+        }
+        if (existing.equals(prototype) && existingReturn == returnType) {
+            return ExternDeclaration.ALREADY_DECLARED;
+        }
+        return ExternDeclaration.CONFLICT;
     }
 
     /**
@@ -153,8 +166,7 @@ public class IRBuilder {
         // str is an i8*. It is not a number, and the conversion opcodes
         // below would produce invalid IR for it.
         if (from.equals("i8*") || target.equals("i8*")) {
-            System.err.println("Error: cannot convert between str and "
-                    + (from.equals("i8*") ? target : from));
+            System.err.println("Error: cannot convert between str and " + (from.equals("i8*") ? target : from));
             markFailed();
             return;
         }
@@ -256,6 +268,12 @@ public class IRBuilder {
      */
     public void emitStore(final String val, final String llvmType, final String ptr) {
         appendLine("store " + llvmType + " " + val + ", ptr " + ptr);
+    }
+
+    public final String emitAllocaGlobal(final String varName, final String llvmType) {
+        final String ptr = "%" + varName;
+        appendLine(ptr + " = global " + llvmType);
+        return ptr;
     }
 
     /**

@@ -21,6 +21,16 @@ public abstract class ExprAST {
     public abstract Value codeGen(final IRBuilder builder);
 
     /**
+     * Evaluates this node at compile time when it does not need instructions.
+     *
+     * @param builder the module being built
+     * @return the constant value, or {@code null} when the node needs code generation
+     */
+    public Value constantValue(final IRBuilder builder) {
+        return null;
+    }
+
+    /**
      * Converts a generated value to {@code target}, emitting the conversion.
      *
      * @return the value in the requested type, or the original when it already is
@@ -31,8 +41,7 @@ public abstract class ExprAST {
         if (from == target) return value;
 
         if (from.isString() || target.isString()) {
-            System.err.println("Error: cannot convert between str and "
-                    + (from.isString() ? target.zName() : from.zName()));
+            System.err.println("Error: cannot convert between str and " + (from.isString() ? target.zName() : from.zName()));
             builder.markFailed();
             return null;
         }

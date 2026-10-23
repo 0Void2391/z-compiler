@@ -285,7 +285,7 @@ public class TestParser {
                 ZFixtures.failureOf("proc main() { ret 1 }\nint32 x -> ");
 
         assertNotNull(diagnostics);
-        assertTrue(diagnostics.contains("Expected '('"), diagnostics);
+        assertTrue(diagnostics.contains("Expected 'proc'"), diagnostics);
     }
 
     @Test
@@ -418,7 +418,7 @@ public class TestParser {
     void testVariableDeclaration() throws IOException {
         final String code = "int32 var";
         final Parser parser = createParser(code);
-        final DeclaratorExprAST v = parser.parseVariable();
+        final DeclaratorExprAST v = parser.parseVariable(false);
         assertInstanceOf(DeclaratorExprAST.class, v);
     }
 
@@ -426,7 +426,7 @@ public class TestParser {
     void testVariableWithAssignment() throws IOException {
         final String code = "flt32 var = 2";
         final Parser parser = createParser(code);
-        final DeclaratorExprAST v = parser.parseVariable();
+        final DeclaratorExprAST v = parser.parseVariable(false);
         assertInstanceOf(DeclaratorExprAST.class, v);
     }
 
@@ -493,7 +493,7 @@ public class TestParser {
         final Parser parser = createParser("proc greet(str s) -> str { ret s }");
         final FunctionAST fn = parser.parseDefinition();
 
-        assertEquals(ZType.STRING, fn.returnType());
+        assertEquals(ZType.STRING, Objects.requireNonNull(fn).returnType());
     }
 
     @Test
@@ -501,7 +501,7 @@ public class TestParser {
         final Parser parser = createParser("proc foo() { ret 1 }");
         final FunctionAST fn = parser.parseDefinition();
 
-        assertEquals(ZType.FLT64, fn.returnType());
+        assertEquals(ZType.FLT64, Objects.requireNonNull(fn).returnType());
     }
 
     @Test
@@ -509,6 +509,6 @@ public class TestParser {
         final Parser parser = createParser("proc main() { ret 0 }");
         final FunctionAST fn = parser.parseDefinition();
 
-        assertEquals(ZType.INT32, fn.returnType());
+        assertEquals(ZType.INT32, Objects.requireNonNull(fn).returnType());
     }
 }

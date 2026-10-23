@@ -4,5 +4,5 @@ extern sqrt(flt64) -> flt64
 proc main() {
     int32 test -> library.math(60)
     int32 prova -> library.global
-    ret prova
+    ret test + prova
 }

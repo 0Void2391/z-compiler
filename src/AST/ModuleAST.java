@@ -5,6 +5,7 @@ import java.util.List;
 
 public final class ModuleAST {
     private final String moduleName;
+    private final List<DeclaratorExprAST> vars= new ArrayList<>();
     private final List<ImportAST> imports = new ArrayList<>();
     private final List<ExternExprAST> externals = new ArrayList<>();
     private final List<FunctionAST> functions = new ArrayList<>();
@@ -21,6 +22,8 @@ public final class ModuleAST {
         imports.add(anImport);
     }
 
+    public void addVar(final DeclaratorExprAST var) { vars.add(var); }
+
     public void addExtern(final ExternExprAST extern) {
         externals.add(extern);
     }
@@ -29,11 +32,13 @@ public final class ModuleAST {
         functions.add(function);
     }
 
+    public List<DeclaratorExprAST> vars() { return vars; }
+
     public List<ImportAST> imports() {
         return imports;
     }
 
-    public List<ExternExprAST> externs() {
+    public List<ExternExprAST> externals() {
         return externals;
     }
 

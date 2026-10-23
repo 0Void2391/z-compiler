@@ -11,6 +11,7 @@ import src.AST.Value;
 import src.Codegen.IRBuilder;
 import src.Parser.Parser;
 import src.lexer.Lexer;
+import src.AST.DeclaratorExprAST;
 
 import java.io.*;
 import java.nio.charset.StandardCharsets;
@@ -108,14 +109,16 @@ class CompilerCmd implements Callable<Integer> {
 
             logger.info("Raw IR built successfully: {}", llFilePath);
 
-            // opt passes
-            boolean optSuccess = runOptPasses(llFilePath, optFilePath);
+            final boolean optSuccess = runOptPasses(llFilePath, optFilePath);
+            final String toCompile = optSuccess ? optFilePath : llFilePath;
             if (!optSuccess) {
-                return 1;
+                logger.warn("opt not available, compiling the unoptimized IR");
             }
 
-            // compilation with linking
-            return compileToBinary(new File(optFilePath).getAbsolutePath(), binaryName, libraryPaths, linkLibraries);
+            final boolean windows = System.getProperty("os.name").toLowerCase().contains("win");
+            final String exeName = windows && !binaryName.endsWith(".exe") ? binaryName + ".exe" : binaryName;
+
+            return compileToBinary(new File(toCompile).getAbsolutePath(), exeName, libraryPaths, linkLibraries);
 
         } catch (IOException e) {
             logger.error("IO error during compilation", e);
@@ -154,7 +157,7 @@ class CompilerCmd implements Callable<Integer> {
                 return false;
             }
         } catch (IOException | InterruptedException e) {
-            logger.error("Failed to launch 'opt' tool. Is it installed and in your PATH? idiot. Do sudo apt install opt");
+            logger.error("Failed to launch 'opt' tool. Is it installed and in your PATH? idiot. Do sudo apt install opt", e);
             return false;
         }
     }
@@ -263,13 +266,21 @@ public class Main {
         }
         builder.setCurrentModule(null);
 
-        for (final ExternExprAST extern : root.externs()) {
+        for (final ExternExprAST extern : root.externals()) {
             final Value externValue = extern.codeGen(builder);
             if (externValue == null || builder.hasFailed()) {
                 logger.error("Error building the IR of the externs");
                 return null;
             }
             module.append(externValue.text());
+        }
+
+        for (final DeclaratorExprAST var : root.vars()) {
+            var.codeGen(builder);
+            if (builder.hasFailed()) {
+                logger.error("Error building the globals");
+                return null;
+            }
         }
 
         if (declareAll(root, builder)) return null;
@@ -297,7 +308,7 @@ public class Main {
     private static boolean emitModule(final ModuleAST module, final IRBuilder builder, final StringBuilder unit) {
         builder.setCurrentModule(module.name());
 
-        for (final ExternExprAST extern : module.externs()) {
+        for (final ExternExprAST extern : module.externals()) {
             final Value externValue = extern.codeGen(builder);
             if (externValue == null || builder.hasFailed()) {
                 if (logger.isErrorEnabled()) {
@@ -306,6 +317,14 @@ public class Main {
                 return false;
             }
             unit.append(externValue.text());
+        }
+
+        for (final DeclaratorExprAST var : module.vars()) {
+            var.codeGen(builder);
+            if (builder.hasFailed()) {
+                logger.error("Error building the globals of module '{}'", module.name());
+                return false;
+            }
         }
 
         for (final FunctionAST definition : module.functions()) {

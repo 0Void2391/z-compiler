@@ -132,9 +132,7 @@ public class SymbolTable {
                 return info;
             }
         }
-        final SymbolInfo info = globals.get(name);
-        if (name != null) return info;
-        return null; // symbol not found
+        return globals.get(name);
     }
 
     /**

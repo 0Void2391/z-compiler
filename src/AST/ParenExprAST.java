@@ -24,4 +24,9 @@ public final class ParenExprAST extends ExprAST {
     public Value codeGen(final IRBuilder builder) {
         return inner.codeGen(builder);
     }
+
+    @Override
+    public Value constantValue(final IRBuilder builder) {
+        return inner.constantValue(builder);
+    }
 }

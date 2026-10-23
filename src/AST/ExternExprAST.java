@@ -1,11 +1,15 @@
 package src.AST;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import src.Codegen.IRBuilder;
 import src.Parser.ZType;
 
 import java.util.List;
 
 public final class ExternExprAST extends ExprAST{
+    private static final Logger logger = LoggerFactory.getLogger(ExternExprAST.class);
+
     private final PrototypeAST proto;
     private final String type;
 
@@ -30,7 +34,16 @@ public final class ExternExprAST extends ExprAST{
     @Override
     public Value codeGen(IRBuilder builder) {
         final ZType llvmType = ZType.fromZName(type);
-        builder.declareExtern(proto, llvmType);
+        final IRBuilder.ExternDeclaration declaration = builder.declareExtern(proto, llvmType);
+        if (declaration == IRBuilder.ExternDeclaration.CONFLICT) {
+            logger.error("Error: conflicting declaration of extern '{}'", proto.name());
+            builder.markFailed();
+            return null;
+        }
+        if (declaration == IRBuilder.ExternDeclaration.ALREADY_DECLARED) {
+            return new Value("", ZType.VOID);
+        }
+
         final List<PrototypeAST.Param> params = proto.params();
 
         final StringBuilder parameters = new StringBuilder();

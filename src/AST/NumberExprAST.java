@@ -49,6 +49,11 @@ public final class NumberExprAST extends ExprAST {
     }
 
     @Override
+    public Value constantValue(final IRBuilder builder) {
+        return codeGen(builder);
+    }
+
+    @Override
     public Value coerce(final IRBuilder builder, final Value value, final ZType target) {
         if (target != null && target != type(null)) {
             if (floating) return new Value(target.literal(real), target);

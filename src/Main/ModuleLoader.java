@@ -6,10 +6,7 @@ import src.AST.*;
 import src.Parser.Parser;
 import src.lexer.Lexer;
 
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.io.PrintStream;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.*;
@@ -30,7 +27,7 @@ public final class ModuleLoader {
     public List<ModuleAST> loadAll(final List<ImportAST> imports, final Path fromDir) throws IOException {
         final List<ModuleAST> dependencies = new ArrayList<>();
         for (final ImportAST anImport : imports) {
-            if (load(anImport.moduleName(), fromDir, dependencies)) return Collections.emptyList();
+            if (load(anImport.moduleName(), fromDir, dependencies)) return null;
         }
         return dependencies;
     }
@@ -84,65 +81,45 @@ public final class ModuleLoader {
 
     public static ModuleAST parseUnit(final Parser parser, final String moduleName) throws IOException {
         final ModuleAST module = new ModuleAST(moduleName);
+        boolean declarationsStarted = false;
 
-        while (true) {
-            final Outcome<ImportAST> outcome = captured(parser::parseImport);
-            if (outcome.reportedError()) return null;
-            if (outcome.value() == null) break;
-            module.addImport(outcome.value());
-        }
+        while (!parser.atEOF()) {
+            final Lexer.Tokens token = Lexer.Tokens.fromValues(parser.currentToken());
 
-        while (true) {
-            final Outcome<DeclaratorExprAST> outcome = captured(() -> parser.parseVariable(true));
-            if (outcome.reportedError()) return null;
-            if (outcome.value() == null) break;
-            module.addVar(outcome.value());
-        }
+            if (token == Lexer.Tokens.IMPORT) {
+                if (declarationsStarted) {
+                    logger.error("Error: 'import' must appear before any 'extern' or definition");
+                    return null;
+                }
+                final ImportAST anImport = parser.parseImport();
+                if (anImport == null) return null;
+                module.addImport(anImport);
+                continue;
+            }
 
-        while (true) {
-            final Outcome<ExternExprAST> outcome = captured(parser::parseExtern);
-            if (outcome.reportedError()) return null;
-            if (outcome.value() == null) break;
-            module.addExtern(outcome.value());
-        }
+            declarationsStarted = true;
 
-        while (true) {
-            final Outcome<FunctionAST> outcome = captured(parser::parseDefinition);
-            if (outcome.reportedError()) return null;
-            if (outcome.value() == null) {
-                if (parser.atEOF()) break;
-                logger.error("Syntax error");
+            if (token == Lexer.Tokens.EXTERN) {
+                final ExternExprAST extern = parser.parseExtern();
+                if (extern == null) return null;
+                module.addExtern(extern);
+            } else if (token == Lexer.Tokens.FUNC) {
+                final FunctionAST function = parser.parseDefinition();
+                if (function == null) return null;
+                module.addFunction(function);
+            } else if (parser.atTypeDeclaration()) {
+                final DeclaratorExprAST variable = parser.parseVariable(true);
+                if (variable == null) return null;
+                module.addVar(variable);
+            } else {
+                if (logger.isErrorEnabled()) {
+                    final String found = token == null ? String.valueOf(parser.currentToken()) : token.description;
+                    logger.error("Error: unexpected token at top level: {}", found);
+                }
                 return null;
             }
-            module.addFunction(outcome.value());
         }
 
         return module;
-    }
-
-    private record Outcome<T>(T value, boolean reportedError) {
-    }
-
-    private interface ParseStep<T> {
-        T run() throws IOException;
-    }
-
-    private static <T> Outcome<T> captured(final ParseStep<T> step) throws IOException {
-        final PrintStream diagnostics = System.err;
-        final ByteArrayOutputStream reported = new ByteArrayOutputStream();
-
-        final T value;
-        System.setErr(new PrintStream(reported, true, StandardCharsets.UTF_8));
-        try {
-            value = step.run();
-        } finally {
-            System.setErr(diagnostics);
-        }
-
-        if (reported.size() > 0) {
-            diagnostics.print(reported.toString(StandardCharsets.UTF_8));
-            return new Outcome<>(null, true);
-        }
-        return new Outcome<>(value, false);
     }
 }

@@ -82,13 +82,20 @@ public final class DeclaratorExprAST extends ExprAST {
 
         String init = type.initial();
         if (initialiser != null) {
-            final Value value = initialiser.codeGen(builder);
+            final int emittedBefore = builder.getIR().length();
+            final Value value = initialiser.constantValue(builder);
             if (value == null) {
+                logger.error("Error: global '{}' must be initialized with a constant expression", key);
                 builder.markFailed();
                 return null;
             }
             final Value fitted = initialiser.coerce(builder, value, type);
             if (fitted == null) {
+                builder.markFailed();
+                return null;
+            }
+            if (builder.getIR().length() != emittedBefore) {
+                logger.error("Error: global '{}' must be initialized with a constant expression", key);
                 builder.markFailed();
                 return null;
             }

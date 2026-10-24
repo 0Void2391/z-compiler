@@ -31,6 +31,7 @@ The end-to-end tests need LLVM (`sudo apt-get install -y clang llvm`, or run
 checks for the tools explicitly.
 
 ## Benchmarks
+
 ```sh
 cd benchmakrks
 Z_BENCH_REPEATS=15 ./run.sh # compares Z against C (clang -O3)

@@ -4,15 +4,20 @@ set -euo pipefail
 
 here="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 root="$(cd "$here/.." && pwd)"
-classes="$root/target/classes"
-picocli="$(ls "$HOME"/.m2/repository/info/picocli/picocli/*/picocli-*.jar 2>/dev/null | head -1 || true)"
+jar="$root/target/z-compiler-1.0-SNAPSHOT-all.jar"
 out="${Z_BENCH_OUT:-$(mktemp -d)}"
 repeats="${Z_BENCH_REPEATS:-7}"
 
-cflags=(-O3 -march=native -ffast-math -fno-exceptions -fno-rtti)
+mkdir -p "$out"
+
+if [ ! -f "$jar" ] || [ -n "$(find "$root/src" "$root/pom.xml" -newer "$jar" -print -quit)" ]; then
+  (cd "$root" && mvn -q -Dmaven.test.skip=true package)
+fi
+
+cflags=(-O3 -march=native -flto -funroll-loops)
 
 build_z() {
-  java -cp "$classes:$picocli" src.Main.Main "$here/$1.z" -o "$out/$1.zbin" >/dev/null
+  java -jar "$jar" "$here/$1.z" -o "$out/$1.zbin" >/dev/null
 }
 
 build_c() {

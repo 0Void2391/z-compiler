@@ -42,7 +42,7 @@ public final class FunctionAST extends ExprAST {
         builder.reset();
         builder.symbols().enterScope();
         builder.declare(proto);
-        builder.setReturnType(returnType().llvm());
+        builder.setReturnType(returnType());
 
         final boolean isMain = proto.isMain();
         final List<PrototypeAST.Param> params = proto.params();

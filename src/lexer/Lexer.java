@@ -46,12 +46,19 @@ public class Lexer {
         CLOSE_FUNC("}", -23),
         LESS("<", -24),
         MORE(">", -25),
+        LE("<=", -38),
+        GE(">=", -39),
         IMPORT("import", -26),
         ARRAY_OPEN("[", -27),
         ARRAY_CLOSE("]", -28),
         PARAMS("|", -29),
         EOF("eof", -31),
         SAME("=", -32),
+        EQ("==", -41),
+        NE("!=", -42),
+        MOD("%", -43),
+        TRUE("true", -44),
+        FALSE("false", -45),
         PTR("ptr", -40),
         IDENTIFIER("id", -34),
         CN("cn", -35),
@@ -251,6 +258,29 @@ public class Lexer {
             }
 
             return Tokens.DIV.value;
+        }
+
+        // two-character operators
+        if (lastChar == '<' || lastChar == '>' || lastChar == '=' || lastChar == '!') {
+            final int first = lastChar;
+            read();
+
+            if (lastChar == '=') {
+                read();
+                return switch (first) {
+                    case '<' -> Tokens.LE.value;
+                    case '>' -> Tokens.GE.value;
+                    case '=' -> Tokens.EQ.value;
+                    default -> Tokens.NE.value;
+                };
+            }
+
+            return switch (first) {
+                case '<' -> Tokens.LESS.value;
+                case '>' -> Tokens.MORE.value;
+                case '=' -> Tokens.SAME.value;
+                default -> first;
+            };
         }
 
         // symbols

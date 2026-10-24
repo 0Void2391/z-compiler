@@ -20,7 +20,7 @@ int main() {
     unsigned long long last = 0;
     
     for (int i = 0; i < passes; i++) {
-        last = fib(90); 
+        last += fib(i % 90);
     }
     
     return last;

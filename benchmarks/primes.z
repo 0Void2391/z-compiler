@@ -1,25 +1,25 @@
+proc isPrime(int64 n) -> int64 {
+    if (n <= 1) {
+        ret 0;
+    }
 
-
-proc isPrime(int64 n) {
-    if (n <= 1) ret 0;
-    
     for (int64 i -> 2 | i * i <= n | i + 1) {
         if (n % i == 0) {
-            ret 0; 
+            ret 0;
         }
     }
-    ret 1; 
+    ret 1;
 }
 
 proc main() {
-    int64 limit -> 5000000; 
+    int64 limit -> 5000000;
     int64 counter -> 0;
-    
+
     for (int64 i -> 1 | i <= limit | i + 1) {
         if (isPrime(i) == 1) {
             counter -> counter + 1;
         }
     }
-    
+
     ret counter;
 }

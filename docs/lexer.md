@@ -135,6 +135,8 @@ The enum constants are initialized only once.
 | `CLOSE_FUNC` | `}` | `-23` |
 | `LESS` | `<` | `-24` |
 | `MORE` | `>` | `-25` |
+| `LE` | `<=` | `-38` |
+| `GE` | `>=` | `-39` |
 | `IMPORT` | `import` | `-26` |
 | `ARRAY_OPEN` | `[` | `-27` |
 | `ARRAY_CLOSE` | `]` | `-28` |
@@ -142,6 +144,11 @@ The enum constants are initialized only once.
 | `IDENTIFIER` | `id` | `-34` |
 | `EOF` | `eof` | `-31` |
 | `SAME` | `=` | `-32` |
+| `EQ` | `==` | `-41` |
+| `NE` | `!=` | `-42` |
+| `MOD` | `%` | `-43` |
+| `TRUE` | `true` | `-44` |
+| `FALSE` | `false` | `-45` |
 | `CN` | `cn` | `-35` |
 
 ### Methods

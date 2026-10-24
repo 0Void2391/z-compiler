@@ -46,6 +46,16 @@ public abstract class ExprAST {
             return null;
         }
 
+        if (from.isPointer() || target.isPointer()) {
+            if (from != target) {
+                System.err.println("Error: cannot convert between " + from.zName()
+                        + " and " + target.zName());
+                builder.markFailed();
+                return null;
+            }
+            return value;
+        }
+
         final String result = builder.nextRegister();
 
         if (from.isFloat() && target.isFloat()) {

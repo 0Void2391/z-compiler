@@ -16,7 +16,15 @@ package src.Parser;
  * passed around; it starts life as a null pointer.
  */
 public enum ZType {
-    PTR("ptr", "ptr", "0", 64, Kind.POINTER),
+    PTR       ("ptr",     "ptr", "null", 64, Kind.POINTER),
+    INT32_PTR ("int32*",  "ptr", "null", 64, Kind.POINTER),
+    INT64_PTR ("int64*",  "ptr", "null", 64, Kind.POINTER),
+    UINT32_PTR("uint32*", "ptr", "null", 64, Kind.POINTER),
+    UINT64_PTR("uint64*", "ptr", "null", 64, Kind.POINTER),
+    FLT32_PTR ("flt32*",  "ptr", "null", 64, Kind.POINTER),
+    FLT64_PTR ("flt64*",  "ptr", "null", 64, Kind.POINTER),
+    BOOL_PTR  ("bool*",   "ptr", "null", 64, Kind.POINTER),
+    STR_PTR   ("str*",    "ptr", "null", 64, Kind.POINTER),
     INT32 ("int32",  "i32",    "0",     32, Kind.SIGNED),
     INT64 ("int64",  "i64",    "0",     64, Kind.SIGNED),
     UINT32("uint32", "i32",    "0",     32, Kind.UNSIGNED),
@@ -118,6 +126,12 @@ public enum ZType {
             throw new IllegalArgumentException("a truth value cannot be combined with " + other(a, b));
         }
 
+        if (a.isPointer() || b.isPointer()) {
+            if (a == b) return a;
+            throw new IllegalArgumentException(
+                    "cannot combine " + a.zName() + " with " + b.zName());
+        }
+
         if (a.isString() || b.isString()) {
             throw new IllegalArgumentException("str cannot be combined with " + other(a, b));
         }
@@ -169,6 +183,40 @@ public enum ZType {
             case SIGNED, UNSIGNED -> bits == 32 ? Integer.toString((int) value) : Long.toString((long) value);
             case FLOAT -> Double.toString(value);
             case POINTER, STRING, VOID -> throw new IllegalStateException(zName + " has no literal");
+        };
+    }
+
+    public boolean isPointer() {
+        return kind == Kind.POINTER;
+    }
+
+    /** @return pointer to this type, or PTR (void*) for types without a variant */
+    public ZType pointerTo() {
+        return switch (this) {
+            case INT32 -> INT32_PTR;
+            case INT64 -> INT64_PTR;
+            case UINT32 -> UINT32_PTR;
+            case UINT64 -> UINT64_PTR;
+            case FLT32 -> FLT32_PTR;
+            case FLT64 -> FLT64_PTR;
+            case BOOL -> BOOL_PTR;
+            case STRING -> STR_PTR;
+            default -> PTR;
+        };
+    }
+
+    /** @return the type this pointer points to, or null for PTR / non-pointers */
+    public ZType elementType() {
+        return switch (this) {
+            case INT32_PTR -> INT32;
+            case INT64_PTR -> INT64;
+            case UINT32_PTR -> UINT32;
+            case UINT64_PTR -> UINT64;
+            case FLT32_PTR -> FLT32;
+            case FLT64_PTR -> FLT64;
+            case BOOL_PTR -> BOOL;
+            case STR_PTR -> STRING;
+            default -> null;
         };
     }
 }

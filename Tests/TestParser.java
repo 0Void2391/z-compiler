@@ -511,4 +511,37 @@ public class TestParser {
 
         assertEquals(ZType.INT32, Objects.requireNonNull(fn).returnType());
     }
+
+    @Test
+    void testPointerType() throws IOException {
+        final Parser parser = createParser("int32*");
+        final ZType type = parser.parseType();
+        assertEquals(ZType.INT32_PTR, type);
+    }
+
+    @Test
+    void testDoublePointerType() throws IOException {
+        final Parser parser = createParser("int32**");
+        final ZType type = parser.parseType();
+        assertEquals(ZType.PTR, type);  // double pointer maps to void*
+    }
+
+    @Test
+    void testAddressOf() throws IOException {
+        final Parser parser = createParser("&x");
+        assertInstanceOf(AddressOfExprAST.class, parser.parseExpression());
+    }
+
+    @Test
+    void testDeref() throws IOException {
+        final Parser parser = createParser("*p");
+        assertInstanceOf(DerefExprAST.class, parser.parseExpression());
+    }
+
+    @Test
+    void testPointerParameterInPrototype() throws IOException {
+        final Parser parser = createParser("inc(int32* p)");
+        final PrototypeAST proto = parser.parsePrototype(false);
+        assertEquals("int32*", proto.params().get(0).type());
+    }
 }

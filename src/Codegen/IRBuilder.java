@@ -72,7 +72,7 @@ public class IRBuilder {
     private static final String DOUBLE = "double";
     private static final String FLT = "float";
     private boolean terminated;
-    private String returnType = DOUBLE;
+    private ZType returnType = ZType.FLT64;
 
     /**.
      */
@@ -156,7 +156,8 @@ public class IRBuilder {
     }
 
     public void emitReturn(final Value value) {
-        final String target = returnType;
+        final ZType targetType = returnType;
+        final String target = targetType.llvm();
         final String from = value.type().llvm();
         if (from.equals(target)) {
             appendLine("ret " + target + " " + value.text());
@@ -170,8 +171,14 @@ public class IRBuilder {
             markFailed();
             return;
         }
+        final String opcode = conversionOpcode(value.type(), targetType);
+        if (opcode == null) {
+            System.err.println("Error: cannot convert between " + from + " and " + target);
+            markFailed();
+            return;
+        }
         final String converted = nextRegister();
-        appendLine(converted + " = " + conversionOpcode(value.type().llvm(), target) + from + " " + value.text() + " to " + target);
+        appendLine(converted + " = " + opcode + from + " " + value.text() + " to " + target);
         appendLine("ret " + target + " " + converted);
         terminated = true;
     }
@@ -182,13 +189,30 @@ public class IRBuilder {
         terminated = true;
     }
 
-    private static String conversionOpcode(final String from, final String to) {
-        final boolean fromFloat = from.equals(FLT) || from.equals(DOUBLE);
-        final boolean toFloat = to.equals(FLT) || to.equals(DOUBLE);
-        if (fromFloat && !toFloat) return "fptosi ";
-        if (!fromFloat && toFloat) return "sitofp ";
+    private static String conversionOpcode(final ZType fromType, final ZType targetType) {
+        final String from = fromType.llvm();
+        final String to = targetType.llvm();
+        final boolean fromFloat = fromType.isFloat();
+        final boolean toFloat = targetType.isFloat();
+        if (fromFloat && !toFloat) {
+            return targetType.isUnsigned() || targetType.isBoolean() ? "fptoui " : "fptosi ";
+        }
+        if (!fromFloat && toFloat) {
+            return fromType.isUnsigned() || fromType.isBoolean() ? "uitofp " : "sitofp ";
+        }
         if (fromFloat) return to.equals(FLT) ? "fptrunc " : "fpext ";
-        return from.equals("i64") && to.equals("i32") ? "trunc " : "sext ";
+        if (!from.startsWith("i") || !to.startsWith("i")) return null;
+        final int fromBits = fromType.bits();
+        final int toBits = integerBits(to);
+        if (fromBits > toBits) return "trunc ";
+        if (fromBits < toBits) {
+            return fromType.isUnsigned() || fromType.isBoolean() ? "zext " : "sext ";
+        }
+        return null;
+    }
+
+    private static int integerBits(final String type) {
+        return type.equals("i1") ? 1 : Integer.parseInt(type.substring(1));
     }
 
     /** @return whether the current block already has a terminator */
@@ -197,8 +221,8 @@ public class IRBuilder {
     }
 
     /** Declares what the function being generated returns. */
-    public void setReturnType(final String llvmType) {
-        this.returnType = llvmType;
+    public void setReturnType(final ZType type) {
+        this.returnType = type;
     }
 
     /** @return the symbol table for the function being generated */

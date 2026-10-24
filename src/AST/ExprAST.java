@@ -59,7 +59,7 @@ public abstract class ExprAST {
             return new Value(result, target);
         }
         if (from.isIntegral() && target.isFloat()) {
-            final String op = from.isUnsigned() ? "uitofp " : "sitofp ";
+            final String op = from.isUnsigned() || from.isBoolean() ? "uitofp " : "sitofp ";
             builder.appendLine(result + " = " + op + from.llvm() + " " + value.text() + " to " + target.llvm());
             return new Value(result, target);
         }
@@ -69,7 +69,7 @@ public abstract class ExprAST {
                 return new Value(result, target);
             }
             if (from.bits() < target.bits()) {
-                final String op = from.isUnsigned() ? "zext " : "sext ";
+                final String op = from.isUnsigned() || from.isBoolean() ? "zext " : "sext ";
                 builder.appendLine(result + " = " + op + from.llvm() + " " + value.text() + " to " + target.llvm());
                 return new Value(result, target);
             }

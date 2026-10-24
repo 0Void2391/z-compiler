@@ -562,10 +562,9 @@ public class TestCodeGen {
         assertEquals("""
                 define dso_local i32 @main() {
                 entry:
-                 %1 = sitofp i32 1 to double
-                 %2 = fadd double %1, 2.5
-                 %3 = fptosi double %2 to i32
-                 ret i32 %3
+                 %1 = fadd double 1.0, 2.5
+                 %2 = fptosi double %1 to i32
+                 ret i32 %2
                 }
                 """, codeGen("proc main() { ret 1 + 2.5 }"));
     }

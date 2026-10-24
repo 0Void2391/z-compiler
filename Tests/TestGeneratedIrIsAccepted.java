@@ -139,6 +139,41 @@ public class TestGeneratedIrIsAccepted {
     }
 
     @Test
+    public void remainderIsAccepted() throws IOException, InterruptedException {
+        assertLlvmAccepts("proc main() { ret 7 % 3 }");
+    }
+
+    @Test
+    public void equalityIsAccepted() throws IOException, InterruptedException {
+        assertLlvmAccepts("proc main() { ret 3 == 3 }");
+    }
+
+    @Test
+    public void inequalityIsAccepted() throws IOException, InterruptedException {
+        assertLlvmAccepts("proc main() { ret 3 != 4 }");
+    }
+
+    @Test
+    public void lessOrEqualIsAccepted() throws IOException, InterruptedException {
+        assertLlvmAccepts("proc main() { ret 3 <= 4 }");
+    }
+
+    @Test
+    public void greaterOrEqualIsAccepted() throws IOException, InterruptedException {
+        assertLlvmAccepts("proc main() { ret 3 >= 4 }");
+    }
+
+    @Test
+    public void booleanReturnIsAccepted() throws IOException, InterruptedException {
+        assertLlvmAccepts("proc f() -> bool { ret 1 }\nproc main() { ret 0 }");
+    }
+
+    @Test
+    public void booleanLiteralsAreAccepted() throws IOException, InterruptedException {
+        assertLlvmAccepts("proc f() -> bool { ret false }\nproc main() { ret true }");
+    }
+
+    @Test
     public void forLoopIsAccepted() throws IOException, InterruptedException {
         assertLlvmAccepts("proc main() {\n for (int32 i -> 0 | i < 10 | i + 1) { }\n ret 0\n}");
     }

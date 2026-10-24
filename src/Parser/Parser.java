@@ -31,12 +31,17 @@ public class Parser {
     static {
         BinOpPrecedence.put(Lexer.Tokens.LESS.value, 10);
         BinOpPrecedence.put(Lexer.Tokens.MORE.value, 10);
+        BinOpPrecedence.put(Lexer.Tokens.LE.value, 10);
+        BinOpPrecedence.put(Lexer.Tokens.GE.value, 10);
+        BinOpPrecedence.put(Lexer.Tokens.EQ.value, 10);
+        BinOpPrecedence.put(Lexer.Tokens.NE.value, 10);
         BinOpPrecedence.put(Lexer.Tokens.SAME.value, 10);
         BinOpPrecedence.put(Lexer.Tokens.ASSIGN.value, 5);
         BinOpPrecedence.put(Lexer.Tokens.ADD.value, 20);
         BinOpPrecedence.put(Lexer.Tokens.SUB.value, 20);
         BinOpPrecedence.put(Lexer.Tokens.MUL.value, 40);
         BinOpPrecedence.put(Lexer.Tokens.DIV.value, 40);
+        BinOpPrecedence.put(Lexer.Tokens.MOD.value, 40);
     }
 
 
@@ -417,6 +422,10 @@ public class Parser {
             final String value = lex.stringVal;
             next();
             return new StringExprAST(value);
+        } else if (curTok == Lexer.Tokens.TRUE.value || curTok == Lexer.Tokens.FALSE.value) {
+            final boolean value = curTok == Lexer.Tokens.TRUE.value;
+            next();
+            return new BoolExprAST(value);
         } else if (curTok == Lexer.Tokens.OPEN_PAR.value) {
             return parseParenExpr();
         } else if (curTok == Lexer.Tokens.SUB.value) {
@@ -690,7 +699,7 @@ public class Parser {
                 if (rightOperandSide == null) return null;
             }
 
-            leftOperandSide = new BinaryExprAST(Lexer.Tokens.fromValues(BinOp).description.charAt(0), leftOperandSide, rightOperandSide);
+            leftOperandSide = new BinaryExprAST(Lexer.Tokens.fromValues(BinOp).description, leftOperandSide, rightOperandSide);
         }
     }
 

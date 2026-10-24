@@ -10,12 +10,14 @@ public final class ArrayAST extends ExprAST { //we could also consider doing ext
 
     private final ZType type;
     private final NumberExprAST size;
+    private final NumberExprAST depth;
     private final String name;
     private final List<NumberExprAST> values;
 
-    public ArrayAST(ZType zType, NumberExprAST arraySize, String name, List<NumberExprAST> values) {
+    public ArrayAST(ZType zType, NumberExprAST arraySize, NumberExprAST arrayDepth, String name, List<NumberExprAST> values) {
         this.type = zType;
         this.size = arraySize;
+        this.depth = arrayDepth;
         this.name = name;
         this.values = values;
         return;

@@ -267,12 +267,26 @@ public class Parser {
             return error("Expected '|' after type definition");
         }
         next();
-
+        if (curTok != Lexer.Tokens.NUMBER.value) {
+            error("expected number");
+        }
         double size = lex.numVal;
         NumberExprAST arraySize = (NumberExprAST) parseNumberExpr(size);
+        NumberExprAST arrayDepth = (NumberExprAST) parseNumberExpr(1);
         next();
 
-        if (curTok != Lexer.Tokens.ARRAY_CLOSE.value) {
+        if (curTok == Lexer.Tokens.PARAMS.value) {
+            next();
+            if (curTok != Lexer.Tokens.NUMBER.value) {
+                error("expected number");
+            }
+            double depth = lex.numVal;
+            if (size < 1) {
+                return error("Invalid depth");
+            }
+            arrayDepth = (NumberExprAST) parseNumberExpr(depth); //for matrixes, depth 2 means [][], 1 is default
+            next();
+        } else if (curTok != Lexer.Tokens.ARRAY_CLOSE.value) {
             return error("Expected closing bracket");
         }
         next();
@@ -284,7 +298,7 @@ public class Parser {
         next();
 
         if (curTok != Lexer.Tokens.OPEN_FUNC.value) {
-            return new ArrayAST(zType, arraySize, name, new ArrayList<NumberExprAST>());
+            return new ArrayAST(zType, arraySize, arrayDepth, name, new ArrayList<NumberExprAST>());
         }
         next();
 
@@ -307,7 +321,7 @@ public class Parser {
             next();
         }
 
-        return new ArrayAST(zType, arraySize, name, members);
+        return new ArrayAST(zType, arraySize, arrayDepth, name, members);
     }
 
     /**

@@ -163,6 +163,13 @@ public class IRBuilder {
             terminated = true;
             return;
         }
+
+        if (from.equals("ptr") || target.equals("ptr")) {
+            System.err.println("Error: cannot convert between " + from + " and " + target);
+            markFailed();
+            return;
+        }
+
         // str is an i8*. It is not a number, and the conversion opcodes
         // below would produce invalid IR for it.
         if (from.equals("i8*") || target.equals("i8*")) {

@@ -164,6 +164,80 @@ public class TestEndToEnd {
     }
 
     @Test
+    public void testModuloAndEqualityRun() throws IOException, InterruptedException {
+        if (OPT == null || CLANG == null) return;
+
+        final Path binary = compile("modulo", """
+                proc main() {
+                    int32 x -> 17 % 5
+                    if (x == 2) {
+                        ret 42
+                    }
+                    ret 0
+                }
+                """);
+
+        assertEquals(42, run(binary));
+    }
+
+    @Test
+    public void testUnsignedConditionRun() throws IOException, InterruptedException {
+        if (OPT == null || CLANG == null) return;
+
+        final Path binary = compile("unsigned", """
+                proc main() {
+                    uint32 a -> 4294967295
+                    if (a > 0) {
+                        ret 42
+                    }
+                    ret 0
+                }
+                """);
+
+        assertEquals(42, run(binary));
+    }
+
+    @Test
+    public void testBooleanReturnRun() throws IOException, InterruptedException {
+        if (OPT == null || CLANG == null) return;
+
+        final Path binary = compile("boolean", """
+                proc yes() -> bool {
+                    ret 1
+                }
+
+                proc main() {
+                    if (yes()) {
+                        ret 42
+                    }
+                    ret 0
+                }
+                """);
+
+        assertEquals(42, run(binary));
+    }
+
+    @Test
+    public void testBooleanLiteralsRun() throws IOException, InterruptedException {
+        if (OPT == null || CLANG == null) return;
+
+        final Path binary = compile("boolean-literals", """
+                proc main() {
+                    bool yes -> true
+                    bool no -> false
+                    if (yes) {
+                        if (no == false) {
+                            ret 42
+                        }
+                    }
+                    ret 0
+                }
+                """);
+
+        assertEquals(42, run(binary));
+    }
+
+    @Test
     public void testVariablesAndConstantsRun() throws IOException, InterruptedException {
         if (OPT == null || CLANG == null) return;
 

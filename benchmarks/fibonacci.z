@@ -1,13 +1,13 @@
-
-
-proc fib(int64 n) {
+proc fib(int64 n) -> int64 {
     int64 a -> 0;
     int64 b -> 1;
     int64 c -> 0;
-    
-    if (n == 0) ret a;
-    
-    for (int64 i -> 2 | i <-> n | i + 1) {
+
+    if (n == 0) {
+        ret a;
+    }
+
+    for (int64 i -> 2 | i <= n | i + 1) {
         c -> a + b;
         a -> b;
         b -> c;
@@ -16,12 +16,12 @@ proc fib(int64 n) {
 }
 
 proc main() {
-    int64 passes -> 50000000; 
+    int64 passes -> 50000000;
     int64 last -> 0;
-    
-    for (int64 i -> 0; i < passes; i++) {
-        last -> fib(90); 
+
+    for (int64 i -> 0 | i < passes | i + 1) {
+        last -> last + fib(i % 90);
     }
-    
+
     ret last;
 }

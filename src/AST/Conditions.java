@@ -22,37 +22,27 @@ final class Conditions {
      * register, or {@code null} if evaluation failed.
      */
     static String emitI1(final IRBuilder builder, final ExprAST condition) {
-        if (condition instanceof BinaryExprAST bin) {
-            final char op = bin.operator();
-            if (op == '<' || op == '>') {
-                final Value a = bin.left().codeGen(builder);
-                if (a == null) return null;
-                final Value b = bin.right().codeGen(builder);
-                if (b == null) return null;
+        if (condition instanceof BinaryExprAST bin && bin.isComparison()) {
+            final Value a = bin.left().codeGen(builder);
+            if (a == null) return null;
+            final Value b = bin.right().codeGen(builder);
+            if (b == null) return null;
 
-                final ZType common;
-                try {
-                    common = ZType.unify(a.type(), b.type());
-                } catch (final IllegalArgumentException e) {
-                    logger.error("Error: {}", e.getMessage());
-                    return null;
-                }
-                final Value left = bin.left().coerce(builder, a, common);
-                final Value right = bin.right().coerce(builder, b, common);
-                if (left == null || right == null) return null;
-
-                final boolean ordered = common.isFloat();
-                final String pred;
-                if (ordered) {
-                    if (op == '<') pred = "olt";
-                    else pred = "ogt";
-                } else {
-                    pred = (op == '<' ? "slt" : "sgt");
-                }
-                final String cmp = builder.nextRegister();
-                builder.appendLine(cmp + " = " + (ordered ? "fcmp " : "icmp ") + pred + " " + common.llvm() + " " + left.text() + ", " + right.text());
-                return cmp;
+            final ZType common;
+            try {
+                common = ZType.unify(a.type(), b.type());
+            } catch (final IllegalArgumentException e) {
+                logger.error("Error: {}", e.getMessage());
+                return null;
             }
+            final Value left = bin.left().coerce(builder, a, common);
+            final Value right = bin.right().coerce(builder, b, common);
+            if (left == null || right == null) return null;
+
+            final boolean ordered = common.isFloat();
+            final String cmp = builder.nextRegister();
+            builder.appendLine(cmp + " = " + (ordered ? "fcmp " : "icmp ") + bin.predicate(ordered, common) + " " + common.llvm() + " " + left.text() + ", " + right.text());
+            return cmp;
         }
 
         final Value v = condition.codeGen(builder);

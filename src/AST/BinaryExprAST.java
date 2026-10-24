@@ -9,19 +9,19 @@ import src.Parser.ZType;
 public final class BinaryExprAST extends ExprAST {
     private static final Logger logger = LoggerFactory.getLogger(BinaryExprAST.class);
 
-    private final char op;
+    private final String op;
     private final ExprAST left;
     private final ExprAST right;
 
-    public BinaryExprAST(final char op, final ExprAST left, final ExprAST right) {
+    public BinaryExprAST(final String op, final ExprAST left, final ExprAST right) {
         this.op = op;
         this.left = left;
         this.right = right;
     }
 
-    /** @return the operator character as written in the source */
+    /** @return the first character of the operator, as written in the source */
     public char operator() {
-        return op;
+        return op.charAt(0);
     }
 
     /** @return the left operand */
@@ -34,8 +34,11 @@ public final class BinaryExprAST extends ExprAST {
         return right;
     }
 
-    private boolean isComparison() {
-        return op == '<' || op == '>';
+    boolean isComparison() {
+        return switch (op) {
+            case "<", "<=", ">", ">=", "==", "!=" -> true;
+            default -> false;
+        };
     }
 
     private ZType operandType(final IRBuilder builder) {
@@ -68,11 +71,11 @@ public final class BinaryExprAST extends ExprAST {
         }
 
         final ZType common = operandType(builder);
-        final Value a = coerce(builder, lhs, common);
-        final Value b = coerce(builder, rhs, common);
+        final Value a = left.coerce(builder, lhs, common);
+        final Value b = right.coerce(builder, rhs, common);
         if (a == null || b == null) return null;
 
-        if (op == '+' && a.type().isString() && b.type().isString()) {
+        if (op.equals("+") && a.type().isString() && b.type().isString()) {
             return emitStringConcat(builder, a, b);
         }
 
@@ -100,18 +103,26 @@ public final class BinaryExprAST extends ExprAST {
         return new Value(result, a.type());
     }
 
-    private String predicate(final boolean ordered, final ZType type) {
+    String predicate(final boolean ordered, final ZType type) {
         if (ordered) {
             return switch (op) {
-                case '<' -> "olt";
-                case '>' -> "ogt";
+                case "<" -> "olt";
+                case "<=" -> "ole";
+                case ">" -> "ogt";
+                case ">=" -> "oge";
+                case "==" -> "oeq";
+                case "!=" -> "une";
                 default -> throw new IllegalStateException("not a comparison: " + op);
             };
         }
         final boolean unsigned = type.isUnsigned();
         return switch (op) {
-            case '<' -> unsigned ? "ult" : "slt";
-            case '>' -> unsigned ? "ugt" : "sgt";
+            case "<" -> unsigned ? "ult" : "slt";
+            case "<=" -> unsigned ? "ule" : "sle";
+            case ">" -> unsigned ? "ugt" : "sgt";
+            case ">=" -> unsigned ? "uge" : "sge";
+            case "==" -> "eq";
+            case "!=" -> "ne";
             default -> throw new IllegalStateException("not a comparison: " + op);
         };
     }
@@ -119,19 +130,21 @@ public final class BinaryExprAST extends ExprAST {
     private String arithmeticOpcode(final ZType type) {
         if (type.isFloat()) {
             return switch (op) {
-                case '+' -> "fadd";
-                case '-' -> "fsub";
-                case '*' -> "fmul";
-                case '/' -> "fdiv";
+                case "+" -> "fadd";
+                case "-" -> "fsub";
+                case "*" -> "fmul";
+                case "/" -> "fdiv";
+                case "%" -> "frem";
                 default -> null;
             };
         }
         final boolean unsigned = type.isUnsigned();
         return switch (op) {
-            case '+' -> "add";
-            case '-' -> "sub";
-            case '*' -> "mul";
-            case '/' -> unsigned ? "udiv" : "sdiv";
+            case "+" -> "add";
+            case "-" -> "sub";
+            case "*" -> "mul";
+            case "/" -> unsigned ? "udiv" : "sdiv";
+            case "%" -> unsigned ? "urem" : "srem";
             default -> null;
         };
     }

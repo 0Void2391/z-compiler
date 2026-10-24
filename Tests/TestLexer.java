@@ -271,4 +271,12 @@ public class TestLexer {
 
         assertEquals(Lexer.Tokens.EOF.value, lex.getTok());
     }
+
+    @Test
+    void testAmpersandToken() throws IOException {
+        final Lexer lex = new Lexer(new ByteArrayInputStream(
+                "&x".getBytes(StandardCharsets.UTF_8)));
+        assertEquals(Lexer.Tokens.AND.value, lex.getTok());
+        assertEquals(Lexer.Tokens.IDENTIFIER.value, lex.getTok());
+    }
 }

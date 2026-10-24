@@ -101,6 +101,27 @@ public class Parser {
     }
 
     /**
+     * Parses a type: a type keyword, optionally followed by {@code *} for a pointer.
+     *
+     * @return the type, or null when the current token is not a type
+     * @throws IOException if an exception is found
+     */
+    public ZType parseType() throws IOException {
+        final Lexer.Tokens typeTok = Lexer.Tokens.fromValues(curTok);
+        if (!isTypeToken(typeTok)) return null;
+
+        ZType type = resolveType(typeTok.description);
+        if (type == null) return null;
+        next();
+
+        while (curTok == Lexer.Tokens.MUL.value) {
+            type = type.pointerTo();
+            next();
+        }
+        return type;
+    }
+
+    /**
      * Names a token for an error message.
      *
      * @param token the token value
@@ -181,30 +202,21 @@ public class Parser {
      * @throws IOException if an exception is found
      */
     public final DeclaratorExprAST parseVariable(boolean globals) throws IOException {
-        final Lexer.Tokens typeTok = Lexer.Tokens.fromValues(curTok);
-        if (!isTypeToken(typeTok)) {
-            return null;
-        }
-        next();
-
-        final ZType zType = resolveType(typeTok.description);
+        final ZType zType = parseType();
         if (zType == null) return null;
 
         if (curTok != Lexer.Tokens.IDENTIFIER.value) {
             return error("Expected name after type");
         }
-
         final String name = lex.identifierStr;
         next();
 
         if (curTok != Lexer.Tokens.ASSIGN.value && curTok != Lexer.Tokens.SAME.value) {
             return new DeclaratorExprAST(zType, name, null, false, globals);
         }
-
         next();
         final ExprAST val = parseExpression();
         if (val == null) return null;
-
         return new DeclaratorExprAST(zType, name, val, false, globals);
     }
 
@@ -217,13 +229,10 @@ public class Parser {
     public final DeclaratorExprAST parseConstant() throws IOException {
         next();
 
-        final Lexer.Tokens typeTok = Lexer.Tokens.fromValues(curTok);
-        if (!isTypeToken(typeTok)) {
+        final ZType zType = parseType();
+        if (zType == null) {
             return error("Expected type after 'cn'");
         }
-        final ZType zType = resolveType(typeTok.description);
-        if (zType == null) return null;
-        next();
 
         if (curTok != Lexer.Tokens.IDENTIFIER.value) {
             return error("Expected constant name");
@@ -366,20 +375,7 @@ public class Parser {
             next();
         }
 
-        final boolean qualified = idName.toString().contains(".");
-
-        if (curTok == Lexer.Tokens.ASSIGN.value || curTok == Lexer.Tokens.SAME.value) {
-            if (qualified) {
-                return error("Cannot assign to module member '" + idName + "'");
-            }
-            next();
-            final ExprAST expr = parseExpression();
-            if (expr == null) return null;
-            return new AssignExprAST(idName.toString(), expr);
-        }
-
         if (curTok != Lexer.Tokens.OPEN_PAR.value) {
-
             return new VarRefExprAST(idName.toString());
         }
 
@@ -428,6 +424,16 @@ public class Parser {
             return new BoolExprAST(value);
         } else if (curTok == Lexer.Tokens.OPEN_PAR.value) {
             return parseParenExpr();
+        } else if (curTok == Lexer.Tokens.AND.value) {
+            next();
+            final ExprAST operand = parsePrimary();
+            if (operand == null) return null;
+            return new AddressOfExprAST(operand);
+        } else if (curTok == Lexer.Tokens.MUL.value) {
+            next();
+            final ExprAST operand = parsePrimary();
+            if (operand == null) return null;
+            return new DerefExprAST(operand);
         } else if (curTok == Lexer.Tokens.SUB.value) {
             next();
             final ExprAST operand = parsePrimary();
@@ -477,13 +483,10 @@ public class Parser {
         next();
 
         // Parse type
-        final Lexer.Tokens typeTok = Lexer.Tokens.fromValues(curTok);
-        if (!isTypeToken(typeTok)) {
+        final ZType varType = parseType();
+        if (varType == null) {
             return error("Expected type in for");
         }
-        final ZType varType = resolveType(typeTok.description);
-        if (varType == null) return null;
-        next();
 
         // Parse name
         if (curTok != Lexer.Tokens.IDENTIFIER.value) {
@@ -690,6 +693,26 @@ public class Parser {
             final int BinOp = curTok;
             next();
 
+            if (BinOp == Lexer.Tokens.ASSIGN.value || BinOp == Lexer.Tokens.SAME.value) {
+                // Right-associative: parse the whole RHS.
+                final ExprAST rhs = parseExpression();
+                if (rhs == null) return null;
+
+                ExprAST target = leftOperandSide;
+                while (target instanceof ParenExprAST p) target = p.inner();
+
+                if (target instanceof DerefExprAST deref) {
+                    return new AssignThroughPointerExprAST(deref, rhs);
+                }
+                if (target instanceof VarRefExprAST var) {
+                    if (var.name().contains(".")) {
+                        return error("Cannot assign to module member '" + var.name() + "'");
+                    }
+                    return new AssignExprAST(var.name(), rhs);
+                }
+                return error("Cannot assign to this expression");
+            }
+
             ExprAST rightOperandSide = parsePrimary();
             if (rightOperandSide == null) return null;
 
@@ -724,13 +747,10 @@ public class Parser {
         final List<PrototypeAST.Param> params = new ArrayList<>();
         if (curTok != Lexer.Tokens.CLOSE_PAR.value) {
             while (true) {
-                final Lexer.Tokens typeTok = Lexer.Tokens.fromValues(curTok);
-                if (!isTypeToken(typeTok)) {
+                final ZType paramType = parseType();
+                if (paramType == null) {
                     return error("Expected parameter type");
                 }
-                final ZType paramType = resolveType(typeTok.description);
-                if (paramType == null) return null;
-                next();
 
                 if (extern) {
                     params.add(new PrototypeAST.Param(paramType.zName(), ""));
@@ -764,8 +784,11 @@ public class Parser {
                 return error("Expected return type after '->', got "
                         + describeToken(curTok) + " instead");
             }
-            returnType = resolveType(retTok.description);
-            if (returnType == null) return null;
+            returnType = parseType();
+            if (returnType == null) {
+                return error("Expected return type after '->', got "
+                        + describeToken(curTok) + " instead");
+            }
             if (returnType.isVoid()) {
                 return error("A function cannot return void");
             }

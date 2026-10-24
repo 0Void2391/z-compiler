@@ -93,6 +93,8 @@ public final class FunctionAST extends ExprAST {
                 zero = "i1 false";
             } else if (ret.isString()) {
                 zero = "i8* null";
+            } else if (ret.isPointer()) {
+                zero = "ptr null";
             } else if (ret.isFloat()) {
                 zero = ret.llvm() + " 0.0";
             } else if (ret.isIntegral()) {

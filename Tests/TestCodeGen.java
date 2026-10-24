@@ -893,4 +893,44 @@ public class TestCodeGen {
         assertNotNull(llvmIR);
         assertTrue(llvmIR.contains("ret i8* null"), llvmIR);
     }
+
+    @Test
+    public void testPointerParameterCodegen() throws IOException {
+        final String llvmIR = codeGen(
+                "proc inc(int32* p) { ret 0 }\n"
+                        + "proc main() { int32 x -> 0\n inc(&x)\n ret 0 }");
+
+        assertNotNull(llvmIR);
+        assertTrue(llvmIR.contains("define private dso_local double @inc(ptr %p)"), llvmIR);
+        assertTrue(llvmIR.contains("call double @inc(ptr %x)"), llvmIR);
+    }
+
+    @Test
+    public void testDerefInFunction() throws IOException {
+        final String llvmIR = codeGen(
+                "proc get(int32* p) -> int32 { ret *p }\n"
+                        + "proc main() { int32 x -> 42\n ret get(&x) }");
+
+        assertTrue(llvmIR.contains("load i32, ptr"), llvmIR);
+    }
+
+    @Test
+    public void testAssignThroughPointer() throws IOException {
+        final String llvmIR = codeGen(
+                "proc set(int32* p) -> int32 { *p -> 1\n ret 0 }\n"
+                        + "proc main() { int32 x -> 0\n set(&x)\n ret x }");
+
+        assertNotNull(llvmIR, "compilation failed");
+        assertTrue(llvmIR.contains("store i32 1"), llvmIR);
+    }
+
+    @Test
+    public void testPointerTypeMismatchFails() {
+        final String diagnostics = ZFixtures.failureOf(
+                "proc inc(int32* p) { ret 0 }\n"
+                        + "proc main() { flt64 x -> 0.0\n inc(&x)\n ret 0 }");
+
+        assertNotNull(diagnostics);
+        assertTrue(diagnostics.contains("cannot convert between"), diagnostics);
+    }
 }

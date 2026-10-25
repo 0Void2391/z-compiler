@@ -84,6 +84,13 @@ public class TestEndToEnd {
         return process.waitFor();
     }
 
+    public String runAndCaptureOutput(final Path binary) throws IOException, InterruptedException {
+        final Process process = new ProcessBuilder(binary.toString()).redirectErrorStream(true).start();
+        final String output = new String(process.getInputStream().readAllBytes());
+        process.waitFor();
+        return output;
+    }
+
     @Test
     public void testArithmeticProgramRuns() throws IOException, InterruptedException {
         if (OPT == null || CLANG == null) return;
@@ -438,4 +445,169 @@ public class TestEndToEnd {
         assertTrue(output.contains("unknown function: math.nope"), output);
         assertFalse(Files.exists(binary));
     }
+
+    @Test
+    public void testProgramOutputIsCaptured() throws IOException, InterruptedException {
+        if (OPT == null || CLANG == null) return;
+
+        final Path binary = compile("output", """
+                extern printf(str | ...) -> int32
+
+                proc main() {
+                    printf("Hello, World!")
+                    ret 0
+                }
+                """);
+
+        final String output = runAndCaptureOutput(binary);
+        assertEquals("Hello, World!", output.trim());
+    }
+
+    @Test
+    public void testPrintfWithFlt32() throws IOException, InterruptedException {
+        if (OPT == null || CLANG == null) return;
+
+        final Path binary = compile("output", """
+                extern printf(str | ...) -> int32
+
+                proc main() {
+                    flt32 test -> 3.2
+                    printf("%.1f" | test)
+                    ret 0
+                }
+                """);
+
+        final String output = runAndCaptureOutput(binary);
+        assertEquals("3.2", output.trim());
+    }
+
+    @Test
+    public void testPrintfWithFlt64() throws IOException, InterruptedException {
+        if (OPT == null || CLANG == null) return;
+
+        final Path binary = compile("output", """
+                extern printf(str | ...) -> int32
+
+                proc main() {
+                    flt64 test -> 3.3
+                    printf("%.1f" | test)
+                    ret 0
+                }
+                """);
+
+        final String output = runAndCaptureOutput(binary);
+        assertEquals("3.3", output.trim());
+    }
+
+    @Test
+    public void testPrintfWithInt64() throws IOException, InterruptedException {
+        if (OPT == null || CLANG == null) return;
+
+        final Path binary = compile("output", """
+                extern printf(str | ...) -> int32
+
+                proc main() {
+                    int64 test -> 3123123123
+                    printf("%lld" | test)
+                    ret 0
+                }
+                """);
+
+        final String output = runAndCaptureOutput(binary);
+        assertEquals("3123123123", output.trim());
+    }
+
+    @Test
+    public void testPrintfWithMultipleInt() throws IOException, InterruptedException {
+        if (OPT == null || CLANG == null) return;
+
+        final Path binary = compile("output", """
+                extern printf(str | ...) -> int32
+
+                proc main() {
+                    int64 test -> 3123123123
+                    int32 test2 -> 322123
+                    printf("%lld | %d" | test | test2)
+                    ret 0
+                }
+                """);
+
+        final String output = runAndCaptureOutput(binary);
+        assertEquals("3123123123 | 322123", output.trim());
+    }
+
+    @Test
+    public void testPrintfWithMultipleFloats() throws IOException, InterruptedException {
+        if (OPT == null || CLANG == null) return;
+
+        final Path binary = compile("output", """
+                extern printf(str | ...) -> int32
+
+                proc main() {
+                    flt64 test -> 312.78
+                    flt32 test2 -> 15.68
+                    printf("%.2f | %.2f" | test | test2)
+                    ret 0
+                }
+                """);
+
+        final String output = runAndCaptureOutput(binary);
+        assertEquals("312.78 | 15.68", output.trim());
+    }
+
+    @Test
+    public void testPrintfWithMultipleTypes() throws IOException, InterruptedException {
+        if (OPT == null || CLANG == null) return;
+
+        final Path binary = compile("output", """
+                extern printf(str | ...) -> int32
+
+                proc main() {
+                    flt64 test -> 312.78
+                    int32 test2 -> 15
+                    printf("%.2f | %d" | test | test2)
+                    ret 0
+                }
+                """);
+
+        final String output = runAndCaptureOutput(binary);
+        assertEquals("312.78 | 15", output.trim());
+    }
+
+    @Test
+    public void testPrintfWithFalseBoolean() throws IOException, InterruptedException {
+        if (OPT == null || CLANG == null) return;
+
+        final Path binary = compile("output", """
+                extern printf(str | ...) -> int32
+
+                proc main() {
+                    bool test -> false
+                    printf("%d" | test)
+                    ret 0
+                }
+                """);
+
+        final String output = runAndCaptureOutput(binary);
+        assertEquals("0", output.trim());
+    }
+
+    @Test
+    public void testPrintfWithTrueBoolean() throws IOException, InterruptedException {
+        if (OPT == null || CLANG == null) return;
+
+        final Path binary = compile("output", """
+                extern printf(str | ...) -> int32
+
+                proc main() {
+                    bool test -> true
+                    printf("%d" | test)
+                    ret 0
+                }
+                """);
+
+        final String output = runAndCaptureOutput(binary);
+        assertEquals("1", output.trim());
+    }
+
 }

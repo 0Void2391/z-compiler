@@ -924,6 +924,10 @@ public class Parser {
 
         final List<ExprAST> bodyStatements = new ArrayList<>();
         while (curTok != Lexer.Tokens.CLOSE_FUNC.value && curTok != Lexer.Tokens.EOF.value) {
+            if (curTok == ';') {
+                next();
+                continue;
+            }
             final ExprAST stmt = parseStatement();
             if (stmt == null) return null;
             bodyStatements.add(stmt);

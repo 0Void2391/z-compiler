@@ -254,12 +254,12 @@ public class Parser {
     }
     public final ArrayAST parseArray() throws IOException {
         //next(); (I believe this isn't necessary here)
-
+        //Array declaration does NOT support expressions inside of it yet. you can only declare with a number
         final Lexer.Tokens typeTok = Lexer.Tokens.fromValues(curTok);
         if (!isTypeToken(typeTok)) {
             return error("Expected type after array definition");
         }
-        final ZType zType = resolveType(typeTok.description);
+        final ZType zType = resolveType(typeTok.description+"*"); //it will resolve it as a ptr
         if (zType == null) return null;
         next();
 
@@ -268,7 +268,7 @@ public class Parser {
         }
         next();
         if (curTok != Lexer.Tokens.NUMBER.value) {
-            error("expected number");
+            error("Expected number");
         }
         double size = lex.numVal;
         NumberExprAST arraySize = (NumberExprAST) parseNumberExpr(size);
@@ -278,7 +278,7 @@ public class Parser {
         if (curTok == Lexer.Tokens.PARAMS.value) {
             next();
             if (curTok != Lexer.Tokens.NUMBER.value) {
-                error("expected number");
+                error("Expected number");
             }
             double depth = lex.numVal;
             if (size < 1) {
@@ -423,7 +423,7 @@ public class Parser {
         if (v == null) return null;
 
         if (curTok != Lexer.Tokens.CLOSE_PAR.value) {
-            return error("expected ')'");
+            return error("Expected ')'");
         }
         next();
         return new ParenExprAST(v);
@@ -447,12 +447,10 @@ public class Parser {
             idName.append(".").append(lex.identifierStr);
             next();
         }
-        //TODO: add support for array indexing here
 
         if (curTok != Lexer.Tokens.OPEN_PAR.value) {
             return new VarRefExprAST(idName.toString());
         }
-
         next();
         final List<ExprAST> args = new ArrayList<>();
         if (curTok != Lexer.Tokens.CLOSE_PAR.value) {
@@ -788,7 +786,23 @@ public class Parser {
                 }
                 return error("Cannot assign to this expression");
             }
-
+            if (BinOp == Lexer.Tokens.ARRAY_OPEN.value) {
+                final List<NumberExprAST> indexes = new ArrayList<>(); //list of indexes for matrix
+                while (curTok == Lexer.Tokens.ARRAY_OPEN.value) {
+                    next();
+                    if (curTok != Lexer.Tokens.NUMBER.value) {
+                        error("Expected index value");
+                    }
+                    double size = lex.numVal;
+                    NumberExprAST idx = (NumberExprAST) parseNumberExpr(size); //no support for expressions when indexing
+                    indexes.add(idx);
+                    next();
+                    if (curTok != Lexer.Tokens.ARRAY_CLOSE.value) {
+                        return error("Expected ']' to close indexing");
+                    }
+                }
+                return new ArrayIdxExprAST(leftOperandSide, indexes);
+            }
             ExprAST rightOperandSide = parsePrimary();
             if (rightOperandSide == null) return null;
 

@@ -166,7 +166,7 @@ public enum ZType {
         return switch (kind) {
             case BOOL -> Boolean.toString(value != 0);
             case SIGNED, UNSIGNED -> bits == 32 ? Integer.toString((int) value) : Long.toString(value);
-            case FLOAT -> Double.toString(value);
+            case FLOAT -> floatingLiteral(value);
             case POINTER, STRING, VOID -> throw new IllegalStateException(zName + " has no literal");
             case VARARG -> throw new IllegalStateException(zName + "can't be vararg");
         };
@@ -182,10 +182,21 @@ public enum ZType {
         return switch (kind) {
             case BOOL -> Boolean.toString(value != 0);
             case SIGNED, UNSIGNED -> bits == 32 ? Integer.toString((int) value) : Long.toString((long) value);
-            case FLOAT -> Double.toString(value);
+            case FLOAT -> floatingLiteral(value);
             case POINTER, STRING, VOID -> throw new IllegalStateException(zName + " has no literal");
             case VARARG -> throw new IllegalStateException(zName + "can't be vararg");
         };
+    }
+
+    private String floatingLiteral(final double value) {
+        if (bits == 64) return Double.toString(value);
+
+        final float narrowed = (float) value;
+        final String decimal = Float.toString(narrowed);
+        if (Float.isFinite(narrowed) && Double.parseDouble(decimal) == (double) narrowed) {
+            return decimal;
+        }
+        return "0x" + String.format("%016X", Double.doubleToRawLongBits((double) narrowed));
     }
 
     public boolean isPointer() {

@@ -1,7 +1,8 @@
 import library
-extern sqrt(flt64) -> flt64
+extern printf(str | ...) -> int32
 
 proc main() {
+    int32 test2 -> printf("test")
     int32 test -> library.math(60)
     int32 prova -> library.global
     ret test + prova

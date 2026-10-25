@@ -55,8 +55,12 @@ public final class CallExprAST extends ExprAST {
         final PrototypeAST signature = resolved.prototype();
 
         final List<PrototypeAST.Param> params = signature.params();
-        if (params.size() != arguments.size()) {
-            logger.error("Error: ''{}'' takes {} argument(s) but {} were given", callee, params.size(), arguments.size());
+
+        final boolean variadic = !params.isEmpty() && params.getLast().type().equals(ZType.VARARG.zName());
+        final int fixedParams = variadic ? params.size() - 1 : params.size();
+
+        if (variadic ? arguments.size() < fixedParams : arguments.size() != fixedParams) {
+            logger.error("Error: ''{}'' takes {} argument(s) but {} were given", callee, fixedParams, arguments.size());
             builder.markFailed();
             return null;
         }
@@ -68,7 +72,16 @@ public final class CallExprAST extends ExprAST {
                 builder.markFailed();
                 return null;
             }
-            final ZType expected = ZType.fromZName(params.get(i).type());
+            final ZType expected;
+            if (i < fixedParams) {
+                expected = ZType.fromZName(params.get(i).type());
+            } else {
+                expected = switch (argument.type()) {
+                    case FLT32 -> ZType.FLT64;
+                    case BOOL -> ZType.INT32;
+                    default -> argument.type();
+                };
+            }
             final Value fitted = coerce(builder, argument, expected);
             if (fitted == null) return null;
             printed.add(expected.llvm() + " " + fitted.text());

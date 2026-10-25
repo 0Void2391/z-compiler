@@ -106,8 +106,13 @@ public class Parser {
      * @return the type, or null when the current token is not a type
      * @throws IOException if an exception is found
      */
-    public ZType parseType() throws IOException {
+    public ZType parseType(final boolean varargs) throws IOException {
         final Lexer.Tokens typeTok = Lexer.Tokens.fromValues(curTok);
+        if (typeTok == Lexer.Tokens.VARARG) {
+            if (!varargs) return null;
+            next();
+            return ZType.VARARG;
+        }
         if (!isTypeToken(typeTok)) return null;
 
         ZType type = resolveType(typeTok.description);
@@ -204,7 +209,7 @@ public class Parser {
      * @throws IOException if an exception is found
      */
     public final DeclaratorExprAST parseVariable(boolean globals) throws IOException {
-        final ZType zType = parseType();
+        final ZType zType = parseType(false);
         if (zType == null) return null;
 
         if (curTok != Lexer.Tokens.IDENTIFIER.value) {
@@ -231,7 +236,7 @@ public class Parser {
     public final DeclaratorExprAST parseConstant() throws IOException {
         next();
 
-        final ZType zType = parseType();
+        final ZType zType = parseType(false);
         if (zType == null) {
             return error("Expected type after 'cn'");
         }
@@ -555,7 +560,7 @@ public class Parser {
         next();
 
         // Parse type
-        final ZType varType = parseType();
+        final ZType varType = parseType(false);
         if (varType == null) {
             return error("Expected type in for");
         }
@@ -837,9 +842,12 @@ public class Parser {
         final List<PrototypeAST.Param> params = new ArrayList<>();
         if (curTok != Lexer.Tokens.CLOSE_PAR.value) {
             while (true) {
-                final ZType paramType = parseType();
+                final ZType paramType = parseType(extern); // added support for varargs (only found in extern declaration)
                 if (paramType == null) {
                     return error("Expected parameter type");
+                }
+                if (paramType == ZType.VARARG && curTok != Lexer.Tokens.CLOSE_PAR.value) {
+                    return error("'...' must be the last parameter of function: " + fnName);
                 }
 
                 if (extern) {
@@ -860,7 +868,7 @@ public class Parser {
                 if (curTok == Lexer.Tokens.CLOSE_PAR.value) {
                     break;
                 }
-                return error("Expected '|' or ')' in parameter list");
+                return error("Expected '|' or ')' in parameter list of function: " + fnName);
             }
         }
 
@@ -871,13 +879,11 @@ public class Parser {
             next();
             final Lexer.Tokens retTok = Lexer.Tokens.fromValues(curTok);
             if (!isTypeToken(retTok)) {
-                return error("Expected return type after '->', got "
-                        + describeToken(curTok) + " instead");
+                return error("Expected return type after '->', got " + describeToken(curTok) + " instead");
             }
-            returnType = parseType();
+            returnType = parseType(false);
             if (returnType == null) {
-                return error("Expected return type after '->', got "
-                        + describeToken(curTok) + " instead");
+                return error("Expected return type after '->', got " + describeToken(curTok) + " instead");
             }
             if (returnType.isVoid()) {
                 return error("A function cannot return void");

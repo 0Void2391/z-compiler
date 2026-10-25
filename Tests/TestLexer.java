@@ -279,4 +279,35 @@ public class TestLexer {
         assertEquals(Lexer.Tokens.AND.value, lex.getTok());
         assertEquals(Lexer.Tokens.IDENTIFIER.value, lex.getTok());
     }
+
+    @Test
+    void testVarargs() throws IOException {
+        final Lexer lex = new Lexer(new ByteArrayInputStream("extern printf(ptr | ...) -> int32".getBytes(StandardCharsets.UTF_8)));
+        assertEquals(Lexer.Tokens.EXTERN.value, lex.getTok());
+        assertEquals(Lexer.Tokens.IDENTIFIER.value, lex.getTok());
+        assertEquals(Lexer.Tokens.OPEN_PAR.value, lex.getTok());
+        assertEquals(Lexer.Tokens.PTR.value, lex.getTok());
+        assertEquals(Lexer.Tokens.PARAMS.value, lex.getTok());
+        assertEquals(Lexer.Tokens.VARARG.value, lex.getTok());
+        assertEquals(Lexer.Tokens.CLOSE_PAR.value, lex.getTok());
+        assertEquals(Lexer.Tokens.ASSIGN.value, lex.getTok());
+        assertEquals(Lexer.Tokens.INT32.value, lex.getTok());
+    }
+
+    @Test
+    void testModuleAccessDotsAreNotSwallowed() throws IOException {
+        final Lexer lex = new Lexer(new ByteArrayInputStream("library.math".getBytes(StandardCharsets.UTF_8)));
+        assertEquals(Lexer.Tokens.IDENTIFIER.value, lex.getTok());
+        assertEquals("library", lex.identifierStr);
+        assertEquals('.', lex.getTok());
+        assertEquals(Lexer.Tokens.IDENTIFIER.value, lex.getTok());
+        assertEquals("math", lex.identifierStr);
+    }
+
+    @Test
+    void testLeadingDotNumberStillWorks() throws IOException {
+        final Lexer lex = new Lexer(new ByteArrayInputStream(".5".getBytes(StandardCharsets.UTF_8)));
+        assertEquals(Lexer.Tokens.NUMBER.value, lex.getTok());
+        assertEquals(0.5, lex.numVal);
+    }
 }

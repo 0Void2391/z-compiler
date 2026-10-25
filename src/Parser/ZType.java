@@ -16,6 +16,7 @@ package src.Parser;
  * passed around; it starts life as a null pointer.
  */
 public enum ZType {
+    VARARG    ("...", "...", "null", 64, Kind.VARARG),
     PTR       ("ptr",     "ptr", "null", 64, Kind.POINTER),
     INT32_PTR ("int32*",  "ptr", "null", 64, Kind.POINTER),
     INT64_PTR ("int64*",  "ptr", "null", 64, Kind.POINTER),
@@ -36,7 +37,7 @@ public enum ZType {
     VOID  ("void",   "void",   "",       0, Kind.VOID);
 
     /** What family a type belongs to. */
-    private enum Kind { POINTER, SIGNED, UNSIGNED, FLOAT, BOOL, STRING, VOID }
+    private enum Kind { POINTER, SIGNED, UNSIGNED, FLOAT, BOOL, STRING, VOID, VARARG }
 
     private final String zName;
     private final String llvm;
@@ -128,8 +129,7 @@ public enum ZType {
 
         if (a.isPointer() || b.isPointer()) {
             if (a == b) return a;
-            throw new IllegalArgumentException(
-                    "cannot combine " + a.zName() + " with " + b.zName());
+            throw new IllegalArgumentException("cannot combine " + a.zName() + " with " + b.zName());
         }
 
         if (a.isString() || b.isString()) {
@@ -162,12 +162,13 @@ public enum ZType {
      * @param value the value to print
      * @return literal text valid for this type
      */
-    public String literal(final long value) {
+    public String literal(final long value) throws IllegalStateException {
         return switch (kind) {
             case BOOL -> Boolean.toString(value != 0);
             case SIGNED, UNSIGNED -> bits == 32 ? Integer.toString((int) value) : Long.toString(value);
             case FLOAT -> Double.toString(value);
             case POINTER, STRING, VOID -> throw new IllegalStateException(zName + " has no literal");
+            case VARARG -> throw new IllegalStateException(zName + "can't be vararg");
         };
     }
 
@@ -177,12 +178,13 @@ public enum ZType {
      * @param value the value to print
      * @return literal text valid for this type
      */
-    public String literal(final double value) {
+    public String literal(final double value) throws IllegalStateException {
         return switch (kind) {
             case BOOL -> Boolean.toString(value != 0);
             case SIGNED, UNSIGNED -> bits == 32 ? Integer.toString((int) value) : Long.toString((long) value);
             case FLOAT -> Double.toString(value);
             case POINTER, STRING, VOID -> throw new IllegalStateException(zName + " has no literal");
+            case VARARG -> throw new IllegalStateException(zName + "can't be vararg");
         };
     }
 

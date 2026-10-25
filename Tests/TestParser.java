@@ -515,14 +515,14 @@ public class TestParser {
     @Test
     void testPointerType() throws IOException {
         final Parser parser = createParser("int32*");
-        final ZType type = parser.parseType();
+        final ZType type = parser.parseType(false);
         assertEquals(ZType.INT32_PTR, type);
     }
 
     @Test
     void testDoublePointerType() throws IOException {
         final Parser parser = createParser("int32**");
-        final ZType type = parser.parseType();
+        final ZType type = parser.parseType(false);
         assertEquals(ZType.PTR, type);  // double pointer maps to void*
     }
 
@@ -543,5 +543,17 @@ public class TestParser {
         final Parser parser = createParser("inc(int32* p)");
         final PrototypeAST proto = parser.parsePrototype(false);
         assertEquals("int32*", proto.params().get(0).type());
+    }
+
+    @Test
+    void testExternPrototypeWithMultipleParametersAndVarargs() throws IOException {
+        final Parser parser = createParser("printf(str | int32 | ...)");
+        final PrototypeAST proto = parser.parsePrototype(true);
+
+        assertNotNull(proto);
+        assertEquals(3, proto.params().size());
+        assertEquals("str", proto.params().get(0).type());
+        assertEquals("int32", proto.params().get(1).type());
+        assertEquals(ZType.VARARG.zName(), proto.params().get(2).type());
     }
 }

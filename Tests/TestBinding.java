@@ -82,4 +82,20 @@ public class TestBinding {
         assertEquals(60, end.run(binary));
     }
 
+    @Test
+    void testPrintfWithVarargs() throws IOException, InterruptedException {
+        if (verifyTools()) return;
+
+        final Path binary = end.compile("test4", """
+                extern printf(str | ...) -> int32
+                
+                proc main () {
+                    int32 written -> printf("%d" | 42)
+                    ret written
+                }
+                """);
+
+        assertEquals(2, end.run(binary));
+    }
+
 }

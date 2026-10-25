@@ -19,6 +19,7 @@ public class Lexer {
      * Enum of Tokens
      */
     public enum Tokens {
+        VARARG("...", -51),
         EXTERN("extern", -50),
         FUNC("proc", -1),
         INT64("int64", -2),
@@ -89,6 +90,8 @@ public class Lexer {
      * NumVal is used to store the value of the number token (es. 10)
      */
     private int lastChar = ' ';
+    /** a '.' already read while looking for a vararg, still to be returned */
+    private boolean pendingDot;
     public String identifierStr;
     public double numVal;
     /** the number exactly as it was written, which NumVal cannot represent */
@@ -134,6 +137,12 @@ public class Lexer {
      * @throws IOException if an I/O error occurs
      */
     public int getTok() throws IOException {
+
+        // a second dot left over from something that was not a vararg
+        if (pendingDot) {
+            pendingDot = false;
+            return '.';
+        }
 
         // skips whitespaces
         while (Character.isWhitespace(lastChar)) {
@@ -186,6 +195,16 @@ public class Lexer {
 
             if (lastChar == '.') {
                 read();
+                if (lastChar == '.') {
+                    read();
+                    if (lastChar == '.') {
+                        read();
+                        return Tokens.VARARG.value;
+                    }
+
+                    pendingDot = true;
+                    return '.';
+                }
                 if (!Character.isDigit(lastChar)) {
                     return '.';
                 }
@@ -291,12 +310,12 @@ public class Lexer {
             return symbol.value;
         }
 
-            // returns the ASCII if unrecognized
-            final int ThisChar = lastChar;
+        // returns the ASCII if unrecognized
+        final int ThisChar = lastChar;
 
-            // next one
-            read();
+        // next one
+        read();
 
-            return ThisChar;
+        return ThisChar;
         }
     }

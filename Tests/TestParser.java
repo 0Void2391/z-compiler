@@ -16,7 +16,7 @@ import static org.junit.jupiter.api.Assertions.*;
 
 public class TestParser {
 
-    private final Parser createParser(final String input) throws IOException {
+    private Parser createParser(final String input) throws IOException {
         final Lexer lex = new Lexer(new ByteArrayInputStream(input.getBytes(StandardCharsets.UTF_8)));
         return new Parser(lex);
     }
@@ -294,8 +294,8 @@ public class TestParser {
                 ZFixtures.failureOf("proc main() { ret 1 }\nint32 x -> ");
 
         assertNotNull(diagnostics);
-        // Top-level variables are recognised now, so the failure is the
-        // missing initialiser expression, not a missing `proc`.
+        // Top-level variables are recognized now, so the failure is the
+        // missing initializer expression, not a missing `proc`.
         assertTrue(diagnostics.contains("unknown token when expecting an expression"),
                 diagnostics);
     }

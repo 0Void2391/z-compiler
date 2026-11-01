@@ -84,7 +84,7 @@ final class ZFixtures {
         final List<StructDeclAST> structs = new ArrayList<>();
 
         while (true) {
-            if (parser.currentToken() == Lexer.Tokens.STRUCT.value) {
+            if (parser.getContext().getCurTok() == Lexer.Tokens.STRUCT.value) {
                 final StructDeclAST s = parseStruct(parser);
                 if (s == null) return null;
                 structs.add(s);

@@ -1,19 +1,18 @@
 package src.AST;
 
-import src.Parser.TypeRef;
-import src.Parser.ZType;
 import src.Codegen.IRBuilder;
+import src.Parser.TypeRef;
 import src.Parser.ZType;
 
 import java.util.List;
 
 public class ArrayIdxExprAST extends ExprAST {
-    private ExprAST arrExpr;
+    private final ExprAST arrExpr;
     private final List<NumberExprAST> indexes;
 
     public ArrayIdxExprAST(ExprAST arr, final List<NumberExprAST> indexes) {
         this.arrExpr = arr;
-        this.indexes = indexes;
+        this.indexes = (indexes != null) ? List.copyOf(indexes) : List.of();
         return;
     }
     public TypeRef type(final IRBuilder builder) {
@@ -21,5 +20,9 @@ public class ArrayIdxExprAST extends ExprAST {
     } //will return a pointer as a type
     public Value codeGen(final IRBuilder builder) {
         return new Value("placeholder", ZType.VOID); //placeholder
+    }
+
+    public List<NumberExprAST> getIndexes() {
+        return indexes;
     }
 }

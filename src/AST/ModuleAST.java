@@ -1,6 +1,7 @@
 package src.AST;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 public final class ModuleAST {
@@ -32,17 +33,17 @@ public final class ModuleAST {
         functions.add(function);
     }
 
-    public List<DeclaratorExprAST> vars() { return vars; }
+    public List<DeclaratorExprAST> vars() { return Collections.unmodifiableList(vars);  }
 
     public List<ImportAST> imports() {
-        return imports;
+        return Collections.unmodifiableList(imports);
     }
 
     public List<ExternExprAST> externals() {
-        return externals;
+        return Collections.unmodifiableList(externals);
     }
 
     public List<FunctionAST> functions() {
-        return functions;
+        return Collections.unmodifiableList(functions);
     }
 }

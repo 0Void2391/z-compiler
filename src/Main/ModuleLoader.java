@@ -103,7 +103,7 @@ public final class ModuleLoader {
         boolean declarationsStarted = false;
 
         while (!parser.atEOF()) {
-            final Lexer.Tokens token = Lexer.Tokens.fromValues(parser.currentToken());
+            final Lexer.Tokens token = Lexer.Tokens.fromValues(parser.getContext().getCurTok());
 
             if (token == Lexer.Tokens.IMPORT) {
                 if (declarationsStarted) {
@@ -136,7 +136,7 @@ public final class ModuleLoader {
                 module.addVar(variable);
             } else {
                 if (logger.isErrorEnabled()) {
-                    final String found = token == null ? String.valueOf(parser.currentToken()) : token.description;
+                    final String found = token == null ? String.valueOf(parser.getContext().getCurTok()) : token.description;
                     logger.error("Error: unexpected token at top level: {}", found);
                 }
                 return null;

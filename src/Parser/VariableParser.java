@@ -29,7 +29,7 @@ public class VariableParser {
     public @Nullable DeclaratorExprAST parseConstant() throws IOException {
         context.next();
 
-        final TypeRef zType = typeParser.parseType(false);
+        final TypeRef zType = typeParser.parseType();
         if (zType == null) {
             return error("Expected type after 'cn'");
         }
@@ -58,7 +58,7 @@ public class VariableParser {
      * @throws IOException if an exception is found
      */
     public @Nullable DeclaratorExprAST parseVariable(boolean globals) throws IOException {
-        final TypeRef zType = typeParser.parseType(false);
+        final TypeRef zType = typeParser.parseType();
         if (zType == null) return null;
 
         if (context.getCurTok() != Lexer.Tokens.IDENTIFIER.value) {

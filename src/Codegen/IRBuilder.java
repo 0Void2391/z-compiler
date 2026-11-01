@@ -40,6 +40,7 @@ public class IRBuilder {
     private final Map<String, PrototypeAST> signatures = new LinkedHashMap<>();
 
     private String currentModule;
+    private String varArgList;
 
     public void setCurrentModule(final String moduleName) {
         this.currentModule = moduleName;
@@ -103,6 +104,7 @@ public class IRBuilder {
 
     private static final String DOUBLE = "double";
     private static final String FLT = "float";
+    private static final String VA_LIST = "[32 x i8]";
     private boolean terminated;
     private TypeRef returnType = ZType.FLT64;
 
@@ -128,6 +130,12 @@ public class IRBuilder {
 
     /** True once the libc declarations have been emitted. */
     private boolean declaresEmitted = false;
+
+    /** True once the vararg declarations have been emitted */
+    private boolean varArgsEmitted = false;
+
+    /** True when the current function has an active va_list */
+    private boolean varArgStarted = false;
 
     /**
      *
@@ -183,7 +191,14 @@ public class IRBuilder {
         return ExternDeclaration.CONFLICT;
     }
 
+    private void emitVarArgEnd() {
+        if (!varArgStarted) return;
+        appendLine("call void @llvm.va_end(ptr " + varArgList + ")");
+    }
+
     public void emitReturn(final Value value) {
+        emitVarArgEnd();
+
         final TypeRef targetType = returnType;
         if (returnType == ZType.VOID) {
             appendLine("ret void");
@@ -234,6 +249,7 @@ public class IRBuilder {
 
     /** Emits a terminator that has no operand, such as a {@code main} that fell off the end. */
     public void emitBareReturn(final String literal) {
+        emitVarArgEnd();
         appendLine("ret " + literal);
         terminated = true;
     }
@@ -320,6 +336,8 @@ public class IRBuilder {
         loops.clear();
         terminated = false;
         failed = false;
+        varArgList = null;
+        varArgStarted = false;
     }
 
     /** the loops being generated, the innermost first */
@@ -335,7 +353,7 @@ public class IRBuilder {
         return loops.pop();
     }
 
-    /** @return the innermost loop, or null outside of any loop */
+    /** @return the innermost loop, or null outside any loop */
     public Loop currentLoop() {
         return loops.peek();
     }
@@ -480,6 +498,43 @@ public class IRBuilder {
         globals.append(append);
     }
 
+    public void beginVarArgFunction() {
+        ensureVarArgs();
+        varArgList = nextRegister();
+        appendLine(varArgList + " = alloca " + VA_LIST + ", align 16");
+        appendLine("call void @llvm.va_start(ptr " + varArgList + ")");
+        varArgStarted = true;
+    }
+
+    public final String loadVarArg(final String name, final int index) {
+        final SymbolTable.SymbolInfo info = symbols.lookup(name);
+        if (info == null || !info.isVarArg() || varArgList == null || index < 1) return null;
+
+        final String copy = nextRegister();
+        appendLine(copy + " = alloca " + VA_LIST + ", align 16");
+        appendLine("call void @llvm.va_copy(ptr " + copy + ", ptr " + varArgList + ")");
+
+        String value = null;
+        for (int i = 0; i < index; i++) {
+            value = nextRegister();
+            appendLine(value + " = va_arg ptr " + copy + ", " + info.getLlvmType());
+        }
+
+        appendLine("call void @llvm.va_end(ptr " + copy + ")");
+        return value;
+    }
+
+    /**
+     * emits the declarations for the vararg intrinsics once
+     */
+    private void ensureVarArgs() {
+        if (varArgsEmitted) return;
+        varArgsEmitted = true;
+        globals.append("declare void @llvm.va_start(ptr)\n");
+        globals.append("declare void @llvm.va_end(ptr)\n");
+        globals.append("declare void @llvm.va_copy(ptr, ptr)\n");
+    }
+
     /**
      * Emits the libc declares the first time a string is actually used.
      * A program without strings never sees them.
@@ -519,8 +574,7 @@ public class IRBuilder {
     /** Emits {@code %r = getelementptr inbounds %T, ptr %base, i32 0, i32 idx}. */
     public String emitGEP(final String basePtr, final String structType, final int idx) {
         final String reg = nextRegister();
-        appendLine(reg + " = getelementptr inbounds " + structType
-                + ", ptr " + basePtr + ", i32 0, i32 " + idx);
+        appendLine(reg + " = getelementptr inbounds " + structType + ", ptr " + basePtr + ", i32 0, i32 " + idx);
         return reg;
     }
 }

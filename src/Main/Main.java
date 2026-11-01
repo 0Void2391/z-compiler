@@ -103,8 +103,8 @@ class CompilerCmd implements Callable<Integer> {
 
             // returns 1 (error) if the generation failed
             if (generatedIR == null) {
-                     return 1;
-                    }
+                return 1;
+            }
 
             // Writes the updated LLVM IR, including its target triple, to disk.
             final String llvmIR = addTargetTriple(generatedIR);

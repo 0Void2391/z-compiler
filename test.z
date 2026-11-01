@@ -1,11 +1,15 @@
-import std
+//import std
 extern printf(str | ...) -> int32
-
 
 proc test() -> void {
     printf("test")
-    std.println(34)
+    //std.println(34)
     ret
+}
+
+proc test2(int32 test | ... int32 vararg) -> void {
+    int32 test2 -> vararg.1
+    ret 0
 }
 
 proc main() {

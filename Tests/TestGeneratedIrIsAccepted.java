@@ -4,8 +4,7 @@ import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
 
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.*;
 
 public class TestGeneratedIrIsAccepted {
 
@@ -26,7 +25,7 @@ public class TestGeneratedIrIsAccepted {
                     .redirectErrorStream(true)
                     .start();
             final String diagnostics = new String(process.getInputStream().readAllBytes());
-            assertTrue(process.waitFor() == 0, "llvm-as rejected the module:\n" + diagnostics + module);
+            assertEquals(0, process.waitFor(), "llvm-as rejected the module:\n" + diagnostics + module);
         } finally {
             java.nio.file.Files.deleteIfExists(sourceFile);
             java.nio.file.Files.deleteIfExists(object);

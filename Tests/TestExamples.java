@@ -29,13 +29,13 @@ public class TestExamples {
         final List<Path> examples;
         try (Stream<Path> files = Files.list(EXAMPLES)) {
             examples = files
-                    .filter(Files::isRegularFile)
-                    .filter(file -> {
-                        Path fileName = file.getFileName();
-                        return fileName != null && fileName.toString().endsWith(".z");
-                    })
-                    .sorted()
-                    .toList();
+                .filter(Files::isRegularFile)
+                .filter(file -> {
+                    Path fileName = file.getFileName();
+                    return fileName != null && fileName.toString().endsWith(".z");
+                })
+                .sorted()
+                .toList();
         }
 
         assertFalse(examples.isEmpty(), "no .z files found in " + EXAMPLES);

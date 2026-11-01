@@ -128,7 +128,6 @@ public enum ZType implements TypeRef {
         }
 
         if (a.isPointer() || b.isPointer()) {
-            if (a == b) return a;
             throw new IllegalArgumentException("cannot combine " + a.zName() + " with " + b.zName());
         }
 
@@ -144,7 +143,7 @@ public enum ZType implements TypeRef {
         }
 
         // Both are integers. If either is unsigned the result is unsigned,
-        // at the wider of the two widths. Otherwise both are signed.
+        // at the wider of the two widths. Otherwise, both are signed.
         final int width = Math.max(a.bits(), b.bits());
         if (a.isUnsigned() || b.isUnsigned()) {
             return width == 64 ? UINT64 : UINT32;
@@ -196,7 +195,7 @@ public enum ZType implements TypeRef {
         if (Float.isFinite(narrowed) && Double.parseDouble(decimal) == (double) narrowed) {
             return decimal;
         }
-        return "0x" + String.format("%016X", Double.doubleToRawLongBits((double) narrowed));
+        return "0x" + String.format("%016X", Double.doubleToRawLongBits(narrowed));
     }
 
     public boolean isPointer() {

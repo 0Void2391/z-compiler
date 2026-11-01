@@ -10,7 +10,6 @@ import src.Codegen.IRBuilder;
 import src.Parser.Parser;
 import src.Lexer.Lexer;
 import src.Parser.StructRegistry;
-import src.Parser.StructType;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;

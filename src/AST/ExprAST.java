@@ -1,7 +1,6 @@
 package src.AST;
 
 import src.Codegen.IRBuilder;
-import src.Parser.ZType;
 import src.Parser.TypeRef;
 
 public abstract class ExprAST {
@@ -48,13 +47,9 @@ public abstract class ExprAST {
         }
 
         if (from.isPointer() || target.isPointer()) {
-            if (from != target) {
-                System.err.println("Error: cannot convert between " + from.zName()
-                        + " and " + target.zName());
-                builder.markFailed();
-                return null;
-            }
-            return value;
+            System.err.println("Error: cannot convert between " + from.zName() + " and " + target.zName());
+            builder.markFailed();
+            return null;
         }
 
         final String result = builder.nextRegister();

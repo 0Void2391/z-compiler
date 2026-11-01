@@ -4,7 +4,6 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import src.Parser.StructRegistry;
 import src.Parser.StructType;
-import src.Parser.TypeRef;
 import src.Parser.ZType;
 
 import java.util.List;

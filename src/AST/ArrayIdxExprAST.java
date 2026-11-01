@@ -10,10 +10,9 @@ public class ArrayIdxExprAST extends ExprAST {
     private final ExprAST arrExpr;
     private final List<NumberExprAST> indexes;
 
-    public ArrayIdxExprAST(ExprAST arr, final List<NumberExprAST> indexes) {
+    public ArrayIdxExprAST(final ExprAST arr, final List<NumberExprAST> indexes) {
         this.arrExpr = arr;
         this.indexes = (indexes != null) ? List.copyOf(indexes) : List.of();
-        return;
     }
     public TypeRef type(final IRBuilder builder) {
         return arrExpr.type(builder);

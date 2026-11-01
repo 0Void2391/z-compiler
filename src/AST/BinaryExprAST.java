@@ -99,7 +99,7 @@ public final class BinaryExprAST extends ExprAST {
 
         final String opcode = arithmeticOpcode(a.type());
         if (opcode == null) {
-            logger.error("Operazione non supportata: {}",op);
+            logger.error("Unsupported operation: {}",op);
             builder.markFailed();
             return null;
         }
@@ -166,8 +166,7 @@ public final class BinaryExprAST extends ExprAST {
      * result lives for the rest of the process, which is the same thing
      * that happens to any other string built at run time.
      */
-    private Value emitStringConcat(final IRBuilder builder,
-                                   final Value a, final Value b) {
+    private Value emitStringConcat(final IRBuilder builder, final Value a, final Value b) {
         final String la = builder.nextRegister();
         builder.appendLine(la + " = call i64 @strlen(ptr " + a.text() + ")");
 

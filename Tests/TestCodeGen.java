@@ -959,8 +959,10 @@ public class TestCodeGen {
     @Test
     public void testCallingAStrReturningFunction() throws IOException {
         final String llvmIR = codeGen(
-                "proc greet(str s) -> str { ret s }\n"
-                        + "proc main() { str r -> greet(\"hi\")\n ret 0 }");
+                """
+                        proc greet(str s) -> str { ret s }
+                        proc main() { str r -> greet("hi")
+                         ret 0 }""");
 
         assertNotNull(llvmIR);
         assertTrue(llvmIR.contains("call i8* @greet(i8*"), llvmIR);
@@ -995,8 +997,11 @@ public class TestCodeGen {
     @Test
     public void testPointerParameterCodegen() throws IOException {
         final String llvmIR = codeGen(
-                "proc inc(int32* p) { ret 0 }\n"
-                        + "proc main() { int32 x -> 0\n inc(&x)\n ret 0 }");
+                """
+                        proc inc(int32* p) { ret 0 }
+                        proc main() { int32 x -> 0
+                         inc(&x)
+                         ret 0 }""");
 
         assertNotNull(llvmIR);
         assertTrue(llvmIR.contains("define private dso_local double @inc(ptr %p)"), llvmIR);
@@ -1006,8 +1011,10 @@ public class TestCodeGen {
     @Test
     public void testDerefInFunction() throws IOException {
         final String llvmIR = codeGen(
-                "proc get(int32* p) -> int32 { ret *p }\n"
-                        + "proc main() { int32 x -> 42\n ret get(&x) }");
+                """
+                        proc get(int32* p) -> int32 { ret *p }
+                        proc main() { int32 x -> 42
+                         ret get(&x) }""");
 
         assertTrue(llvmIR.contains("load i32, ptr"), llvmIR);
     }
@@ -1015,8 +1022,12 @@ public class TestCodeGen {
     @Test
     public void testAssignThroughPointer() throws IOException {
         final String llvmIR = codeGen(
-                "proc set(int32* p) -> int32 { *p -> 1\n ret 0 }\n"
-                        + "proc main() { int32 x -> 0\n set(&x)\n ret x }");
+                """
+                        proc set(int32* p) -> int32 { *p -> 1
+                         ret 0 }
+                        proc main() { int32 x -> 0
+                         set(&x)
+                         ret x }""");
 
         assertNotNull(llvmIR, "compilation failed");
         assertTrue(llvmIR.contains("store i32 1"), llvmIR);
@@ -1025,8 +1036,11 @@ public class TestCodeGen {
     @Test
     public void testPointerTypeMismatchFails() {
         final String diagnostics = ZFixtures.failureOf(
-                "proc inc(int32* p) { ret 0 }\n"
-                        + "proc main() { flt64 x -> 0.0\n inc(&x)\n ret 0 }");
+                """
+                        proc inc(int32* p) { ret 0 }
+                        proc main() { flt64 x -> 0.0
+                         inc(&x)
+                         ret 0 }""");
 
         assertNotNull(diagnostics);
         assertTrue(diagnostics.contains("cannot convert between"), diagnostics);
@@ -1144,7 +1158,8 @@ public class TestCodeGen {
     public void testStructLiteralCoerceFails() {
         final String diagnostics = ZFixtures.failureOf("""
                 struct Point { str name | int32 y }
-                proc main() { Point p -> Point{1 | 2}\n ret p.y }""");
+                proc main() { Point p -> Point{1 | 2}
+                 ret p.y }""");
         assertNotNull(diagnostics);
         assertTrue(diagnostics.contains("cannot convert between str"), diagnostics);
     }

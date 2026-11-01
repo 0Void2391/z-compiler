@@ -48,4 +48,5 @@ public final class AssignThroughPointerExprAST extends ExprAST {
         builder.emitStore(fitted.text(), elem.llvm(), ptr.text());
         return null;
     }
+
 }

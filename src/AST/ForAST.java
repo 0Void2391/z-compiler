@@ -11,7 +11,7 @@ import src.Parser.ZType;
 /**
  * A for loop: {@code for (type name -> init | cond | op) { body }}.
  *
- * <p>The loop variable is declared in the current scope, initialised,
+ * <p>The loop variable is declared in the current scope, initialized,
  * checked before each iteration, updated at the end of each iteration,
  * and stays visible after the loop.
  */
@@ -71,17 +71,7 @@ public final class ForAST extends ExprAST {
                     varName, varType, slot, false));
 
             if (init != null) {
-                final Value produced = init.codeGen(builder);
-                if (produced == null) {
-                    builder.markFailed();
-                    return null;
-                }
-                final Value fitted = init.coerce(builder, produced, varType);
-                if (fitted == null) {
-                    builder.markFailed();
-                    return null;
-                }
-                builder.emitStore(fitted.text(), varType.llvm(), slot);
+                if (verify(builder, slot, init)) return null;
             } else {
                 builder.emitStore(varType.initial(), varType.llvm(), slot);
             }
@@ -123,17 +113,7 @@ public final class ForAST extends ExprAST {
             }
 
             builder.emitLabel(incLabel);
-            final Value updateProduced = update.codeGen(builder);
-            if (updateProduced == null) {
-                builder.markFailed();
-                return null;
-            }
-            final Value updateFitted = update.coerce(builder, updateProduced, varType);
-            if (updateFitted == null) {
-                builder.markFailed();
-                return null;
-            }
-            builder.emitStore(updateFitted.text(), varType.llvm(), slot);
+            if (verify(builder, slot, update)) return null;
             builder.emitBr(condLabel);
 
             builder.emitLabel(endLabel);
@@ -141,5 +121,20 @@ public final class ForAST extends ExprAST {
         } finally {
             builder.symbols().exitScope();
         }
+    }
+
+    private boolean verify(IRBuilder builder, String slot, ExprAST init) {
+        final Value produced = init.codeGen(builder);
+        if (produced == null) {
+            builder.markFailed();
+            return true;
+        }
+        final Value fitted = init.coerce(builder, produced, varType);
+        if (fitted == null) {
+            builder.markFailed();
+            return true;
+        }
+        builder.emitStore(fitted.text(), varType.llvm(), slot);
+        return false;
     }
 }

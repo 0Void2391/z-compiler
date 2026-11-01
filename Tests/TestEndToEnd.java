@@ -78,22 +78,22 @@ public class TestEndToEnd {
         final Process process = builder.start();
 
         
-final String output = new String(process.getInputStream().readAllBytes());
-final int status = process.waitFor();
-assertEquals(0, status, output);
-// Regression test for GitHub issue #167:
-// compilation must not emit Clang's target-triple override warning.
-assertFalse(
-        output.contains("overriding the module target triple"),
-        "Clang emitted a target-triple warning:\n" + output
-);
-return directory.resolve(name);
+        final String output = new String(process.getInputStream().readAllBytes());
+        final int status = process.waitFor();
+        assertEquals(0, status, output);
+        // Regression test for GitHub issue #167:
+        // compilation must not emit Clang's target-triple override warning.
+        assertFalse(
+                output.contains("overriding the module target triple"),
+                "Clang emitted a target-triple warning:\n" + output
+        );
+        return directory.resolve(name);
 
     }
 
     public int run(final Path binary) throws IOException, InterruptedException {
         final Process process = new ProcessBuilder(binary.toString()).redirectErrorStream(true).start();
-        final String output = new String(process.getInputStream().readAllBytes());
+        //final String output = new String(process.getInputStream().readAllBytes());
         return process.waitFor();
     }
 

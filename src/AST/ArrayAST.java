@@ -1,6 +1,5 @@
 package src.AST;
 
-import src.Parser.ZType;
 import src.Codegen.IRBuilder;
 import src.Parser.ZType;
 
@@ -19,7 +18,7 @@ public final class ArrayAST extends ExprAST { //we could also consider doing ext
         this.size = arraySize;
         this.depth = arrayDepth;
         this.name = name;
-        this.values = values;
+        this.values = (values != null) ? List.copyOf(values) : List.of();
         return;
     }
     public ZType type(final IRBuilder builder) {
@@ -27,5 +26,21 @@ public final class ArrayAST extends ExprAST { //we could also consider doing ext
     } //placeholder
     public Value codeGen(final IRBuilder builder) {
         return new Value("placeholder", ZType.VOID); //placeholder
+    }
+
+    public NumberExprAST getSize() {
+        return size;
+    }
+
+    public NumberExprAST getDepth() {
+        return depth;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public List<NumberExprAST> getValues() {
+        return values;
     }
 }

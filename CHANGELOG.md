@@ -2,6 +2,24 @@
 
 All notable changes to Z-Compiler are documented in this file.
 
+## [0.1.0-rc.1] - 2026-11-01
+
+### Features
+
+- Added variadic parameters for functions
+
+### Refactoring
+
+- Refactor accessibility documentation for clarity
+
+### Documentation
+
+- Docs: update changelog for v0.0.10-rc.1
+
+### Other Changes
+
+- Revise accessibility guidelines and contributor expectations
+
 ## [0.0.10-rc.1] - 2026-11-01
 
 ### Documentation

@@ -9,7 +9,6 @@ This document explains our accessibility commitment, how contributors can help u
 ## Priorities
 <!-- Describe the outcomes the project prioritizes and how it works toward them. If you name a WCAG level as an accessibility target, make clear that it is an aspirational goal rather than a verified conformance claim. Only claim conformance after an evaluation, and identify the evaluated scope, date, method, and evaluator. Also describe the areas you prioritize, such as keyboard, screen reader, content, or language support. -->
 
-
 - **Accessibility target:** We work toward [WCAG 2.2 Level AA](https://www.w3.org/TR/WCAG22). This target guides our work but is not a claim of verified conformance.
 - **Keyboard support** — every interactive element must be reachable and operable with a keyboard alone, with a visible focus indicator and a logical tab order.
 - **Screen reader support** — content uses semantic HTML and a logical heading hierarchy so it can be navigated with VoiceOver, NVDA, JAWS, and similar tools.
@@ -24,17 +23,17 @@ If you are contributing content or code, please follow these guardrails so we do
 - **Testing**
   - For UI changes, test with an automated accessibility tool (such as [axe DevTools](https://www.deque.com/axe/devtools/) or the [GitHub Accessibility Scanner](https://github.com/github/accessibility-scanner)).
   - Do at least one keyboard-only pass on any changes involving interactive UI elements.
-      - Tab order is logical (no jumps, no traps, reaches all interactive controls).
-      - Visible focus indicator is always present and has sufficient contrast.
-      - All actions work by keyboard (Tab/Shift+Tab, Enter, Space, arrow keys where expected).
-      - No keyboard trap (can move into and out of modals, menus, popovers, editors).
+    - Tab order is logical (no jumps, no traps, reaches all interactive controls).
+    - Visible focus indicator is always present and has sufficient contrast.
+    - All actions work by keyboard (Tab/Shift+Tab, Enter, Space, arrow keys where expected).
+    - No keyboard trap (can move into and out of modals, menus, popovers, editors).
   - Spot-check screen reader behavior for new components or significant content changes.
-      - Able to navigate by headings and landmarks.
-      - Controls have clear, accessible labels (programmatic name that matches the action/field purpose).
-      - Custom controls expose proper semantics/state (role, name, value; toggles/expanded/selected announced).
-      - Lists and list items are announced appropriately.
-      - Dynamic updates are announced appropriately (errors, async status, validation, toasts via ARIA live regions as needed).
-      - Reading order is logical.
+    - Able to navigate by headings and landmarks.
+    - Controls have clear, accessible labels (programmatic name that matches the action/field purpose).
+    - Custom controls expose proper semantics/state (role, name, value; toggles/expanded/selected announced).
+    - Lists and list items are announced appropriately.
+    - Dynamic updates are announced appropriately (errors, async status, validation, toasts via ARIA live regions as needed).
+    - Reading order is logical.
 - **Documentation and content**
   - Use a logical heading hierarchy (do not skip levels).
   - Use real list elements (not just formatted to look like a list; same with headings).
@@ -125,8 +124,8 @@ Partial-support notes:
 ## Known limitations
 <!-- Describe known barriers in terms of the affected user experience, such as "videos do not have captions," rather than standards codes. Include available workarounds or equivalent access and link to tracked issues. If no limitations are currently documented, describe what has been tested instead of claiming that no barriers exist. -->
 
-  - Some older articles may not yet meet every guideline (for example, missing alternative text or non-descriptive link text). We are working through these as we update content.
-  - Embedded third-party content (videos, external images) may not always include captions or transcripts.
+- Some older articles may not yet meet every guideline (for example, missing alternative text or non-descriptive link text). We are working through these as we update content.
+- Embedded third-party content (videos, external images) may not always include captions or transcripts.
   
 **Note**: Please open an accessibility issue if you find one.
 

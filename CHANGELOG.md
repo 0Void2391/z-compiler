@@ -2,6 +2,18 @@
 
 All notable changes to Z-Compiler are documented in this file.
 
+## [0.0.10-rc.1] - 2026-11-01
+
+### Documentation
+
+- Docs: update changelog for main
+
+### Other Changes
+
+- Complete parser refactor
+- Formatting and compiler warnings
+- Security boring alerts
+
 ## [0.0.9-rc.1] - 2026-10-31
 
 ### Features

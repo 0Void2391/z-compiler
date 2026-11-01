@@ -335,7 +335,7 @@ public final class Parser {
      * @throws IOException if an exception is found
      */
     public TypeRef parseType(final boolean varargs) throws IOException {
-        return typeParser.parseType(varargs);
+        return typeParser.parseType();
     }
 
     /**

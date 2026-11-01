@@ -41,7 +41,7 @@ public class StructParser {
 
         final List<StructType.Field> fields = new ArrayList<>();
         while (context.getCurTok() != Lexer.Tokens.CLOSE_FUNC.value && context.getCurTok() != Lexer.Tokens.EOF.value) {
-            final TypeRef fieldType = typeParser.parseType(false);
+            final TypeRef fieldType = typeParser.parseType();
             if (fieldType == null) {
                 return error("Expected field type in struct '" + name + "'");
             }

@@ -25,7 +25,14 @@ public final class VarRefExprAST extends ExprAST {
     public TypeRef type(final IRBuilder builder) {
         SymbolTable.SymbolInfo info = builder.symbols().lookup(name);
         if (info == null && !name.contains(".")) info = builder.symbols().lookup(builder.qualify(name));
-        return info == null ? ZType.INT32 : info.getType();
+        if (info != null) return info.getType();
+
+        final int dot = name.lastIndexOf('.');
+        if (dot > 0) {
+            final SymbolTable.SymbolInfo varArg = builder.symbols().lookup(name.substring(0, dot));
+            if (varArg != null && varArg.isVarArg()) return varArg.getType();
+        }
+        return ZType.INT32;
     }
 
     @Override
@@ -34,12 +41,42 @@ public final class VarRefExprAST extends ExprAST {
         if (info == null && !name.contains(".")) {
             info = builder.symbols().lookup(builder.qualify(name));
         }
-        if (info == null) {
-            logger.error("Error: undeclared variable: {}", name);
-            builder.markFailed();
-            return null;
+        if (info != null) {
+            if (info.isVarArg()) {
+                logger.error("Error: variadic parameter '{}' must be read with an index", name);
+                builder.markFailed();
+                return null;
+            }
+            final TypeRef type = info.getType();
+            return new Value(builder.emitLoad(type.llvm(), info.getPointerReg()), type);
         }
-        final TypeRef type = info.getType();
-        return new Value(builder.emitLoad(type.llvm(), info.getPointerReg()), type);
+
+        final int dot = name.lastIndexOf('.');
+        if (dot > 0) {
+            final String base = name.substring(0, dot);
+            final String indexText = name.substring(dot + 1);
+            final SymbolTable.SymbolInfo varArg = builder.symbols().lookup(base);
+            if (varArg != null && varArg.isVarArg()) {
+                final int index;
+                try {
+                    index = Integer.parseInt(indexText);
+                } catch (final NumberFormatException e) {
+                    logger.error("Error: invalid variadic index in '{}'", name);
+                    builder.markFailed();
+                    return null;
+                }
+                final String register = builder.loadVarArg(base, index);
+                if (register == null) {
+                    logger.error("Error: cannot read variadic argument '{}'", name);
+                    builder.markFailed();
+                    return null;
+                }
+                return new Value(register, varArg.getType());
+            }
+        }
+
+        logger.error("Error: undeclared variable: {}", name);
+        builder.markFailed();
+        return null;
     }
 }

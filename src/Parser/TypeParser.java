@@ -52,10 +52,9 @@ public class TypeParser {
      * @return the type, or null when the current token is not a type
      * @throws IOException if an exception is found
      */
-    public TypeRef parseType(final boolean varargs) throws IOException {
+    public TypeRef parseType() throws IOException {
         final Lexer.Tokens typeTok = Lexer.Tokens.fromValues(context.getCurTok());
         if (typeTok == Lexer.Tokens.VARARG) {
-            if (!varargs) return null;
             context.next();
             return ZType.VARARG;
         }
@@ -64,8 +63,7 @@ public class TypeParser {
         TypeRef type = null;
         if (isTypeToken(typeTok)) {
             type = resolveType(typeTok.description);
-        } else if (typeTok == Lexer.Tokens.IDENTIFIER
-                && StructRegistry.isStruct(context.getLex().getIdentifierStr())) {
+        } else if (typeTok == Lexer.Tokens.IDENTIFIER && StructRegistry.isStruct(context.getLex().getIdentifierStr())) {
             type = StructRegistry.lookup(context.getLex().getIdentifierStr());
         }
         if (type == null) return null;

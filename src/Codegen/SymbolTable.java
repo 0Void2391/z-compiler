@@ -32,6 +32,7 @@ public class SymbolTable {
         private final TypeRef type;
         private final String pointerReg;
         private final boolean isConstant;
+        private final boolean isVarArg;
         private boolean isUsed;
         private int callCount;
 
@@ -43,10 +44,23 @@ public class SymbolTable {
          * @param isConstant is it a constant?
          */
         public SymbolInfo(final String name, final TypeRef type, final String pointerReg, final boolean isConstant) {
+            this(name, type, pointerReg, isConstant, false);
+        }
+
+        /**
+         * constructor for the SymbolInfo of a variadic parameter
+         * @param name name of the var
+         * @param type Z type of each variadic argument
+         * @param pointerReg the register in which the pointer is stored
+         * @param isConstant is it a constant?
+         * @param isVarArg whether this symbol is the variadic parameter
+         */
+        public SymbolInfo(final String name, final TypeRef type, final String pointerReg, final boolean isConstant, final boolean isVarArg) {
             this.name = name;
             this.type = type;
             this.pointerReg = pointerReg;
             this.isConstant = isConstant;
+            this.isVarArg = isVarArg;
             this.isUsed = false;
             this.callCount = 0;
         }
@@ -60,6 +74,7 @@ public class SymbolTable {
         public final String getLlvmType() { return type.llvm(); }
         public final String getPointerReg() { return pointerReg; }
         public final boolean isConstant() { return isConstant; }
+        public final boolean isVarArg() { return isVarArg; }
         public final boolean isUsed() { return isUsed; }
         public void setUsed(final boolean used) { this.isUsed = used; }
         public final int getCallCount() { return callCount; }

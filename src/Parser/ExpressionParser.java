@@ -10,6 +10,7 @@ import java.util.List;
 import java.util.Map;
 
 import static src.Parser.Parser.error;
+import static src.Parser.TypeParser.describeToken;
 
 public class ExpressionParser {
     private final ParserContext context;
@@ -164,7 +165,7 @@ public class ExpressionParser {
             if (operand == null) return null;
             return new UnaryExprAST(operand);
         } else {
-            return error("unknown token when expecting an expression: " + context.getCurTok());
+            return error("unknown token when expecting an expression: " + describeToken(context.getCurTok()));
         }
     }
 
@@ -182,8 +183,12 @@ public class ExpressionParser {
 
         while (context.getCurTok() == '.') {
             context.next();
-            if (context.getCurTok() != Lexer.Tokens.IDENTIFIER.value) {
-                return error("Expected a name after '.' in '" + fullName + "'");
+            if (context.getCurTok() == Lexer.Tokens.NUMBER.value) {
+                fullName.append(".").append(context.getLex().getNumberText());
+                context.next();
+                return new VarRefExprAST(fullName.toString());
+            } else if (context.getCurTok() != Lexer.Tokens.IDENTIFIER.value) {
+                return error("Expected a name or number (varargs) after '.' in '" + fullName + "'");
             }
             fullName.append(".").append(context.getLex().getIdentifierStr());
             parts.add(context.getLex().getIdentifierStr());

@@ -58,7 +58,7 @@ public final class CallExprAST extends ExprAST {
 
         final List<PrototypeAST.Param> params = signature.params();
 
-        final boolean variadic = !params.isEmpty() && params.getLast().type().equals(ZType.VARARG.zName());
+        final boolean variadic = !params.isEmpty() && (params.getLast().varArg() || params.getLast().type().equals(ZType.VARARG.zName()));
         final int fixedParams = variadic ? params.size() - 1 : params.size();
 
         if (variadic ? arguments.size() < fixedParams : arguments.size() != fixedParams) {
@@ -77,6 +77,8 @@ public final class CallExprAST extends ExprAST {
             final TypeRef expected;
             if (i < fixedParams) {
                 expected = resolveParamType(params.get(i).type());
+            } else if (params.getLast().varArg()) {
+                expected = resolveParamType(params.getLast().type());
             } else {
                 final TypeRef argType = argument.type();
                 if (!(argType instanceof ZType zt)) {

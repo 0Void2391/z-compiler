@@ -54,15 +54,21 @@ public final class FunctionAST extends ExprAST {
         for (int i = 0; i < params.size(); i++) {
             if (i > 0) parameters.append(", ");
             final PrototypeAST.Param param = params.get(i);
-            parameters.append(resolveParamType(param.type()).llvm()).append(" %").append(param.name());
+            if (param.varArg()) parameters.append("...");
+            else parameters.append(resolveParamType(param.type()).llvm()).append(" %").append(param.name());
         }
 
         boolean parametersAreDistinct = true;
+        boolean hasVarArg = false;
         for (final PrototypeAST.Param param : params) {
             final TypeRef type = resolveParamType(param.type());
-            final String slot = builder.emitAlloca(param.name() + ".addr", type.llvm());
-            builder.emitStore("%" + param.name(), type.llvm(), slot);
-            parametersAreDistinct &= builder.symbols().define(param.name(), new SymbolTable.SymbolInfo(param.name(), type, slot, false));
+            String slot = "";
+            if (!param.varArg()) {
+                slot = builder.emitAlloca(param.name() + ".addr", type.llvm());
+                builder.emitStore("%" + param.name(), type.llvm(), slot);
+            }
+            parametersAreDistinct &= builder.symbols().define(param.name(), new SymbolTable.SymbolInfo(param.name(), type, slot, false, param.varArg()));
+            hasVarArg |= param.varArg();
         }
         if (!parametersAreDistinct) {
             logger.error("Error: '{}' declares the same parameter twice", proto.name());
@@ -70,6 +76,8 @@ public final class FunctionAST extends ExprAST {
             builder.symbols().exitScope();
             return null;
         }
+
+        if (hasVarArg) builder.beginVarArgFunction();
 
         if (body != null) body.codeGen(builder);
 

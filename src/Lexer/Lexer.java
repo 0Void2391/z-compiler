@@ -194,6 +194,11 @@ public class Lexer {
                 return token.value;
             }
 
+            if (lastChar == '.') {
+                read();
+                pendingDot = true;
+            }
+
             // if it's not a word it must be an identifier ig
             return Tokens.IDENTIFIER.value;
         }

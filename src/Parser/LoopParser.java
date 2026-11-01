@@ -40,7 +40,7 @@ public class LoopParser {
         context.next();
 
         // Parse type
-        final TypeRef varType = typeParser.parseType(false);
+        final TypeRef varType = typeParser.parseType();
         if (varType == null) {
             return error("Expected type in for");
         }

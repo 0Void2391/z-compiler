@@ -71,6 +71,8 @@ public class HeaderParser {
      * @throws IOException if an exception is found
      */
     public @Nullable PrototypeAST parsePrototype(final boolean extern) throws IOException {
+        boolean isVarArg = false;
+
         if (context.getCurTok() != Lexer.Tokens.IDENTIFIER.value) {
             return error("Expected function name in prototype, got " + describeToken(context.getCurTok()) + " instead");
         }
@@ -86,23 +88,34 @@ public class HeaderParser {
         final List<PrototypeAST.Param> params = new ArrayList<>();
         if (context.getCurTok() != Lexer.Tokens.CLOSE_PAR.value) {
             while (true) {
-                final TypeRef paramType = typeParser.parseType(extern); // added support for varargs (only found in extern declaration)
+                TypeRef paramType = typeParser.parseType();
                 if (paramType == null) {
-                    return error("Expected parameter type");
+                    return error("Expected parameter type for function: " + fnName);
                 }
-                if (paramType == ZType.VARARG && context.getCurTok() != Lexer.Tokens.CLOSE_PAR.value) {
-                    return error("'...' must be the last parameter of function: " + fnName);
+                if (extern && paramType.isVararg() && context.getCurTok() != Lexer.Tokens.CLOSE_PAR.value) {
+                    return error("'...' must be the last parameter of extern function: " + fnName);
                 }
 
                 if (extern) {
-                    params.add(new PrototypeAST.Param(paramType.zName(), ""));
+                    params.add(new PrototypeAST.Param(paramType.zName(), "", false));
                 } else {
+                    if (paramType.isVararg()) {
+                        paramType = typeParser.parseType();
+                        if (paramType == null) {
+                            return error("Expected a type after '...' in function: " + fnName);
+                        }
+                        isVarArg = true;
+                    }
                     if (context.getCurTok() != Lexer.Tokens.IDENTIFIER.value) {
                         return error("Expected parameter name");
                     }
                     final String paramName = context.getLex().getIdentifierStr();
                     context.next();
-                    params.add(new PrototypeAST.Param(paramType.zName(), paramName));
+                    params.add(new PrototypeAST.Param(paramType.zName(), paramName, isVarArg));
+                }
+
+                if (isVarArg && context.getCurTok() != Lexer.Tokens.CLOSE_PAR.value) {
+                    return error("'...' must be the last parameter of function: " + fnName);
                 }
 
                 if (context.getCurTok() == Lexer.Tokens.PARAMS.value) {
@@ -127,7 +140,7 @@ public class HeaderParser {
             if (!isTypeToken(retTok) && !structName) {
                 return error("Expected return type after '->', got " + describeToken(context.getCurTok()) + " instead");
             }
-            returnType = typeParser.parseType(false);
+            returnType = typeParser.parseType();
             if (returnType == null) {
                 return error("Expected return type after '->', got " + describeToken(context.getCurTok()) + " instead");
             }

@@ -135,7 +135,7 @@ class CompilerCmd implements Callable<Integer> {
 
     
 /**
- *  i have added this method to 
+ *  I have added this method to
  *  Prevents Clang's "-Woverride-module" warning by adding the
  *  Existing target triples are preserved.
  */

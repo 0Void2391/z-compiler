@@ -71,7 +71,7 @@ public final class StructLiteralAST extends ExprAST {
      * Builds the aggregate at compile time, as an LLVM constant.
      *
      * <p>Every field has to be a constant too: {@code undef} would be
-     * wrong here, because a global initialiser must not need a register.
+     * wrong here, because a global initializer must not need a register.
      *
      * @param builder the module being built
      * @return the constant aggregate, or null when a field is not constant

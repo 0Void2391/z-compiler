@@ -296,7 +296,7 @@ public class TestEndToEnd {
     }
 
     @Test
-    public void testBinaryIsNotProducedForAFailedCompilation() throws IOException, InterruptedException {
+    public void testBinaryIsNotProducedForAFailedCompilation() throws IOException {
         if (OPT == null || CLANG == null) return;
 
         final Path directory = createSecureTempDirectory("zendtoend");
@@ -304,6 +304,12 @@ public class TestEndToEnd {
         Files.writeString(sourceFile, "proc main() { ret nope(1) }");
         final Path binary = directory.resolve("broken");
 
+        final String output = processBuilder(sourceFile, binary);
+        assertTrue(output.contains("unknown function"), output);
+        assertFalse(Files.exists(binary), "a binary was produced from IR that never compiled");
+    }
+
+    private String processBuilder(Path sourceFile, Path binary) throws IOException {
         final ProcessBuilder builder = new ProcessBuilder(
                 "java",
                 "-cp", System.getProperty("java.class.path"),
@@ -314,15 +320,12 @@ public class TestEndToEnd {
         securePath(builder);
         final Process process = builder.start();
 
-        final String output = new String(process.getInputStream().readAllBytes());
 
-        assertNotEquals(0, process.waitFor(), output);
-        assertTrue(output.contains("unknown function"), output);
-        assertFalse(Files.exists(binary), "a binary was produced from IR that never compiled");
+        return new String(process.getInputStream().readAllBytes());
     }
 
     @Test
-    public void testTwoFunctionsWithTheSameNameAreRejected() throws IOException, InterruptedException {
+    public void testTwoFunctionsWithTheSameNameAreRejected() throws IOException {
         if (OPT == null || CLANG == null) return;
 
         final Path directory = createSecureTempDirectory("zendtoend");
@@ -330,25 +333,13 @@ public class TestEndToEnd {
         Files.writeString(sourceFile, "proc a() { ret 1 }\nproc a() { ret 2 }\nproc main() { ret a() }");
         final Path binary = directory.resolve("dup");
 
-        final ProcessBuilder builder = new ProcessBuilder(
-                "java",
-                "-cp", System.getProperty("java.class.path"),
-                "src.Main.Main",
-                sourceFile.toString(),
-                "-o", binary.toString())
-                .redirectErrorStream(true);
-        securePath(builder);
-        final Process process = builder.start();
-
-        final String output = new String(process.getInputStream().readAllBytes());
-
-        assertNotEquals(0, process.waitFor(), output);
+        final String output = processBuilder(sourceFile, binary);
         assertTrue(output.contains("defined more than once"), output);
         assertFalse(Files.exists(binary));
     }
 
     @Test
-    public void testAnEmptyFileIsRejected() throws IOException, InterruptedException {
+    public void testAnEmptyFileIsRejected() throws IOException {
         if (OPT == null || CLANG == null) return;
 
         final Path directory = createSecureTempDirectory("zendtoend");
@@ -356,24 +347,12 @@ public class TestEndToEnd {
         Files.writeString(sourceFile, "");
         final Path binary = directory.resolve("empty");
 
-        final ProcessBuilder builder = new ProcessBuilder(
-                "java",
-                "-cp", System.getProperty("java.class.path"),
-                "src.Main.Main",
-                sourceFile.toString(),
-                "-o", binary.toString())
-                .redirectErrorStream(true);
-        securePath(builder);
-        final Process process = builder.start();
-
-        final String output = new String(process.getInputStream().readAllBytes());
-
-        assertNotEquals(0, process.waitFor(), output);
+        processBuilder(sourceFile, binary);
         assertFalse(Files.exists(binary));
     }
 
     @Test
-    public void testATruncatedSecondFunctionIsRejected() throws IOException, InterruptedException {
+    public void testATruncatedSecondFunctionIsRejected() throws IOException {
         if (OPT == null || CLANG == null) return;
 
         final Path directory = createSecureTempDirectory("zendtoend");
@@ -381,19 +360,7 @@ public class TestEndToEnd {
         Files.writeString(sourceFile, "proc main() { ret 1 }\nproc broken() { ret 2");
         final Path binary = directory.resolve("truncated");
 
-        final ProcessBuilder builder = new ProcessBuilder(
-                "java",
-                "-cp", System.getProperty("java.class.path"),
-                "src.Main.Main",
-                sourceFile.toString(),
-                "-o", binary.toString())
-                .redirectErrorStream(true);
-        securePath(builder);
-        final Process process = builder.start();
-
-        final String output = new String(process.getInputStream().readAllBytes());
-
-        assertNotEquals(0, process.waitFor(), output);
+        final String output = processBuilder(sourceFile, binary);
         assertTrue(output.contains("Expected '}'"), output);
         assertFalse(Files.exists(binary));
     }
@@ -456,7 +423,7 @@ public class TestEndToEnd {
     }
 
     @Test
-    public void testCallingAFunctionTheModuleDoesNotHaveIsRejected() throws IOException, InterruptedException {
+    public void testCallingAFunctionTheModuleDoesNotHaveIsRejected() throws IOException {
         if (OPT == null || CLANG == null) return;
 
         final Path directory = createSecureTempDirectory("zendtoend");
@@ -465,19 +432,7 @@ public class TestEndToEnd {
         Files.writeString(sourceFile, "import math\nproc main() { ret math.nope(1) }");
         final Path binary = directory.resolve("main");
 
-        final ProcessBuilder builder = new ProcessBuilder(
-                "java",
-                "-cp", System.getProperty("java.class.path"),
-                "src.Main.Main",
-                sourceFile.toString(),
-                "-o", binary.toString())
-                .redirectErrorStream(true);
-        securePath(builder);
-        final Process process = builder.start();
-
-        final String output = new String(process.getInputStream().readAllBytes());
-
-        assertNotEquals(0, process.waitFor(), output);
+        final String output = processBuilder(sourceFile, binary);
         assertTrue(output.contains("unknown function: math.nope"), output);
         assertFalse(Files.exists(binary));
     }

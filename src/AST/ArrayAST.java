@@ -13,13 +13,12 @@ public final class ArrayAST extends ExprAST { //we could also consider doing ext
     private final String name;
     private final List<NumberExprAST> values;
 
-    public ArrayAST(ZType zType, NumberExprAST arraySize, NumberExprAST arrayDepth, String name, List<NumberExprAST> values) {
+    public ArrayAST(final ZType zType, final NumberExprAST arraySize, final NumberExprAST arrayDepth, final String name, final List<NumberExprAST> values) {
         this.type = zType;
         this.size = arraySize;
         this.depth = arrayDepth;
         this.name = name;
         this.values = (values != null) ? List.copyOf(values) : List.of();
-        return;
     }
     public ZType type(final IRBuilder builder) {
         return type;

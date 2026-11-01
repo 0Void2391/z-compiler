@@ -198,17 +198,17 @@ public class TestParser {
         final Parser parser = createParser("for (int32 i -> 0 | i < 10 | i + 1) { }");
         final ForAST loop = assertInstanceOf(ForAST.class, parser.parseStatement());
 
-        assertEquals("i", loop.varName());
+        assertEquals("i", Objects.requireNonNull(loop).varName());
         assertEquals(src.Parser.ZType.INT32, loop.varType());
     }
 
     @Test
     void testBreakAndContinueAreParsed() throws IOException {
         final LoopJumpAST jump = assertInstanceOf(LoopJumpAST.class, createParser("break").parseStatement());
-        assertTrue(jump.isBreak());
+        assertTrue(Objects.requireNonNull(jump).isBreak());
         assertEquals(ZType.VOID, jump.type(new src.Codegen.IRBuilder()));
 
-        assertFalse(assertInstanceOf(LoopJumpAST.class, createParser("continue").parseStatement()).isBreak());
+        assertFalse(Objects.requireNonNull(assertInstanceOf(LoopJumpAST.class, createParser("continue").parseStatement())).isBreak());
     }
 
     @Test
@@ -447,7 +447,7 @@ public class TestParser {
         final Parser parser = createParser("if (1 < 2) { ret 1 }");
         final IfAST ifAst = assertInstanceOf(IfAST.class, parser.parseStatement());
 
-        assertEquals(1, ifAst.branches().size());
+        assertEquals(1, Objects.requireNonNull(ifAst).branches().size());
         assertNull(ifAst.elseBody());
     }
 
@@ -457,7 +457,7 @@ public class TestParser {
                 "if (1 > 2) { ret 1 } eif (2 > 3) { ret 2 } else { ret 3 }");
         final IfAST ifAst = assertInstanceOf(IfAST.class, parser.parseStatement());
 
-        assertEquals(2, ifAst.branches().size());
+        assertEquals(2, Objects.requireNonNull(ifAst).branches().size());
         assertNotNull(ifAst.elseBody());
     }
 
@@ -554,7 +554,7 @@ public class TestParser {
     void testPointerParameterInPrototype() throws IOException {
         final Parser parser = createParser("inc(int32* p)");
         final PrototypeAST proto = parser.parsePrototype(false);
-        assertEquals("int32*", proto.params().get(0).type());
+        assertEquals("int32*", Objects.requireNonNull(proto).params().getFirst().type());
     }
 
     @Test

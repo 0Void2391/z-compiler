@@ -6,7 +6,6 @@ import org.slf4j.LoggerFactory;
 import src.Codegen.IRBuilder;
 import src.Codegen.SymbolTable;
 import src.Parser.TypeRef;
-import src.Parser.ZType;
 
 /**
  *
@@ -20,7 +19,7 @@ public final class DeclaratorExprAST extends ExprAST {
     private final boolean constant;
     private final boolean global;
 
-    public DeclaratorExprAST(final TypeRef type, final String name, final ExprAST initialiser, final boolean constant, boolean globals) {
+    public DeclaratorExprAST(final TypeRef type, final String name, final ExprAST initialiser, final boolean constant, final boolean globals) {
         this.type = type;
         this.name = name;
         this.initialiser = initialiser;

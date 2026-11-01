@@ -382,7 +382,7 @@ public class IRBuilder {
     }
 
     /**
-     * Gets the LLVM type of a register
+     * Gets the LLVM type of register
      * @param reg the register name (e.g., "%1")
      * @return the LLVM type or null if not tracked
      */
@@ -498,8 +498,7 @@ public class IRBuilder {
     private boolean hasExtern(final String name, final ZType returnType) {
         final PrototypeAST prototype = signatures.get(name);
         if (prototype == null || externReturnTypes.get(name) != returnType) return false;
-        return prototype.params().size() == 1
-                && prototype.params().getFirst().type().equals(ZType.STRING.zName());
+        return prototype.params().size() == 1 && prototype.params().getFirst().type().equals(ZType.STRING.zName());
     }
 
     /** The structs this module has already declared. */

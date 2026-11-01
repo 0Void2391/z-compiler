@@ -29,19 +29,19 @@ public final class Parser {
     static {
 
         BinOpPrecedence = Map.ofEntries(
-                Map.entry(Lexer.Tokens.LESS.value, 10),
-                Map.entry(Lexer.Tokens.MORE.value, 10),
-                Map.entry(Lexer.Tokens.LE.value, 10),
-                Map.entry(Lexer.Tokens.GE.value, 10),
-                Map.entry(Lexer.Tokens.EQ.value, 10),
-                Map.entry(Lexer.Tokens.NE.value, 10),
-                Map.entry(Lexer.Tokens.SAME.value, 10),
-                Map.entry(Lexer.Tokens.ASSIGN.value, 5),
-                Map.entry(Lexer.Tokens.ADD.value, 20),
-                Map.entry(Lexer.Tokens.SUB.value, 20),
-                Map.entry(Lexer.Tokens.MUL.value, 40),
-                Map.entry(Lexer.Tokens.DIV.value, 40),
-                Map.entry(Lexer.Tokens.MOD.value, 40));
+            Map.entry(Lexer.Tokens.LESS.value, 10),
+            Map.entry(Lexer.Tokens.MORE.value, 10),
+            Map.entry(Lexer.Tokens.LE.value, 10),
+            Map.entry(Lexer.Tokens.GE.value, 10),
+            Map.entry(Lexer.Tokens.EQ.value, 10),
+            Map.entry(Lexer.Tokens.NE.value, 10),
+            Map.entry(Lexer.Tokens.SAME.value, 10),
+            Map.entry(Lexer.Tokens.ASSIGN.value, 5),
+            Map.entry(Lexer.Tokens.ADD.value, 20),
+            Map.entry(Lexer.Tokens.SUB.value, 20),
+            Map.entry(Lexer.Tokens.MUL.value, 40),
+            Map.entry(Lexer.Tokens.DIV.value, 40),
+            Map.entry(Lexer.Tokens.MOD.value, 40));
     }
 
 
@@ -165,8 +165,8 @@ public final class Parser {
      */
     public boolean atTypeDeclaration() {
         return isTypeToken(Lexer.Tokens.fromValues(curTok))
-                || (curTok == Lexer.Tokens.IDENTIFIER.value
-                && StructRegistry.isStruct(lex.getIdentifierStr()));
+            || (curTok == Lexer.Tokens.IDENTIFIER.value
+            && StructRegistry.isStruct(lex.getIdentifierStr()));
     }
 
 
@@ -217,7 +217,7 @@ public final class Parser {
      * @return an AST node or an error
      * @throws IOException if an exception is found
      */
-    public DeclaratorExprAST parseVariable(boolean globals) throws IOException {
+    public @Nullable DeclaratorExprAST parseVariable(boolean globals) throws IOException {
         final TypeRef zType = parseType(false);
         if (zType == null) return null;
 
@@ -242,7 +242,7 @@ public final class Parser {
      * @return an AST node or an error
      * @throws IOException if an exception is found
      */
-    public DeclaratorExprAST parseConstant() throws IOException {
+    public @Nullable DeclaratorExprAST parseConstant() throws IOException {
         next();
 
         final TypeRef zType = parseType(false);
@@ -415,7 +415,7 @@ public final class Parser {
     }
 
 
-    public ImportAST parseImport() throws IOException {
+    public @Nullable ImportAST parseImport() throws IOException {
         if (curTok != Lexer.Tokens.IMPORT.value) {
             return null;
         }
@@ -432,7 +432,7 @@ public final class Parser {
         return new ImportAST(moduleName);
     }
 
-    public ExternExprAST parseExtern() throws IOException {
+    public @Nullable ExternExprAST parseExtern() throws IOException {
         if (curTok != Lexer.Tokens.EXTERN.value) {
             return null;
         }
@@ -485,7 +485,7 @@ public final class Parser {
      * @return an Expression node or an error
      * @throws IOException if an exception is found
      */
-    public ExprAST parseParenExpr() throws IOException {
+    public @Nullable ExprAST parseParenExpr() throws IOException {
         next();
         final ExprAST v = parseExpression();
         if (v == null) return null;
@@ -503,7 +503,7 @@ public final class Parser {
      * @return an Expression node or an error
      * @throws IOException if an exception is found
      */
-    public ExprAST parseIdentifierExpr() throws IOException {
+    public @Nullable ExprAST parseIdentifierExpr() throws IOException {
         final List<String> parts = new ArrayList<>();
         final StringBuilder fullName = new StringBuilder(lex.getIdentifierStr());
         parts.add(lex.getIdentifierStr());
@@ -582,7 +582,7 @@ public final class Parser {
      * @return an Expression node or an error
      * @throws IOException if an exception is found
      */
-    public ExprAST parsePrimary() throws IOException {
+    public @Nullable ExprAST parsePrimary() throws IOException {
         if (curTok == Lexer.Tokens.OPEN_FUNC.value) {
             next();
         }
@@ -637,7 +637,7 @@ public final class Parser {
      * @return an RetAST node
      * @throws IOException if an exception is found
      */
-    public ExprAST parseRet() throws IOException {
+    public @Nullable ExprAST parseRet() throws IOException {
         next();
         if (curTok == Lexer.Tokens.CLOSE_FUNC.value) {
             return new RetAST(ZType.VOID);
@@ -742,7 +742,7 @@ public final class Parser {
      * @return an IfAST node or an error
      * @throws IOException if an exception is found
      */
-    public IfAST parseIf() throws IOException {
+    public @Nullable IfAST parseIf() throws IOException {
         next();  // skip 'if'
 
         final List<IfAST.Branch> branches = new ArrayList<>();
@@ -776,7 +776,7 @@ public final class Parser {
     /**
      * Parses one {@code (cond) { body }} pair, shared by {@code if} and {@code eif}.
      */
-    private IfAST.Branch parseIfBranch(final String keyword) throws IOException {
+    private IfAST.@Nullable Branch parseIfBranch(final String keyword) throws IOException {
         if (curTok != Lexer.Tokens.OPEN_PAR.value) {
             return error("Expected '(' after '" + keyword + "'");
         }
@@ -826,7 +826,7 @@ public final class Parser {
      * @return a node, in reality it just calls other functions
      * @throws IOException if an exception is found
      */
-    public ExprAST parseStatement() throws IOException {
+    public @Nullable ExprAST parseStatement() throws IOException {
         final Lexer.Tokens token = Lexer.Tokens.fromValues(curTok);
         if (token == Lexer.Tokens.RET) {
             return parseRet();
@@ -855,7 +855,7 @@ public final class Parser {
      * @return null or calls other functions
      * @throws IOException if an exception is found
      */
-    public ExprAST parseExpression() throws IOException {
+    public @Nullable ExprAST parseExpression() throws IOException {
         final ExprAST leftOperandSide = parsePrimary();
         if (leftOperandSide == null) return null;
 
@@ -869,7 +869,7 @@ public final class Parser {
      * @return null or a BinaryExprAST node
      * @throws IOException if an exception is found
      */
-    public ExprAST parseBinOpRHS(final int ExprPrev, ExprAST leftOperandSide) throws IOException {
+    public @Nullable ExprAST parseBinOpRHS(final int ExprPrev, ExprAST leftOperandSide) throws IOException {
         while (true) {
             final int TokPrev = getTokPrecedence();
 

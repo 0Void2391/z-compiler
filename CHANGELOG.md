@@ -2,7 +2,17 @@
 
 All notable changes to Z-Compiler are documented in this file.
 
-## [0.0.12-rc.1] - 2026-11-02
+## [unreleased]
+
+### Documentation
+
+- Docs: update changelog for v0.0.12-rc.1
+
+### Other Changes
+
+- Enhance README with more badges
+
+## [0.0.2] - 2026-11-02
 
 ### Documentation
 

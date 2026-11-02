@@ -1004,7 +1004,7 @@ public class TestCodeGen {
                          ret 0 }""");
 
         assertNotNull(llvmIR);
-        assertTrue(llvmIR.contains("define private dso_local double @inc(ptr %p)"), llvmIR);
+        assertTrue(llvmIR.contains("define private dso_local double @inc(ptr noalias %p)"), llvmIR);
         assertTrue(llvmIR.contains("call double @inc(ptr %x)"), llvmIR);
     }
 

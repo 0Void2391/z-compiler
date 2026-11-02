@@ -187,6 +187,7 @@ private static String addTargetTriple(final String llvmIR) {
         ProcessBuilder processBuilder = new ProcessBuilder(
                 "opt",
                 "-O3",
+                "-mcpu=native",
                 "-S",             // maintains a readable output
                 inputLl,
                 "-o",

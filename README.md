@@ -17,6 +17,12 @@
     <a href="https://codecov.io/gh/the-big-zed/z-compiler"><img src="https://codecov.io/gh/the-big-zed/z-compiler/branch/main/graph/badge.svg" alt="Codecov"></a>
   </p>
 
+  <p>
+   <img alt="Total downloads" src="https://img.shields.io/github/downloads/the-big-zed/z-compiler/total">
+   <img alt="Discord" src="https://img.shields.io/discord/1552756009385197611">
+   <img alt="Closed Issues" src="https://img.shields.io/github/issues-closed/the-big-zed/z-compiler">
+  </p>
+
   <h1><a href="https://discord.gg/hmAYfCkfz"><b>Discord</b></a></h1>
 </div>
 

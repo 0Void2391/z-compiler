@@ -2,6 +2,16 @@
 
 All notable changes to Z-Compiler are documented in this file.
 
+## [0.0.12-rc.1] - 2026-11-02
+
+### Documentation
+
+- Docs: update changelog for v0.0.11-rc.1
+
+### Other Changes
+
+- Change linking from private to internal
+
 ## [0.0.11-rc.1] - 2026-11-02
 
 ### Features

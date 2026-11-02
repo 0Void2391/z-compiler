@@ -179,8 +179,7 @@ public final class BinaryExprAST extends ExprAST {
         final String total = builder.nextRegister();
         builder.appendLine(total + " = add i64 " + sum + ", 1");
 
-        final String buf = builder.nextRegister();
-        builder.appendLine(buf + " = call ptr @malloc(i64 " + total + ")");
+        final String buf = builder.emitBumpAlloc(total);
 
         final String copied = builder.nextRegister();
         builder.appendLine(copied + " = call ptr @strcpy(ptr " + buf + ", ptr " + a.text() + ")");

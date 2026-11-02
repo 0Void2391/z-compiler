@@ -907,26 +907,28 @@ public class TestCodeGen {
     }
 
     @Test
-    public void testStringConcatenationUsesLibc() throws IOException {
+    public void testStringConcatenationUsesTheAllocator() throws IOException {
         final String llvmIR = codeGen(
                 "proc main() { str a -> \"hello\"\n str b -> \" world\"\n str c -> a + b\n ret 0 }");
 
         assertNotNull(llvmIR);
-        assertTrue(llvmIR.contains("declare ptr @malloc(i64)"), llvmIR);
-        assertTrue(llvmIR.contains("declare i64 @strlen(ptr)"), llvmIR);
-        assertTrue(llvmIR.contains("declare ptr @strcpy(ptr, ptr)"), llvmIR);
-        assertTrue(llvmIR.contains("declare ptr @strcat(ptr, ptr)"), llvmIR);
+        assertTrue(llvmIR.contains("@.arena = global [1048576 x i8] zeroinitializer"), llvmIR);
+        assertTrue(llvmIR.contains("@.arena.used = global i64 0"), llvmIR);
+        assertTrue(llvmIR.contains("@.free_list = global ptr null"), llvmIR);
+        assertTrue(llvmIR.contains("define ptr @zalloc(i64 %size)"), llvmIR);
+        assertTrue(llvmIR.contains("define void @zfree(ptr %p)"), llvmIR);
+        assertTrue(llvmIR.contains("call ptr @zalloc(i64"), llvmIR);
         assertTrue(llvmIR.contains("call i64 @strlen(ptr"), llvmIR);
-        assertTrue(llvmIR.contains("call ptr @malloc(i64"), llvmIR);
         assertTrue(llvmIR.contains("call ptr @strcpy(ptr"), llvmIR);
         assertTrue(llvmIR.contains("call ptr @strcat(ptr"), llvmIR);
+        assertFalse(llvmIR.contains("@malloc"), llvmIR);
     }
 
     @Test
-    public void testProgramWithoutStringsHasNoLibcDeclares() throws IOException {
+    public void testProgramWithoutStringsHasNoArena() throws IOException {
         final String llvmIR = codeGen("proc main() { ret 0 }");
 
-        assertFalse(llvmIR.contains("declare ptr @malloc"), llvmIR);
+        assertFalse(llvmIR.contains("@.arena"), llvmIR);
         assertFalse(llvmIR.contains("@.str."), llvmIR);
     }
 
@@ -1329,5 +1331,98 @@ public class TestCodeGen {
                 "proc foo(int32 x) { ret x }\nproc main() { foo(ghost) }");
         assertNotNull(diagnostics);
         assertTrue(diagnostics.contains("undeclared variable"), diagnostics);
+    }
+
+    @Test
+    public void testTwoConcatenationsEmitTheAllocatorOnce() throws IOException {
+        final String llvmIR = codeGen("""
+                proc main() {
+                    str a -> "hello"
+                    str b -> " world"
+                    str c -> a + b
+                    str d -> c + "!"
+                    ret 0
+                }""");
+
+        assertNotNull(llvmIR);
+        // The arena, its cursor, and the free list are emitted once.
+        assertEquals(1, countOccurrences(llvmIR, "@.arena = global"), llvmIR);
+        assertEquals(1, countOccurrences(llvmIR, "@.arena.used = global"), llvmIR);
+        assertEquals(1, countOccurrences(llvmIR, "@.free_list = global"), llvmIR);
+        // The two allocator functions are emitted once.
+        assertEquals(1, countOccurrences(llvmIR, "define ptr @zalloc"), llvmIR);
+        assertEquals(1, countOccurrences(llvmIR, "define void @zfree"), llvmIR);
+        // Both concatenations call @zalloc.
+        assertEquals(2, countOccurrences(llvmIR, "call ptr @zalloc(i64"), llvmIR);
+    }
+
+    @Test
+    public void testAllocReturnsAPointer() throws IOException {
+        final String llvmIR = codeGen("""
+                proc main() {
+                    ptr p -> alloc(64)
+                    ret 0
+                }""");
+
+        assertNotNull(llvmIR);
+        assertTrue(llvmIR.contains("call ptr @zalloc(i64 64)"), llvmIR);
+    }
+
+    @Test
+    public void testFreeCallsZfree() throws IOException {
+        final String llvmIR = codeGen("""
+                proc main() {
+                    ptr p -> alloc(64)
+                    free(p)
+                    ret 0
+                }""");
+
+        assertNotNull(llvmIR);
+        assertTrue(llvmIR.contains("call ptr @zalloc(i64 64)"), llvmIR);
+        assertTrue(llvmIR.contains("call void @zfree(ptr"), llvmIR);
+    }
+
+    @Test
+    public void testAllocSizeIsAnExpression() throws IOException {
+        final String llvmIR = codeGen("""
+                proc main() {
+                    int32 n -> 32
+                    ptr p -> alloc(n * 2)
+                    ret 0
+                }""");
+
+        assertNotNull(llvmIR);
+        assertTrue(llvmIR.contains("call ptr @zalloc(i64"), llvmIR);
+    }
+
+    @Test
+    public void testFreeingANonPointerFails() {
+        final String diagnostics = ZFixtures.failureOf("""
+                proc main() {
+                    int32 x -> 1
+                    free(x)
+                    ret 0
+                }""");
+
+        assertNotNull(diagnostics);
+        assertTrue(diagnostics.contains("free expects a pointer"), diagnostics);
+    }
+
+    @Test
+    public void testAllocatorIsEmittedOnce() throws IOException {
+        final String llvmIR = codeGen("""
+                proc main() {
+                    ptr a -> alloc(8)
+                    ptr b -> alloc(16)
+                    free(a)
+                    free(b)
+                    ret 0
+                }""");
+
+        assertNotNull(llvmIR);
+        assertEquals(1, countOccurrences(llvmIR, "define ptr @zalloc"), llvmIR);
+        assertEquals(1, countOccurrences(llvmIR, "define void @zfree"), llvmIR);
+        assertEquals(2, countOccurrences(llvmIR, "call ptr @zalloc"), llvmIR);
+        assertEquals(2, countOccurrences(llvmIR, "call void @zfree"), llvmIR);
     }
 }

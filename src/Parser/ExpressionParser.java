@@ -143,6 +143,32 @@ public class ExpressionParser {
             final String value = context.getLex().getStringVal();
             context.next();
             return new StringExprAST(value);
+        } else if (context.getCurTok() == Lexer.Tokens.ALLOC.value) {
+            context.next();
+            if (context.getCurTok() != Lexer.Tokens.OPEN_PAR.value) {
+                return error("Expected '(' after 'alloc'");
+            }
+            context.next();
+            final ExprAST sizeExpr = parseExpression();
+            if (sizeExpr == null) return null;
+            if (context.getCurTok() != Lexer.Tokens.CLOSE_PAR.value) {
+                return error("Expected ')' after alloc size");
+            }
+            context.next();
+            return new AllocExprAST(sizeExpr);
+        } else if (context.getCurTok() == Lexer.Tokens.FREE.value) {
+            context.next();
+            if (context.getCurTok() != Lexer.Tokens.OPEN_PAR.value) {
+                return error("Expected '(' after 'free'");
+            }
+            context.next();
+            final ExprAST ptrExpr = parseExpression();
+            if (ptrExpr == null) return null;
+            if (context.getCurTok() != Lexer.Tokens.CLOSE_PAR.value) {
+                return error("Expected ')' after free argument");
+            }
+            context.next();
+            return new FreeExprAST(ptrExpr);
         } else if (context.getCurTok() == Lexer.Tokens.TRUE.value || context.getCurTok() == Lexer.Tokens.FALSE.value) {
             final boolean value = context.getCurTok() == Lexer.Tokens.TRUE.value;
             context.next();

@@ -235,7 +235,8 @@ public class TestIRBuilder {
         assertTrue(builder.getGlobals().contains("\\5C"));
         assertTrue(builder.getGlobals().contains("\\0A"));
         assertTrue(builder.getGlobals().contains("\\7F"));
-        assertTrue(builder.getGlobals().contains("declare ptr @malloc(i64)"));
+        // No malloc: concatenation uses the bump arena.
+        assertFalse(builder.getGlobals().contains("declare ptr @malloc(i64)"));
         assertTrue(builder.getGlobals().contains("declare i64 @strlen(ptr)"));
         assertEquals(".str.1", builder.emitStringConstant("hi".getBytes(StandardCharsets.UTF_8)));
     }

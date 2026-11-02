@@ -536,6 +536,123 @@ public class IRBuilder {
         globals.append("declare void @llvm.va_copy(ptr, ptr)\n");
     }
 
+    /** True once the allocator runtime has been emitted. */
+    private boolean allocatorEmitted = false;
+
+    /** Size of the arena, in bytes. */
+    private static final int ARENA_SIZE = 1 << 20;  // 1 MiB
+
+    /** Header size: {@code { i64 size, ptr next }}. */
+    private static final int BLOCK_HEADER = 16;
+
+    /**
+     * Emits the arena, its cursor, the free list, and the two allocator
+     * functions, once per module.
+     *
+     * <p>Everything here is LLVM IR text produced by Java — no C
+     * runtime, no extra link step. Allocation is first-fit over
+     * {@code @.free_list}, falling back to bumping {@code @.arena.used}.
+     * Free pushes the block back onto the free list.
+     */
+    private void ensureAllocator() {
+        if (allocatorEmitted) return;
+        allocatorEmitted = true;
+
+        globals.append("@.arena = global [").append(ARENA_SIZE)
+                .append(" x i8] zeroinitializer, align 16\n");
+        globals.append("@.arena.used = global i64 0, align 8\n");
+        globals.append("@.free_list = global ptr null, align 8\n");
+
+        globals.append("""
+                define ptr @zalloc(i64 %size) {
+                entry:
+                  %is_zero = icmp eq i64 %size, 0
+                  %sz = select i1 %is_zero, i64 1, i64 %size
+                  %free = load ptr, ptr @.free_list, align 8
+                  br label %scan
+
+                scan:
+                  %cur = phi ptr [ %free, %entry ], [ %next, %advance ]
+                  %done = icmp eq ptr %cur, null
+                  br i1 %done, label %bump, label %check
+
+                check:
+                  %blk_size = load i64, ptr %cur, align 8
+                  %fits = icmp uge i64 %blk_size, %sz
+                  br i1 %fits, label %reuse, label %advance
+
+                advance:
+                  %next_link = getelementptr inbounds i8, ptr %cur, i64 8
+                  %next = load ptr, ptr %next_link, align 8
+                  br label %scan
+
+                reuse:
+                  %reuse_link = getelementptr inbounds i8, ptr %cur, i64 8
+                  %reuse_next = load ptr, ptr %reuse_link, align 8
+                  store ptr %reuse_next, ptr @.free_list, align 8
+                  %reuse_user = getelementptr inbounds i8, ptr %cur, i64 16
+                  ret ptr %reuse_user
+
+                bump:
+                  %used = load i64, ptr @.arena.used, align 8
+                  %total = add i64 %sz, 16
+                  %new_used = add i64 %used, %total
+                  %oom = icmp ugt i64 %new_used, 1048576
+                  br i1 %oom, label %fail, label %ok
+
+                ok:
+                  store i64 %new_used, ptr @.arena.used, align 8
+                  %header = getelementptr inbounds [1048576 x i8], ptr @.arena, i64 0, i64 %used
+                  store i64 %sz, ptr %header, align 8
+                  %user = getelementptr inbounds i8, ptr %header, i64 16
+                  ret ptr %user
+
+                fail:
+                  ret ptr null
+                }
+
+                define void @zfree(ptr %p) {
+                entry:
+                  %is_null = icmp eq ptr %p, null
+                  br i1 %is_null, label %done, label %free
+
+                free:
+                  %header = getelementptr inbounds i8, ptr %p, i64 -16
+                  %old_free = load ptr, ptr @.free_list, align 8
+                  %next_link = getelementptr inbounds i8, ptr %header, i64 8
+                  store ptr %old_free, ptr %next_link, align 8
+                  store ptr %header, ptr @.free_list, align 8
+                  br label %done
+
+                done:
+                  ret void
+                }
+                """);
+    }
+
+    /**
+     * Bump-allocates {@code size} bytes and returns the pointer.
+     *
+     * @param size a register holding the byte count
+     * @return a register holding the pointer
+     */
+    public String emitBumpAlloc(final String size) {
+        ensureAllocator();
+        final String ptr = nextRegister();
+        appendLine(ptr + " = call ptr @zalloc(i64 " + size + ")");
+        return ptr;
+    }
+
+    /**
+     * Frees a block allocated by {@code alloc}.
+     *
+     * @param ptr a register holding the pointer
+     */
+    public void emitFree(final String ptr) {
+        ensureAllocator();
+        appendLine("call void @zfree(ptr " + ptr + ")");
+    }
+
     /**
      * Emits the libc declares the first time a string is actually used.
      * A program without strings never sees them.
@@ -543,7 +660,6 @@ public class IRBuilder {
     private void ensureStringDeclares() {
         if (declaresEmitted) return;
         declaresEmitted = true;
-        globals.append("declare ptr @malloc(i64)\n");
         if (!hasExtern("strlen", ZType.UINT64)) {
             globals.append("declare i64 @strlen(ptr)\n");
         }

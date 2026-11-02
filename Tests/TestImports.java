@@ -138,7 +138,7 @@ public class TestImports {
                 "math.z\nproc square(int32 x) { ret x * 2 }");
 
         assertNotNull(ir);
-        assertTrue(ir.contains("define private dso_local double @math_square"), ir);
+        assertTrue(ir.contains("define internal dso_local double @math_square"), ir);
         assertTrue(ir.contains("call double @math_square(i32 21)"), ir);
     }
 

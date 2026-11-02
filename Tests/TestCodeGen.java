@@ -21,7 +21,7 @@ public class TestCodeGen {
         final String code = "proc test() { ret 3 + 4 }";
 
         assertEquals("""
-                define private dso_local double @test() {
+                define internal dso_local double @test() {
                 entry:
                  %1 = add i32 3, 4
                  %2 = sitofp i32 %1 to double
@@ -48,7 +48,7 @@ public class TestCodeGen {
         final String code = "proc foo() { ret 10 * 2 }";
 
         assertEquals("""
-                define private dso_local double @foo() {
+                define internal dso_local double @foo() {
                 entry:
                  %1 = mul i32 10, 2
                  %2 = sitofp i32 %1 to double
@@ -944,7 +944,7 @@ public class TestCodeGen {
                 "proc greet(str s) -> str { ret s }\nproc main() { ret 0 }");
 
         assertNotNull(llvmIR);
-        assertTrue(llvmIR.contains("define private dso_local i8* @greet(i8* %s)"), llvmIR);
+        assertTrue(llvmIR.contains("define internal dso_local i8* @greet(i8* %s)"), llvmIR);
     }
 
     @Test
@@ -952,7 +952,7 @@ public class TestCodeGen {
         final String llvmIR = codeGen("proc answer() -> int32 { ret 42 }");
 
         assertNotNull(llvmIR);
-        assertTrue(llvmIR.contains("define private dso_local i32 @answer()"), llvmIR);
+        assertTrue(llvmIR.contains("define internal dso_local i32 @answer()"), llvmIR);
         assertTrue(llvmIR.contains("ret i32 42"), llvmIR);
     }
 
@@ -1004,7 +1004,7 @@ public class TestCodeGen {
                          ret 0 }""");
 
         assertNotNull(llvmIR);
-        assertTrue(llvmIR.contains("define private dso_local double @inc(ptr noalias %p)"), llvmIR);
+        assertTrue(llvmIR.contains("define internal dso_local double @inc(ptr noalias %p)"), llvmIR);
         assertTrue(llvmIR.contains("call double @inc(ptr %x)"), llvmIR);
     }
 

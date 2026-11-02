@@ -17,9 +17,10 @@ import java.util.Map;
 import java.util.Set;
 
 /**
- * Class with helper methods to generate LLVM IR code using testual strings
+ * Class with helper methods to generate LLVM IR code using textual strings
  */
 public class IRBuilder {
+    /** logger */
     private static final Logger logger = LoggerFactory.getLogger(IRBuilder.class);
 
     /**

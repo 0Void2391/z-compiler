@@ -12,7 +12,13 @@ proc test2(int32 test | ... int32 vararg) -> void {
     ret 0
 }
 
+proc test3(int32* t) -> void {
+
+}
+
 proc main() {
+    int32 t -> 0
+    test3(&t)
     test()
     ret 61
 }

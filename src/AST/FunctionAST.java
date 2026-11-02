@@ -55,7 +55,13 @@ public final class FunctionAST extends ExprAST {
             if (i > 0) parameters.append(", ");
             final PrototypeAST.Param param = params.get(i);
             if (param.varArg()) parameters.append("...");
-            else parameters.append(resolveParamType(param.type()).llvm()).append(" %").append(param.name());
+            else {
+                final String type = resolveParamType(param.type()).llvm();
+                String sb = type;
+                if ( type.contains("ptr")) sb+=" noalias";
+                sb += " %" + param.name();
+                parameters.append(sb);
+            }
         }
 
         boolean parametersAreDistinct = true;

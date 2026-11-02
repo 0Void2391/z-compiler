@@ -2,6 +2,25 @@
 
 All notable changes to Z-Compiler are documented in this file.
 
+## [0.0.11-rc.1] - 2026-11-02
+
+### Features
+
+- Added noalias in pointers
+- Added tests
+
+### Documentation
+
+- Docs: update changelog for v0.1.0-rc.1
+
+### Maintenance
+
+- Deps: bump the maven-minor-and-patch group with 4 updates
+
+### Other Changes
+
+- Mcpu=native added to llvm opt passes
+
 ## [0.1.0-rc.1] - 2026-11-01
 
 ### Features

@@ -140,7 +140,7 @@ public class TestTypes {
     public void testNewLlvmNames() {
         assertEquals("i32", ZType.UINT32.llvm());
         assertEquals("i64", ZType.UINT64.llvm());
-        assertEquals("i8*", ZType.STRING.llvm());
+        assertEquals("{ i8*, i64 }", ZType.STRING.llvm());
     }
 
     @Test
@@ -171,7 +171,7 @@ public class TestTypes {
 
     @Test
     public void testStringInitialIsNull() {
-        assertEquals("null", ZType.STRING.initial());
+        assertEquals("zeroinitializer", ZType.STRING.initial());
     }
 
     @Test

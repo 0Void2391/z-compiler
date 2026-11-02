@@ -228,7 +228,7 @@ public class TestAstCodeGen {
     @Test
     void testMainFallOffEmitsEachDefault() {
         assertTrue(generate(new PrototypeAST("main", List.of(), ZType.BOOL), null).contains("ret i1 false"));
-        assertTrue(generate(new PrototypeAST("main", List.of(), ZType.STRING), null).contains("ret i8* null"));
+        assertTrue(generate(new PrototypeAST("main", List.of(), ZType.STRING), null).contains("ret { i8*, i64 } zeroinitializer"));
         assertTrue(generate(new PrototypeAST("main", List.of(), ZType.INT32_PTR), null).contains("ret ptr null"));
         assertTrue(generate(new PrototypeAST("main", List.of(), ZType.FLT32), null).contains("ret float 0.0"));
         assertTrue(generate(new PrototypeAST("main", List.of(), ZType.FLT64), null).contains("ret double 0.0"));

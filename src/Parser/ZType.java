@@ -33,7 +33,7 @@ public enum ZType implements TypeRef {
     FLT32 ("flt32",  "float",  "0.0",   32, Kind.FLOAT),
     FLT64 ("flt64",  "double", "0.0",   64, Kind.FLOAT),
     BOOL  ("bool",     "i1",     "false",  1, Kind.BOOL),
-    STRING("str",    "i8*",    "null",   0, Kind.STRING),
+    STRING("str",    "{ i8*, i64 }", "zeroinitializer", 0, Kind.STRING),
     VOID  ("void",   "void",   "",       0, Kind.VOID);
 
     /** What family a type belongs to. */

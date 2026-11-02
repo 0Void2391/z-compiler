@@ -68,6 +68,7 @@ public final class CallExprAST extends ExprAST {
         }
 
         final List<String> printed = new java.util.ArrayList<>();
+        final ZType externReturn = resolved.externReturnType();
         for (int i = 0; i < arguments.size(); i++) {
             final Value argument = arguments.get(i).codeGen(builder);
             if (argument == null) {
@@ -94,10 +95,18 @@ public final class CallExprAST extends ExprAST {
             }
             final Value fitted = coerce(builder, argument, expected);
             if (fitted == null) return null;
-            printed.add(expected.llvm() + " " + fitted.text());
+
+            // Extern (C) functions take the raw bytes, not the fat struct.
+            // `printf("%s" | s)` passes s.ptr, `printf`.
+            if (externReturn != null && fitted.type().isString()) {
+                final String ptr = builder.nextRegister();
+                builder.appendLine(ptr + " = extractvalue { i8*, i64 } " + fitted.text() + ", 0");
+                printed.add("i8* " + ptr);
+            } else {
+                printed.add(expected.llvm() + " " + fitted.text());
+            }
         }
 
-        final ZType externReturn = resolved.externReturnType();
         final TypeRef result;
         if (externReturn != null) {
             result = externReturn;
@@ -114,7 +123,10 @@ public final class CallExprAST extends ExprAST {
             call.append(" (");
             for (int i = 0; i < fixedParams; i++) {
                 if (i > 0) call.append(", ");
-                call.append(ZType.fromZName(params.get(i).type()).llvm());
+                // The type printed for a fixed argument is the one the
+                // argument was actually coerced to (e.g. i8* for a fat
+                // str that printf unwraps), not the prototype's type.
+                call.append(printed.get(i).split(" ", 2)[0]);
             }
             call.append(fixedParams > 0 ? ", ...)" : "...)");
         }

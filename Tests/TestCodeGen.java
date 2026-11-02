@@ -869,17 +869,17 @@ public class TestCodeGen {
     }
 
     @Test
-    public void testStringDeclarationStartsWithNull() throws IOException {
+    public void testStringDeclarationStartsWithZeroInitializer() throws IOException {
         final String llvmIR = codeGen("proc main() { str s\n ret 0 }");
 
-        assertTrue(llvmIR.contains("%s = alloca i8*"), llvmIR);
-        assertTrue(llvmIR.contains("store i8* null, ptr %s"), llvmIR);
+        assertTrue(llvmIR.contains("%s = alloca { i8*, i64 }"), llvmIR);
+        assertTrue(llvmIR.contains("store { i8*, i64 } zeroinitializer, ptr %s"), llvmIR);
     }
 
     @Test
     public void testStringParameter() throws IOException {
         final String llvmIR = codeGen("proc take(str s) { ret 0 }");
-        assertTrue(llvmIR.contains("@take(i8* %s)"), llvmIR);
+        assertTrue(llvmIR.contains("@take({ i8*, i64 } %s)"), llvmIR);
     }
 
     @Test
@@ -893,17 +893,18 @@ public class TestCodeGen {
         final String llvmIR = codeGen("proc main() { str s -> \"hello\"\n ret 0 }");
 
         assertNotNull(llvmIR);
-        assertTrue(llvmIR.contains("@.str.0 = private unnamed_addr constant [6 x i8] c\"hello\\00\""), llvmIR);
-        assertTrue(llvmIR.contains("getelementptr inbounds [6 x i8], ptr @.str.0"), llvmIR);
+        assertTrue(llvmIR.contains("@.str.0.bytes = private unnamed_addr constant [6 x i8] c\"hello\\00\""), llvmIR);
+        assertTrue(llvmIR.contains("@.str.0 = private unnamed_addr constant { i8*, i64 }"), llvmIR);
+        assertTrue(llvmIR.contains("load { i8*, i64 }, ptr @.str.0"), llvmIR);
     }
 
     @Test
-    public void testStringDeclarationStoresThePointer() throws IOException {
+    public void testStringDeclarationStoresTheFatStruct() throws IOException {
         final String llvmIR = codeGen("proc main() { str s -> \"hi\"\n ret 0 }");
 
         assertNotNull(llvmIR);
-        assertTrue(llvmIR.contains("%s = alloca i8*"), llvmIR);
-        assertTrue(llvmIR.contains("store i8* %1, ptr %s"), llvmIR);
+        assertTrue(llvmIR.contains("%s = alloca { i8*, i64 }"), llvmIR);
+        assertTrue(llvmIR.contains("store { i8*, i64 } %"), llvmIR);
     }
 
     @Test
@@ -917,11 +918,15 @@ public class TestCodeGen {
         assertTrue(llvmIR.contains("@.free_list = global ptr null"), llvmIR);
         assertTrue(llvmIR.contains("define ptr @zalloc(i64 %size)"), llvmIR);
         assertTrue(llvmIR.contains("define void @zfree(ptr %p)"), llvmIR);
-        assertTrue(llvmIR.contains("call ptr @zalloc(i64"), llvmIR);
-        assertTrue(llvmIR.contains("call i64 @strlen(ptr"), llvmIR);
+        // Lengths come from the struct, not from strlen.
+        assertTrue(llvmIR.contains("extractvalue { i8*, i64 }"), llvmIR);
+        assertFalse(llvmIR.contains("@strlen"), llvmIR);
+        // The bytes are copied with strcpy / strcat.
         assertTrue(llvmIR.contains("call ptr @strcpy(ptr"), llvmIR);
         assertTrue(llvmIR.contains("call ptr @strcat(ptr"), llvmIR);
-        assertFalse(llvmIR.contains("@malloc"), llvmIR);
+        // The result is built as a new fat struct.
+        assertTrue(llvmIR.contains("insertvalue { i8*, i64 }"), llvmIR);
+        assertTrue(llvmIR.contains("call ptr @zalloc(i64"), llvmIR);
     }
 
     @Test
@@ -933,11 +938,11 @@ public class TestCodeGen {
     }
 
     @Test
-    public void testStringArgumentPassesAPointer() throws IOException {
+    public void testStringArgumentPassesAFatStruct() throws IOException {
         final String llvmIR = codeGen(
                 "proc id(str s) { ret 0 }\nproc main() { ret 0 }");
 
-        assertTrue(llvmIR.contains("@id(i8* %s)"), llvmIR);
+        assertTrue(llvmIR.contains("@id({ i8*, i64 } %s)"), llvmIR);
     }
 
     @Test
@@ -946,7 +951,7 @@ public class TestCodeGen {
                 "proc greet(str s) -> str { ret s }\nproc main() { ret 0 }");
 
         assertNotNull(llvmIR);
-        assertTrue(llvmIR.contains("define internal dso_local i8* @greet(i8* %s)"), llvmIR);
+        assertTrue(llvmIR.contains("define internal dso_local { i8*, i64 } @greet({ i8*, i64 } %s)"), llvmIR);
     }
 
     @Test
@@ -967,7 +972,7 @@ public class TestCodeGen {
                          ret 0 }""");
 
         assertNotNull(llvmIR);
-        assertTrue(llvmIR.contains("call i8* @greet(i8*"), llvmIR);
+        assertTrue(llvmIR.contains("call { i8*, i64 } @greet({ i8*, i64 }"), llvmIR);
     }
 
     @Test
@@ -989,11 +994,11 @@ public class TestCodeGen {
     }
 
     @Test
-    public void testMainWithStrReturnFallsOffWithNull() throws IOException {
+    public void testMainWithStrReturnFallsOffWithZero() throws IOException {
         final String llvmIR = codeGen("proc main() -> str { }");
 
         assertNotNull(llvmIR);
-        assertTrue(llvmIR.contains("ret i8* null"), llvmIR);
+        assertTrue(llvmIR.contains("ret { i8*, i64 } zeroinitializer"), llvmIR);
     }
 
     @Test

@@ -122,7 +122,7 @@ public final class FunctionAST extends ExprAST {
             builder.emitBareReturn(zero);
         }
 
-        final String text = "define " + (isMain ? "dso_local" : "private dso_local") + " " + returnType().llvm() + " @" + builder.irNameOf(proto.name()) + "(" + parameters + ") {\nentry:\n" + builder.getIR() + "}\n";
+        final String text = "define " + (isMain ? "dso_local" : "internal dso_local") + " " + returnType().llvm() + " @" + builder.irNameOf(proto.name()) + "(" + parameters + ") {\nentry:\n" + builder.getIR() + "}\n";
 
         builder.symbols().exitScope();
         return new Value(text, ZType.VOID);

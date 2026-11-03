@@ -2,10 +2,16 @@
 
 All notable changes to Z-Compiler are documented in this file.
 
-## [unreleased]
+## [0.0.13-rc.1] - 2026-11-03
+
+### Bug Fixes
+
+- Fix #170: fat strings with O(1) length
+- Fix #209: bump allocator for string concatenation
 
 ### Documentation
 
+- Docs: update changelog for v0.0.2
 - Docs: update changelog for v0.0.12-rc.1
 
 ### Other Changes

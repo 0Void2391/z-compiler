@@ -3,8 +3,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-/* Equivalente di "x + y": riceve solo puntatori, misura le lunghezze una volta
-   e copia con memcpy (niente strcpy+strcat, che rescansionano la stringa). */
 static char *concat(const char *x, const char *y) {
     const size_t xl = strlen(x);
     const size_t yl = strlen(y);

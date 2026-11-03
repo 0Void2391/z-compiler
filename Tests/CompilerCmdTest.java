@@ -139,4 +139,15 @@ public class CompilerCmdTest {
         assertEquals(0, run("-o", directory.resolve("uses").toString(), main.toString()));
         assertTrue(Files.isRegularFile(directory.resolve("uses")));
     }
+
+    @Test
+    void testCompilesWithFastMath() throws Exception {
+        final Path out = directory.resolve("program_fast");
+        final Path file = directory.resolve("fast_main.z");
+        Files.writeString(file, "proc main() { ret 1.5 + 2.5 }\n");
+        assertEquals(0, run("-fast-math", "-o", out.toString(), file.toString()));
+        assertTrue(Files.isRegularFile(out));
+        final String rawLl = Files.readString(directory.resolve("program_fast.ll"));
+        assertTrue(rawLl.contains("fadd fast double 1.5, 2.5"), rawLl);
+    }
 }

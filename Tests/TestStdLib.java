@@ -17,6 +17,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 
 public class TestStdLib {
 
@@ -198,7 +199,7 @@ public class TestStdLib {
     }
 
     @Test
-    void stringConcatenationReusesTheStdlibStrlen() throws IOException {
+    void stringConcatenationUsesTheLengthInTheStruct() throws IOException {
         final String ir = compile("""
                 import std
 
@@ -212,9 +213,14 @@ public class TestStdLib {
                 """);
 
         assertNotNull(ir);
-        assertEquals(1, count(ir, "declare i64 @strlen("), ir);
-        assertTrue(ir.contains("declare i64 @strlen(i8*)"), ir);
-        assertTrue(ir.contains("call i64 @strlen(ptr"), ir);
+        // The fat string carries its length, so concatenation does not
+        // call strlen. The stdlib's std_strlen wrapper does, but that is
+        // not the concatenation path.
+        final int mainStart = ir.indexOf("define dso_local i32 @main()");
+        final String mainBody = ir.substring(mainStart);
+        assertFalse(mainBody.contains("call i64 @strlen"), ir);
+        assertTrue(ir.contains("call ptr @strcpy(ptr"), ir);
+        assertTrue(ir.contains("call ptr @strcat(ptr"), ir);
     }
 
     @Test

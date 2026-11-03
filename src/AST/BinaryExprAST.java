@@ -159,34 +159,45 @@ public final class BinaryExprAST extends ExprAST {
     }
 
     /**
-     * Concatenates two strings by calling into libc.
+     * Concatenates two fat strings.
      *
-     * <p>{@code malloc(strlen(a) + strlen(b) + 1)} then {@code strcpy} then
-     * {@code strcat}. Nothing is freed: without a garbage collector the
-     * result lives for the rest of the process, which is the same thing
-     * that happens to any other string built at run time.
+     * <p>{@code a} and {@code b} are {@code { i8*, i64 }} values. The
+     * bytes are copied into a fresh block from the bump allocator, then
+     * the result is built as a new {@code { ptr, len_a + len_b }}. No
+     * {@code strlen}: the lengths are already in the struct.
      */
     private Value emitStringConcat(final IRBuilder builder, final Value a, final Value b) {
-        final String la = builder.nextRegister();
-        builder.appendLine(la + " = call i64 @strlen(ptr " + a.text() + ")");
+        builder.ensureStringRuntime();
 
-        final String lb = builder.nextRegister();
-        builder.appendLine(lb + " = call i64 @strlen(ptr " + b.text() + ")");
+        final String aPtr = builder.nextRegister();
+        builder.appendLine(aPtr + " = extractvalue { i8*, i64 } " + a.text() + ", 0");
+        final String aLen = builder.nextRegister();
+        builder.appendLine(aLen + " = extractvalue { i8*, i64 } " + a.text() + ", 1");
 
-        final String sum = builder.nextRegister();
-        builder.appendLine(sum + " = add i64 " + la + ", " + lb);
+        final String bPtr = builder.nextRegister();
+        builder.appendLine(bPtr + " = extractvalue { i8*, i64 } " + b.text() + ", 0");
+        final String bLen = builder.nextRegister();
+        builder.appendLine(bLen + " = extractvalue { i8*, i64 } " + b.text() + ", 1");
 
         final String total = builder.nextRegister();
-        builder.appendLine(total + " = add i64 " + sum + ", 1");
+        builder.appendLine(total + " = add i64 " + aLen + ", " + bLen);
 
-        final String buf = builder.emitBumpAlloc(total);
+        final String allocSize = builder.nextRegister();
+        builder.appendLine(allocSize + " = add i64 " + total + ", 1");
+
+        final String buf = builder.emitBumpAlloc(allocSize);
 
         final String copied = builder.nextRegister();
-        builder.appendLine(copied + " = call ptr @strcpy(ptr " + buf + ", ptr " + a.text() + ")");
+        builder.appendLine(copied + " = call ptr @strcpy(ptr " + buf + ", ptr " + aPtr + ")");
         final String concatenated = builder.nextRegister();
-        builder.appendLine(concatenated + " = call ptr @strcat(ptr " + buf + ", ptr " + b.text() + ")");
+        builder.appendLine(concatenated + " = call ptr @strcat(ptr " + buf + ", ptr " + bPtr + ")");
 
-        builder.setRegisterType(buf, ZType.STRING.llvm());
-        return new Value(buf, ZType.STRING);
+        final String r1 = builder.nextRegister();
+        builder.appendLine(r1 + " = insertvalue { i8*, i64 } undef, ptr " + buf + ", 0");
+        final String r2 = builder.nextRegister();
+        builder.appendLine(r2 + " = insertvalue { i8*, i64 } " + r1 + ", i64 " + total + ", 1");
+
+        builder.setRegisterType(r2, ZType.STRING.llvm());
+        return new Value(r2, ZType.STRING);
     }
 }

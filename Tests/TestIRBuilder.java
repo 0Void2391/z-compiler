@@ -231,32 +231,16 @@ public class TestIRBuilder {
         final String name = builder.emitStringConstant(new byte[]{'"', '\\', '\n', 0x7F});
 
         assertEquals(".str.0", name);
+        // The escaped bytes are in the .bytes global.
         assertTrue(builder.getGlobals().contains("\\22"));
         assertTrue(builder.getGlobals().contains("\\5C"));
         assertTrue(builder.getGlobals().contains("\\0A"));
         assertTrue(builder.getGlobals().contains("\\7F"));
-        // No malloc: concatenation uses the bump arena.
-        assertFalse(builder.getGlobals().contains("declare ptr @malloc(i64)"));
-        assertTrue(builder.getGlobals().contains("declare i64 @strlen(ptr)"));
+        // The fat global is a { i8*, i64 } pair.
+        assertTrue(builder.getGlobals().contains("@.str.0 = private unnamed_addr constant { i8*, i64 }"));
+        // strlen is gone (length is in the struct).
+        assertFalse(builder.getGlobals().contains("@strlen"));
         assertEquals(".str.1", builder.emitStringConstant("hi".getBytes(StandardCharsets.UTF_8)));
-    }
-
-    @Test
-    void testStringDeclaresRespectAnExistingStrlenExtern() {
-        final IRBuilder matching = new IRBuilder();
-        matching.declareExtern(prototype("strlen", new PrototypeAST.Param("str", "", false)), ZType.UINT64);
-        matching.emitStringConstant(new byte[]{'a'});
-        assertFalse(matching.getGlobals().contains("declare i64 @strlen(ptr)"));
-
-        final IRBuilder wrongReturn = new IRBuilder();
-        wrongReturn.declareExtern(prototype("strlen", new PrototypeAST.Param("str", "", false)), ZType.INT32);
-        wrongReturn.emitStringConstant(new byte[]{'a'});
-        assertTrue(wrongReturn.getGlobals().contains("declare i64 @strlen(ptr)"));
-
-        final IRBuilder wrongParams = new IRBuilder();
-        wrongParams.declareExtern(prototype("strlen", new PrototypeAST.Param("int32", "", false)), ZType.UINT64);
-        wrongParams.emitStringConstant(new byte[]{'a'});
-        assertTrue(wrongParams.getGlobals().contains("declare i64 @strlen(ptr)"));
     }
 
     @Test

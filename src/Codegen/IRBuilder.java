@@ -229,10 +229,9 @@ public class IRBuilder {
             return;
         }
 
-        // str is an i8*. It is not a number, and the conversion opcodes
-        // below would produce invalid IR for it.
-        if (from.equals("i8*") || target.equals("i8*")) {
-            logger.error("Error: cannot convert between str and {} ",(from.equals("i8*") ? target : from));
+        if (value.type().isString() || targetType.isString()) {
+            logger.error("Error: cannot convert between str and {}",
+                    value.type().isString() ? target : from);
             markFailed();
             return;
         }
@@ -468,21 +467,21 @@ public class IRBuilder {
     }
 
     /**
-     * Adds a string literal to the module's globals and returns the name of
-     * the resulting global (without the leading {@code @}).
+     * Adds a string literal to the module as a fat string constant.
      *
-     * <p>The bytes are emitted as a private unnamed_addr constant with a
-     * trailing null byte, which is what C string functions expect.
+     * <p>Two globals are emitted: {@code @.str.N.bytes}, the null-terminated
+     * bytes (so C functions can still read them), and {@code @.str.N}, the
+     * fat {@code { i8*, i64 }} pair. The length excludes the null byte.
      *
      * @param bytes the UTF-8 bytes of the literal
-     * @return the global's name
+     * @return the fat constant's name
      */
     public String emitStringConstant(final byte[] bytes) {
-        ensureStringDeclares();
         final String name = ".str." + (stringCount++);
         final int length = bytes.length + 1;
 
-        globals.append("@").append(name).append(" = private unnamed_addr constant [").append(length).append(" x i8] c\"");
+        globals.append("@").append(name).append(".bytes = private unnamed_addr constant [")
+                .append(length).append(" x i8] c\"");
         for (final byte b : bytes) {
             final int u = b & 0xFF;
             if (u == '"') globals.append("\\22");
@@ -491,6 +490,13 @@ public class IRBuilder {
             else globals.append(String.format("\\%02X", u));
         }
         globals.append("\\00\"\n");
+
+        globals.append("@").append(name)
+                .append(" = private unnamed_addr constant { i8*, i64 } { ")
+                .append("i8* getelementptr inbounds ([").append(length)
+                .append(" x i8], ptr @").append(name).append(".bytes, i64 0, i64 0), ")
+                .append("i64 ").append(bytes.length)
+                .append(" }\n");
 
         return name;
     }
@@ -654,15 +660,21 @@ public class IRBuilder {
     }
 
     /**
-     * Emits the libc declares the first time a string is actually used.
-     * A program without strings never sees them.
+     * Public entry point for the string runtime: {@code strcpy} and
+     * {@code strcat} declarations.
+     */
+    public void ensureStringRuntime() {
+        ensureStringDeclares();
+    }
+
+    /**
+     * Emits the libc declares {@code strcpy} and {@code strcat}, the only
+     * C functions the string runtime still needs. Length is in the fat
+     * struct, so {@code strlen} is gone.
      */
     private void ensureStringDeclares() {
         if (declaresEmitted) return;
         declaresEmitted = true;
-        if (!hasExtern("strlen", ZType.UINT64)) {
-            globals.append("declare i64 @strlen(ptr)\n");
-        }
         globals.append("declare ptr @strcpy(ptr, ptr)\n");
         globals.append("declare ptr @strcat(ptr, ptr)\n");
     }

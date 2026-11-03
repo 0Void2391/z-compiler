@@ -104,7 +104,7 @@ public final class FunctionAST extends ExprAST {
             if (ret.isBoolean()) {
                 zero = "i1 false";
             } else if (ret.isString()) {
-                zero = "i8* null";
+                zero = "{ i8*, i64 } zeroinitializer";
             } else if (ret.isPointer()) {
                 zero = "ptr null";
             } else if (ret.isFloat()) {

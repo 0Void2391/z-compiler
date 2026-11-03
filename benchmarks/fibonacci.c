@@ -1,27 +1,30 @@
+#include <stdint.h>
 #include <stdio.h>
 
-unsigned long long fib(int n) {
-    unsigned long long a = 0;
-    unsigned long long b = 1;
-    unsigned long long c = 0;
-    
+static uint64_t fib(uint64_t n) {
+    uint64_t a = 0;
+    uint64_t b = 1;
+    uint64_t c = 0;
+
     if (n == 0) return a;
-    
-    for (int i = 2; i <= n; i++) {
+
+    for (uint64_t i = 2; i <= n; i++) {
         c = a + b;
         a = b;
         b = c;
     }
+
     return b;
 }
 
-int main() {
-    int passes = 50000000; 
-    unsigned long long last = 0;
-    
-    for (int i = 0; i < passes; i++) {
+int main(void) {
+    const uint64_t passes = 20000000;
+    uint64_t last = 0;
+
+    for (uint64_t i = 0; i < passes; i++) {
         last += fib(i % 90);
     }
-    
-    return last;
+
+    printf("%llu\n", (unsigned long long)last);
+    return 0;
 }

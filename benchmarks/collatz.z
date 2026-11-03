@@ -1,4 +1,6 @@
-proc collatz(int64 n) -> int64 {
+extern printf(str | ...) -> int32
+
+proc collatz(uint64 n) -> int64 {
     int64 steps -> 0;
 
     for (int64 i -> 0 | n > 1 | i + 1) {
@@ -9,20 +11,22 @@ proc collatz(int64 n) -> int64 {
         }
         steps -> steps + 1;
     }
+
     ret steps;
 }
 
 proc main() {
+    uint64 limit -> 1000000;
     int64 max -> 0;
-    int64 limit -> 1000000;
-    int64 curr -> 0;
+    int64 current -> 0;
 
-    for (int64 i -> 1 | i <= limit | i + 1) {
-        curr -> collatz(i);
-        if (curr > max) {
-            max -> curr;
+    for (uint64 i -> 1 | i <= limit | i + 1) {
+        current -> collatz(i);
+        if (current > max) {
+            max -> current;
         }
     }
 
-    ret max;
+    printf("%lld\n" | max);
+    ret 0;
 }

@@ -1,8 +1,9 @@
+#include <stdint.h>
 #include <stdio.h>
 
-int collatz(unsigned long long n) {
-    int steps = 0;
-    
+static int64_t collatz(uint64_t n) {
+    int64_t steps = 0;
+
     for (; n > 1; steps++) {
         if (n % 2 == 0) {
             n = n / 2;
@@ -10,19 +11,21 @@ int collatz(unsigned long long n) {
             n = 3 * n + 1;
         }
     }
+
     return steps;
 }
 
-int main() {
-    int max = 0;
-    int limit = 1000000; 
-    
-    for (int i = 1; i <= limit; i++) {
-        int curr = collatz(i);
-        if (curr > max) {
-            max = curr;
+int main(void) {
+    const uint64_t limit = 1000000;
+    int64_t max = 0;
+
+    for (uint64_t i = 1; i <= limit; i++) {
+        const int64_t current = collatz(i);
+        if (current > max) {
+            max = current;
         }
     }
-    
-    return max;
+
+    printf("%lld\n", (long long)max);
+    return 0;
 }

@@ -34,6 +34,12 @@ public final class FreeExprAST extends ExprAST {
             builder.markFailed();
             return null;
         }
+        if (p.type().isString()) {
+            final String data = builder.nextRegister();
+            builder.appendLine(data + " = extractvalue { i8*, i64 } " + p.text() + ", 0");
+            builder.emitFree(data);
+            return null;
+        }
         builder.emitFree(p.text());
         return null;
     }

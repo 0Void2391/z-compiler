@@ -243,10 +243,22 @@ checks for the tools explicitly.
 
 ## Benchmarks
 
+The benchmark suite compares Z against C with the same optimization flags,
+validates that both binaries produce the same result, pins the measured
+processes to the least busy allowed CPU, and reports best-of-N timings with
+medians and run-to-run variance.
+
 ```sh
-cd benchmarks
-Z_BENCH_REPEATS=15 ./run.sh # compares Z against C (clang -O3)
+python3 benchmarks/bench.py --runs 10 --warmup 2
 ```
+
+The report is written to [`benchmarks/RESULTS.md`](benchmarks/RESULTS.md) and the
+raw measurements to `benchmarks/results/latest.json`. A scheduled GitHub
+Actions workflow regenerates the report and opens a pull request against
+`main`.
+
+See [`benchmarks/README.md`](benchmarks/README.md) for the method, the case
+list, and the fairness rules.
 
 ## Release channels
 

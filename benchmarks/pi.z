@@ -1,4 +1,6 @@
-proc compute(int64 iterations) {
+extern printf(str | ...) -> int32
+
+proc compute(int64 iterations) -> flt64 {
     flt64 pi -> 0.0;
     flt64 sign -> 1.0;
 
@@ -13,5 +15,7 @@ proc compute(int64 iterations) {
 proc main() {
     int64 passes -> 100000000;
     flt64 result -> compute(passes);
-    ret result;
+
+    printf("%.9f\n" | result);
+    ret 0;
 }

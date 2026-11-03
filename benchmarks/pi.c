@@ -1,10 +1,11 @@
+#include <stdint.h>
 #include <stdio.h>
 
-double compute(int iterations) {
+static double compute(int64_t iterations) {
     double pi = 0.0;
     double sign = 1.0;
 
-    for (int i = 0; i < iterations; i++) {
+    for (int64_t i = 0; i < iterations; i++) {
         pi = pi + (sign / (2 * i + 1));
         sign = -sign;
     }
@@ -12,8 +13,10 @@ double compute(int iterations) {
     return pi * 4.0;
 }
 
-int main() {
-    int passes = 100000000;
-    double result = compute(passes);
-    return result;
+int main(void) {
+    const int64_t passes = 100000000;
+    const double result = compute(passes);
+
+    printf("%.9f\n", result);
+    return 0;
 }

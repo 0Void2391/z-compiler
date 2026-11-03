@@ -5,6 +5,7 @@ import src.AST.PrototypeAST;
 import src.AST.Value;
 import src.Codegen.IRBuilder;
 import src.Codegen.SymbolTable;
+import src.Parser.StructRegistry;
 import src.Parser.StructType;
 import src.Parser.TypeRef;
 import src.Parser.ZType;
@@ -266,6 +267,28 @@ public class TestIRBuilder {
         builder.emitBr("l.1");
         builder.emitCondBr("%c", "l.2", "l.3");
         assertTrue(builder.getIR().contains("br i1 %c"));
+    }
+
+    @Test
+    void testAlignmentOfAggregateTypes() {
+        final IRBuilder builder = new IRBuilder();
+        final StructType point = new StructType("AlignPoint", List.of(
+                new StructType.Field("x", ZType.INT32),
+                new StructType.Field("y", ZType.FLT64)));
+
+        builder.emitAlloca("s", "{ i8*, i64 }");
+        builder.emitAlloca("a", "[4 x i16]");
+        StructRegistry.register(point);
+        try {
+            builder.emitAlloca("p", "%AlignPoint");
+        } finally {
+            StructRegistry.clear();
+        }
+
+        final String ir = builder.getIR();
+        assertTrue(ir.contains("%s = alloca { i8*, i64 }, align 8"), ir);
+        assertTrue(ir.contains("%a = alloca [4 x i16], align 2"), ir);
+        assertTrue(ir.contains("%p = alloca %AlignPoint, align 8"), ir);
     }
 
     @Test

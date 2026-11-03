@@ -366,7 +366,7 @@ public class IRBuilder {
      */
     public final String emitAlloca(final String varName, final String llvmType) {
         final String ptr = "%" + varName;
-        appendLine(ptr + " = alloca " + llvmType);
+        appendLine(ptr + " = alloca " + llvmType + alignment(llvmType));
         return ptr;
     }
 
@@ -377,13 +377,18 @@ public class IRBuilder {
      * @param ptr the name of the ptr
      */
     public void emitStore(final String val, final String llvmType, final String ptr) {
-        appendLine("store " + llvmType + " " + val + ", ptr " + ptr);
+        appendLine("store " + llvmType + " " + val + ", ptr " + ptr + alignment(llvmType));
     }
 
     public final String emitAllocaGlobal(final String varName, final String llvmType) {
         final String ptr = "%" + varName;
-        appendLine(ptr + " = global " + llvmType);
+        appendLine(ptr + " = global " + llvmType + alignment(llvmType));
         return ptr;
+    }
+
+    private static String alignment(final String llvmType) {
+        final int alignment = TypeLayout.alignmentOf(llvmType);
+        return alignment > 0 ? ", align " + alignment : "";
     }
 
     /**
@@ -394,7 +399,7 @@ public class IRBuilder {
      */
     public final String emitLoad(final String llvmType, final String ptr) {
         final String reg = nextRegister();
-        appendLine(reg + " = load " + llvmType + ", ptr " + ptr);
+        appendLine(reg + " = load " + llvmType + ", ptr " + ptr + alignment(llvmType));
         registerTypes.put(reg, llvmType);
         return reg;
     }
@@ -480,8 +485,7 @@ public class IRBuilder {
         final String name = ".str." + (stringCount++);
         final int length = bytes.length + 1;
 
-        globals.append("@").append(name).append(".bytes = private unnamed_addr constant [")
-                .append(length).append(" x i8] c\"");
+        globals.append("@").append(name).append(".bytes = private unnamed_addr constant [").append(length).append(" x i8] c\"");
         for (final byte b : bytes) {
             final int u = b & 0xFF;
             if (u == '"') globals.append("\\22");

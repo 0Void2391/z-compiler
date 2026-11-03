@@ -64,8 +64,8 @@ public class TestCodeGen {
         assertEquals("""
                 define dso_local i32 @main() {
                 entry:
-                 %var = alloca i32
-                 store i32 0, ptr %var
+                 %var = alloca i32, align 4
+                 store i32 0, ptr %var, align 4
                  ret i32 0
                 }
                 """, codeGen(code));
@@ -78,8 +78,8 @@ public class TestCodeGen {
         assertEquals("""
                 define dso_local i32 @main() {
                 entry:
-                 %var = alloca i32
-                 store i32 3, ptr %var
+                 %var = alloca i32, align 4
+                 store i32 3, ptr %var, align 4
                  ret i32 0
                 }
                 """, codeGen(code));
@@ -92,9 +92,9 @@ public class TestCodeGen {
         assertEquals("""
                 define dso_local i32 @main() {
                 entry:
-                 %var = alloca i32
-                 store i32 3, ptr %var
-                 %1 = load i32, ptr %var
+                 %var = alloca i32, align 4
+                 store i32 3, ptr %var, align 4
+                 %1 = load i32, ptr %var, align 4
                  ret i32 %1
                 }
                 """, codeGen(code));
@@ -107,10 +107,10 @@ public class TestCodeGen {
         assertEquals("""
                 define dso_local i32 @main() {
                 entry:
-                 %var = alloca i32
-                 store i32 0, ptr %var
-                 %var2 = alloca i32
-                 store i32 0, ptr %var2
+                 %var = alloca i32, align 4
+                 store i32 0, ptr %var, align 4
+                 %var2 = alloca i32, align 4
+                 store i32 0, ptr %var2, align 4
                  ret i32 0
                 }
                 """, codeGen(code));
@@ -123,10 +123,10 @@ public class TestCodeGen {
         assertEquals("""
                 define dso_local i32 @main() {
                 entry:
-                 %var = alloca i32
-                 store i32 3, ptr %var
-                 %var2 = alloca i64
-                 store i64 4, ptr %var2
+                 %var = alloca i32, align 4
+                 store i32 3, ptr %var, align 4
+                 %var2 = alloca i64, align 8
+                 store i64 4, ptr %var2, align 8
                  ret i32 0
                 }
                 """, codeGen(code));
@@ -139,13 +139,13 @@ public class TestCodeGen {
         assertEquals("""
                 define dso_local i32 @main() {
                 entry:
-                 %var = alloca i32
-                 store i32 3, ptr %var
-                 %var2 = alloca float
-                 store float 4.0, ptr %var2
-                 %var3 = alloca double
-                 store double 4.0, ptr %var3
-                 %1 = load double, ptr %var3
+                 %var = alloca i32, align 4
+                 store i32 3, ptr %var, align 4
+                 %var2 = alloca float, align 4
+                 store float 4.0, ptr %var2, align 4
+                 %var3 = alloca double, align 8
+                 store double 4.0, ptr %var3, align 8
+                 %1 = load double, ptr %var3, align 8
                  %2 = fptosi double %1 to i32
                  ret i32 %2
                 }
@@ -159,10 +159,10 @@ public class TestCodeGen {
         assertEquals("""
                 define dso_local i32 @main() {
                 entry:
-                 %const = alloca i32
-                 store i32 3, ptr %const
-                 %floatConst = alloca float
-                 store float 1.0, ptr %floatConst
+                 %const = alloca i32, align 4
+                 store i32 3, ptr %const, align 4
+                 %floatConst = alloca float, align 4
+                 store float 1.0, ptr %floatConst, align 4
                  ret i32 0
                 }
                 """, codeGen(code));
@@ -175,11 +175,11 @@ public class TestCodeGen {
         assertEquals("""
                 define dso_local i32 @main() {
                 entry:
-                 %const = alloca i32
-                 store i32 3, ptr %const
-                 %floatConst = alloca float
-                 store float 1.0, ptr %floatConst
-                 %1 = load i32, ptr %const
+                 %const = alloca i32, align 4
+                 store i32 3, ptr %const, align 4
+                 %floatConst = alloca float, align 4
+                 store float 1.0, ptr %floatConst, align 4
+                 %1 = load i32, ptr %const, align 4
                  ret i32 %1
                 }
                 """, codeGen(code));
@@ -258,21 +258,21 @@ public class TestCodeGen {
         assertEquals("""
                 define dso_local i32 @main() {
                 entry:
-                 %i = alloca i32
-                 store i32 0, ptr %i
+                 %i = alloca i32, align 4
+                 store i32 0, ptr %i, align 4
                  br label %for.cond.0
                  for.cond.0:
-                 %1 = load i32, ptr %i
+                 %1 = load i32, ptr %i, align 4
                  %2 = icmp slt i32 %1, 10
                  br i1 %2, label %for.body.1, label %for.end.3
                  for.body.1:
-                 %x = alloca i32
-                 store i32 5, ptr %x
+                 %x = alloca i32, align 4
+                 store i32 5, ptr %x, align 4
                  br label %for.inc.2
                  for.inc.2:
-                 %3 = load i32, ptr %i
+                 %3 = load i32, ptr %i, align 4
                  %4 = add i32 %3, 1
-                 store i32 %4, ptr %i
+                 store i32 %4, ptr %i, align 4
                  br label %for.cond.0
                  for.end.3:
                  ret i32 0
@@ -673,9 +673,9 @@ public class TestCodeGen {
         assertEquals("""
                 define dso_local i32 @main() {
                 entry:
-                 %a = alloca float
-                 store float 1.5, ptr %a
-                 %1 = load float, ptr %a
+                 %a = alloca float, align 4
+                 store float 1.5, ptr %a, align 4
+                 %1 = load float, ptr %a, align 4
                  %2 = fptosi float %1 to i32
                  ret i32 %2
                 }

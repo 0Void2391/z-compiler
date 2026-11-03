@@ -1,25 +1,28 @@
+#include <stdint.h>
 #include <stdio.h>
 
-int isPrime(int n) {
+static int64_t is_prime(int64_t n) {
     if (n <= 1) return 0;
-    
-    for (int i = 2; i * i <= n; i++) {
+
+    for (int64_t i = 2; i * i <= n; i++) {
         if (n % i == 0) {
-            return 0; 
+            return 0;
         }
     }
-    return 1; 
+
+    return 1;
 }
 
-int main() {
-    int limit = 5000000; 
-    int counter = 0;
-    
-    for (int i = 1; i <= limit; i++) {
-        if (isPrime(i) == 1) {
+int main(void) {
+    const int64_t limit = 5000000;
+    int64_t counter = 0;
+
+    for (int64_t i = 1; i <= limit; i++) {
+        if (is_prime(i) == 1) {
             counter = counter + 1;
         }
     }
-    
-    return counter;
+
+    printf("%lld\n", (long long)counter);
+    return 0;
 }

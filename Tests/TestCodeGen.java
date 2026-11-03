@@ -1414,6 +1414,20 @@ public class TestCodeGen {
     }
 
     @Test
+    public void testFreeingAStringFreesTheDataPointer() throws IOException {
+        final String llvmIR = codeGen("""
+                proc main() {
+                    str value -> "hi"
+                    free(value)
+                    ret 0
+                }""");
+
+        assertNotNull(llvmIR);
+        assertTrue(llvmIR.contains("extractvalue { i8*, i64 }"), llvmIR);
+        assertTrue(llvmIR.contains("call void @zfree(ptr"), llvmIR);
+    }
+
+    @Test
     public void testAllocatorIsEmittedOnce() throws IOException {
         final String llvmIR = codeGen("""
                 proc main() {

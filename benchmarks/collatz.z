@@ -1,12 +1,15 @@
 extern printf(str | ...) -> int32
 
-proc collatz(uint64 n) -> int64 {
+proc collatzSteps(int64 start) -> int64 {
+    int64 n -> start;
     int64 steps -> 0;
 
-    for (int64 i -> 0 | n > 1 | i + 1) {
-        if (n % 2 == 0) {
+    for (int64 guard -> 0 | n > 1 | guard + 1) {
+        int64 odd -> n % 2;
+        if (odd == 0) {
             n -> n / 2;
-        } else {
+        }
+        if (odd == 1) {
             n -> 3 * n + 1;
         }
         steps -> steps + 1;
@@ -15,18 +18,22 @@ proc collatz(uint64 n) -> int64 {
     ret steps;
 }
 
-proc main() {
-    uint64 limit -> 1000000;
-    int64 max -> 0;
-    int64 current -> 0;
+proc main(int32 argc) {
+    int64 seed -> argc;
+    int64 limit -> 1000000;
+    int64 bestStart -> 0;
+    int64 bestSteps -> 0;
+    int64 total -> 0;
 
-    for (uint64 i -> 1 | i <= limit | i + 1) {
-        current -> collatz(i);
-        if (current > max) {
-            max -> current;
+    for (int64 i -> 1 | i < limit | i + 1) {
+        int64 s -> collatzSteps(i + seed - 1);
+        if (s > bestSteps) {
+            bestSteps -> s;
+            bestStart -> i;
         }
+        total -> total + s;
     }
 
-    printf("%lld\n" | max);
+    printf("%lld %lld %lld\n" | bestStart | bestSteps | total);
     ret 0;
 }

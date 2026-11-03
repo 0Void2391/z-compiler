@@ -1,29 +1,28 @@
 extern printf(str | ...) -> int32
 
-proc isPrime(int64 n) -> int64 {
-    if (n <= 1) {
-        ret 0;
-    }
+proc main(int32 argc) {
+    int64 seed -> argc;
+    int64 limit -> 1500000;
+    int64 count -> 0;
+    int64 last -> 0;
 
-    for (int64 i -> 2 | i * i <= n | i + 1) {
-        if (n % i == 0) {
-            ret 0;
+    for (int64 n -> 2 | n < limit | n + 1) {
+        int64 m -> n + seed - 1;
+        int64 prime -> 1;
+
+        for (int64 d -> 2 | d * d < m + 1 | d + 1) {
+            if (m % d == 0) {
+                prime -> 0;
+                break;
+            }
+        }
+
+        if (prime == 1) {
+            count -> count + 1;
+            last -> m;
         }
     }
 
-    ret 1;
-}
-
-proc main() {
-    int64 limit -> 5000000;
-    int64 counter -> 0;
-
-    for (int64 i -> 1 | i <= limit | i + 1) {
-        if (isPrime(i) == 1) {
-            counter -> counter + 1;
-        }
-    }
-
-    printf("%lld\n" | counter);
+    printf("%lld %lld\n" | count | last);
     ret 0;
 }

@@ -49,6 +49,14 @@
       "name": "string_concat",
       "category": "strings",
       "description": "Concatenate, measure, and free two strings per iteration"
-    }
-  ]
+    },
+    {"name": "fib",          "category": "calls",    "description": "recursion"},
+    {"name": "collatz",      "category": "integer",  "description": "branches"},
+    {"name": "gcd_sum",      "category": "integer",  "description": "Euclide"},
+    {"name": "primes",       "category": "integer",  "description": "divisions with break"},
+    {"name": "digit_sum",    "category": "integer",  "description": "Divisions for a constant with loops"},
+    {"name": "monte_carlo",  "category": "float",    "description": "LCG integer, convertions"},
+    {"name": "concat_chain", "category": "memory",   "description": "concatenations and free"},
+    {"name": "ptr_accum",    "category": "pointers", "description": "pointers, vectorizations"}
+    ]
 }

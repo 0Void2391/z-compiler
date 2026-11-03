@@ -21,7 +21,7 @@ public class TestCodeGen {
         final String code = "proc test() { ret 3 + 4 }";
 
         assertEquals("""
-                define internal dso_local double @test() {
+                define internal dso_local double @test() nounwind nosync {
                 entry:
                  %1 = add i32 3, 4
                  %2 = sitofp i32 %1 to double
@@ -35,7 +35,7 @@ public class TestCodeGen {
         final String code = "proc main() { ret 40 + 32 }";
 
         assertEquals("""
-                define dso_local i32 @main() {
+                define dso_local i32 @main() nounwind nosync hot willreturn {
                 entry:
                  %1 = add i32 40, 32
                  ret i32 %1
@@ -48,7 +48,7 @@ public class TestCodeGen {
         final String code = "proc foo() { ret 10 * 2 }";
 
         assertEquals("""
-                define internal dso_local double @foo() {
+                define internal dso_local double @foo() nounwind nosync {
                 entry:
                  %1 = mul i32 10, 2
                  %2 = sitofp i32 %1 to double
@@ -62,7 +62,7 @@ public class TestCodeGen {
         final String code = "proc main() { int32 var \n ret 0 }";
 
         assertEquals("""
-                define dso_local i32 @main() {
+                define dso_local i32 @main() nounwind nosync hot willreturn {
                 entry:
                  %var = alloca i32, align 4
                  store i32 0, ptr %var, align 4
@@ -76,7 +76,7 @@ public class TestCodeGen {
         final String code = "proc main() { int32 var -> 3 \n ret 0 }";
 
         assertEquals("""
-                define dso_local i32 @main() {
+                define dso_local i32 @main() nounwind nosync hot willreturn {
                 entry:
                  %var = alloca i32, align 4
                  store i32 3, ptr %var, align 4
@@ -90,7 +90,7 @@ public class TestCodeGen {
         final String code = "proc main() { int32 var -> 3 \n ret var }";
 
         assertEquals("""
-                define dso_local i32 @main() {
+                define dso_local i32 @main() nounwind nosync hot willreturn {
                 entry:
                  %var = alloca i32, align 4
                  store i32 3, ptr %var, align 4
@@ -105,7 +105,7 @@ public class TestCodeGen {
         final String code = "proc main() { int32 var\n int32 var2\n ret 0 }";
 
         assertEquals("""
-                define dso_local i32 @main() {
+                define dso_local i32 @main() nounwind nosync hot willreturn {
                 entry:
                  %var = alloca i32, align 4
                  store i32 0, ptr %var, align 4
@@ -121,7 +121,7 @@ public class TestCodeGen {
         final String code = "proc main() { int32 var -> 3\n int64 var2 -> 4\n ret 0 }";
 
         assertEquals("""
-                define dso_local i32 @main() {
+                define dso_local i32 @main() nounwind nosync hot willreturn {
                 entry:
                  %var = alloca i32, align 4
                  store i32 3, ptr %var, align 4
@@ -137,7 +137,7 @@ public class TestCodeGen {
         final String code = "proc main() { int32 var -> 3\n flt32 var2 -> 4\n flt64 var3 -> 4\n ret var3 }";
 
         assertEquals("""
-                define dso_local i32 @main() {
+                define dso_local i32 @main() nounwind nosync hot willreturn {
                 entry:
                  %var = alloca i32, align 4
                  store i32 3, ptr %var, align 4
@@ -157,7 +157,7 @@ public class TestCodeGen {
         final String code = "proc main() { cn int32 const -> 3\n cn flt32 floatConst -> 1.0\n ret 0}";
 
         assertEquals("""
-                define dso_local i32 @main() {
+                define dso_local i32 @main() nounwind nosync hot willreturn {
                 entry:
                  %const = alloca i32, align 4
                  store i32 3, ptr %const, align 4
@@ -173,7 +173,7 @@ public class TestCodeGen {
         final String code = "proc main() { cn int32 const -> 3\n cn flt32 floatConst -> 1.0\n ret const}";
 
         assertEquals("""
-                define dso_local i32 @main() {
+                define dso_local i32 @main() nounwind nosync hot willreturn {
                 entry:
                  %const = alloca i32, align 4
                  store i32 3, ptr %const, align 4
@@ -256,27 +256,31 @@ public class TestCodeGen {
                 }""";
 
         assertEquals("""
-                define dso_local i32 @main() {
-                entry:
-                 %i = alloca i32, align 4
-                 store i32 0, ptr %i, align 4
-                 br label %for.cond.0
-                 for.cond.0:
-                 %1 = load i32, ptr %i, align 4
-                 %2 = icmp slt i32 %1, 10
-                 br i1 %2, label %for.body.1, label %for.end.3
-                 for.body.1:
-                 %x = alloca i32, align 4
-                 store i32 5, ptr %x, align 4
-                 br label %for.inc.2
-                 for.inc.2:
-                 %3 = load i32, ptr %i, align 4
-                 %4 = add i32 %3, 1
-                 store i32 %4, ptr %i, align 4
-                 br label %for.cond.0
-                 for.end.3:
-                 ret i32 0
-                }
+!1001 = !{!1001, !1002, !1003}
+!1002 = !{!"llvm.loop.vectorize.enable", i1 true}
+!1003 = !{!"llvm.loop.unroll.count", i32 4}
+
+define dso_local i32 @main() nounwind nosync hot willreturn {
+entry:
+ %i = alloca i32, align 4
+ store i32 0, ptr %i, align 4
+ br label %for.cond.0
+ for.cond.0:
+ %1 = load i32, ptr %i, align 4
+ %2 = icmp slt i32 %1, 10
+ br i1 %2, label %for.body.1, label %for.end.3
+ for.body.1:
+ %x = alloca i32, align 4
+ store i32 5, ptr %x, align 4
+ br label %for.inc.2
+ for.inc.2:
+ %3 = load i32, ptr %i, align 4
+ %4 = add i32 %3, 1
+ store i32 %4, ptr %i, align 4
+ br label %for.cond.0, !llvm.loop !1001
+ for.end.3:
+ ret i32 0
+}
                 """, codeGen(code));
     }
 
@@ -430,7 +434,7 @@ public class TestCodeGen {
     @Test
     public void testEmptyMainReturnsZero() throws IOException {
         assertEquals("""
-                define dso_local i32 @main() {
+                define dso_local i32 @main() nounwind nosync hot willreturn {
                 entry:
                  ret i32 0
                 }
@@ -442,7 +446,7 @@ public class TestCodeGen {
         final String llvmIR = codeGen("proc main() { ret -5 + 3 }");
 
         assertEquals("""
-                define dso_local i32 @main() {
+                define dso_local i32 @main() nounwind nosync hot willreturn {
                 entry:
                  %1 = sub i32 0, 5
                  %2 = add i32 %1, 3
@@ -456,7 +460,7 @@ public class TestCodeGen {
         final String llvmIR = codeGen("proc main() { ret -5.5 }");
 
         assertEquals("""
-                define dso_local i32 @main() {
+                define dso_local i32 @main() nounwind nosync hot willreturn {
                 entry:
                  %1 = fneg double 5.5
                  %2 = fptosi double %1 to i32
@@ -480,7 +484,7 @@ public class TestCodeGen {
         final String llvmIR = codeGen("proc main() { ret 3 < 4 }");
 
         assertEquals("""
-                define dso_local i32 @main() {
+                define dso_local i32 @main() nounwind nosync hot willreturn {
                 entry:
                  %1 = icmp slt i32 3, 4
                  %2 = zext i1 %1 to i32
@@ -659,7 +663,7 @@ public class TestCodeGen {
     @Test
     public void testMixingAnIntegerAndAFloatWidensToFloat() throws IOException {
         assertEquals("""
-                define dso_local i32 @main() {
+                define dso_local i32 @main() nounwind nosync hot willreturn {
                 entry:
                  %1 = fadd double 1.0, 2.5
                  %2 = fptosi double %1 to i32
@@ -671,7 +675,7 @@ public class TestCodeGen {
     @Test
     public void testFloatVariableIsReadAsItsOwnType() throws IOException {
         assertEquals("""
-                define dso_local i32 @main() {
+                define dso_local i32 @main() nounwind nosync hot willreturn {
                 entry:
                  %a = alloca float, align 4
                  store float 1.5, ptr %a, align 4
@@ -774,7 +778,7 @@ public class TestCodeGen {
 
         // The then-branch ends in `ret`, so no fallthrough br is emitted there.
         assertEquals("""
-                define dso_local i32 @main() {
+                define dso_local i32 @main() nounwind nosync hot willreturn {
                 entry:
                  br label %if.cond.0
                  if.cond.0:
@@ -794,7 +798,7 @@ public class TestCodeGen {
 
         assertNotNull(llvmIR);
         assertEquals("""
-                define dso_local i32 @main() {
+                define dso_local i32 @main() nounwind nosync hot willreturn {
                 entry:
                  br label %if.cond.0
                  if.cond.0:
@@ -921,9 +925,8 @@ public class TestCodeGen {
         // Lengths come from the struct, not from strlen.
         assertTrue(llvmIR.contains("extractvalue { i8*, i64 }"), llvmIR);
         assertFalse(llvmIR.contains("@strlen"), llvmIR);
-        // The bytes are copied with strcpy / strcat.
-        assertTrue(llvmIR.contains("call ptr @strcpy(ptr"), llvmIR);
-        assertTrue(llvmIR.contains("call ptr @strcat(ptr"), llvmIR);
+        // The bytes are copied with llvm.memcpy.
+        assertTrue(llvmIR.contains("call void @llvm.memcpy.p0.p0.i64(ptr"), llvmIR);
         // The result is built as a new fat struct.
         assertTrue(llvmIR.contains("insertvalue { i8*, i64 }"), llvmIR);
         assertTrue(llvmIR.contains("call ptr @zalloc(i64"), llvmIR);

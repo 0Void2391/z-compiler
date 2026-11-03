@@ -10,7 +10,7 @@ int64 name -> 281
 
 
 types: {
- [int | dim] name = [value | value | value ]
+ [int | dim | dim2 | dimN] name = [value | value | value ]
 
  int64
  int32

@@ -43,6 +43,15 @@ public class IRBuilder {
 
     private String currentModule;
     private String varArgList;
+    private String fastMathFlags = "contract";
+
+    public void setFastMathFlags(final String flags) {
+        this.fastMathFlags = flags;
+    }
+
+    public String fastMathFlags() {
+        return fastMathFlags;
+    }
 
     public void setCurrentModule(final String moduleName) {
         this.currentModule = moduleName;

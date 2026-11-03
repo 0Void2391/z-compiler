@@ -27,6 +27,7 @@ import java.util.concurrent.Callable;
  * Command line interface for the compiler
  */
 @Command(name = "compiler", mixinStandardHelpOptions = true, version = "1", description = "Compiler z-code")
+
 class CompilerCmd implements Callable<Integer> {
     private static final Logger logger = LoggerFactory.getLogger(CompilerCmd.class);
 
@@ -54,7 +55,11 @@ class CompilerCmd implements Callable<Integer> {
     @CommandLine.Option(names = {"-L", "--library-path"}, description = "Directories to search for libraries")
     private final List<String> libraryPaths = new ArrayList<>();
 
-
+    /**
+     * enables LLVM fast-math optimizations
+     */
+    @CommandLine.Option(names = {"-fast-math", "--fast-math"}, description = "Enable aggressive fast-math optimizations")
+    private boolean fastMath = false;
     /**
      * Main method for the compiler
      * @return 0 if the compilation is successful, 1 otherwise
@@ -99,7 +104,7 @@ class CompilerCmd implements Callable<Integer> {
 
             // FIX: Attach target metadata before writing the IR files and invoking
             // LLVM optimization and Clang compilation.
-            final String generatedIR = Main.generateModule(parser, sourceFile.toPath());
+            final String generatedIR = Main.generateModule(parser, sourceFile.toPath(), fastMath);
 
             // returns 1 (error) if the generation failed
             if (generatedIR == null) {
@@ -305,10 +310,24 @@ public class Main {
      * @throws IOException if an exception is found
      */
     public static String generateModule(final Parser parser, final Path sourceFile) throws IOException {
+        return generateModule(parser, sourceFile, false);
+    }
+
+    /**
+     * Generates the module
+     * @param parser parser class
+     * @param sourceFile in which the code module is contained
+     * @param fastMath whether to enable aggressive fast-math optimizations
+     * @return only the globals externed or also the body (main) or null if an error is present
+     * @throws IOException if an exception is found
+     */
+    public static String generateModule(final Parser parser, final Path sourceFile, final boolean fastMath) throws IOException {
         StructRegistry.clear();
 
         // prepares classes
         final IRBuilder builder = new IRBuilder();
+        builder.setFastMathFlags(fastMath ? "fast" : "contract");
+        
         final StringBuilder module = new StringBuilder();
 
         // gets the name of the file removing the final .z

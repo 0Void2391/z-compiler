@@ -26,7 +26,7 @@ public class TestOperators {
 
     @Test
     public void testFloatingRemainderUsesFrem() throws IOException {
-        assertTrue(codeGen("proc main() { ret 7.0 % 3.0 }").contains("frem double 7.0, 3.0"));
+        assertTrue(codeGen("proc main() { ret 7.0 % 3.0 }").contains("frem contract double 7.0, 3.0"));
     }
 
     @Test

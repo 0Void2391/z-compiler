@@ -462,7 +462,7 @@ entry:
         assertEquals("""
                 define dso_local i32 @main() nounwind nosync hot willreturn {
                 entry:
-                 %1 = fneg double 5.5
+                 %1 = fneg contract double 5.5
                  %2 = fptosi double %1 to i32
                  ret i32 %2
                 }
@@ -476,7 +476,7 @@ entry:
 
     @Test
     public void testDivisionOfFloatsUsesFloatingPoint() throws IOException {
-        assertTrue(codeGen("proc main() { ret 7.0 / 2.0 }").contains("fdiv double 7.0, 2.0"));
+        assertTrue(codeGen("proc main() { ret 7.0 / 2.0 }").contains("fdiv contract double 7.0, 2.0"));
     }
 
     @Test
@@ -665,7 +665,7 @@ entry:
         assertEquals("""
                 define dso_local i32 @main() nounwind nosync hot willreturn {
                 entry:
-                 %1 = fadd double 1.0, 2.5
+                 %1 = fadd contract double 1.0, 2.5
                  %2 = fptosi double %1 to i32
                  ret i32 %2
                 }

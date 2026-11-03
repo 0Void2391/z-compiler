@@ -28,8 +28,11 @@ public final class UnaryExprAST extends ExprAST {
             b.markFailed();
             return null;
         }
+        final String flags = value.type().isFloat() && !b.fastMathFlags().isEmpty() ? " " + b.fastMathFlags() : "";
         final String register = b.nextRegister();
-        final String instruction = value.type().isFloat() ? "fneg " + value.type().llvm() + " " + value.text() : "sub " + value.type().llvm() + " 0, " + value.text();
+        final String instruction = value.type().isFloat()
+                ? "fneg" + flags + " " + value.type().llvm() + " " + value.text()
+                : "sub " + value.type().llvm() + " 0, " + value.text();
         b.appendLine(register + " = " + instruction);
         b.setRegisterType(register, value.type().llvm());
         return new Value(register, value.type());

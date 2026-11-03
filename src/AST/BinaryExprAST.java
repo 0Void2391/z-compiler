@@ -87,8 +87,9 @@ public final class BinaryExprAST extends ExprAST {
 
         if (isComparison()) {
             final boolean ordered = a.type().isFloat();
+            final String cmpFlags = ordered && "fast".equals(builder.fastMathFlags()) ? "fast " : "";
             final String compared = builder.nextRegister();
-            builder.appendLine(compared + " = " + (ordered ? "fcmp " : "icmp ")
+            builder.appendLine(compared + " = " + (ordered ? "fcmp " + cmpFlags : "icmp ")
                     + predicate(ordered, a.type()) + " "
                     + a.type().llvm() + " " + a.text() + ", " + b.text());
             final String result = builder.nextRegister();
@@ -99,12 +100,14 @@ public final class BinaryExprAST extends ExprAST {
 
         final String opcode = arithmeticOpcode(a.type());
         if (opcode == null) {
-            logger.error("Unsupported operation: {}",op);
+            logger.error("Unsupported operation: {}", op);
             builder.markFailed();
             return null;
         }
+        final String flags = a.type().isFloat() && !builder.fastMathFlags().isEmpty() ? " " + builder.fastMathFlags() : "";
         final String result = builder.nextRegister();
-        builder.appendLine(result + " = " + opcode + " " + a.type().llvm() + " " + a.text() + ", " + b.text());
+        builder.appendLine(result + " = " + opcode + flags + " " + a.type().llvm() + " " + a.text() + ", " + b.text());
+
         builder.setRegisterType(result, a.type().llvm());
         return new Value(result, a.type());
     }

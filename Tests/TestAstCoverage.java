@@ -94,7 +94,7 @@ public class TestAstCoverage {
         final Value value = new BinaryExprAST("%", new Literal(ZType.FLT64, "1.0"), new Literal(ZType.FLT64, "2.0")).codeGen(builder);
 
         assertNotNull(value);
-        assertTrue(builder.getIR().contains("frem double 1.0, 2.0"));
+        assertTrue(builder.getIR().contains("frem contract double 1.0, 2.0"));
     }
 
     @Test
@@ -103,7 +103,17 @@ public class TestAstCoverage {
         final Value value = new BinaryExprAST("-", new Literal(ZType.FLT64, "3.0"), new Literal(ZType.FLT64, "2.0")).codeGen(builder);
 
         assertNotNull(value);
-        assertTrue(builder.getIR().contains("fsub double 3.0, 2.0"));
+        assertTrue(builder.getIR().contains("fsub contract double 3.0, 2.0"));
+    }
+
+    @Test
+    void testFloatFastMathFlag() {
+        final IRBuilder builder = new IRBuilder();
+        builder.setFastMathFlags("fast");
+        final Value value = new BinaryExprAST("+", new Literal(ZType.FLT64, "1.0"), new Literal(ZType.FLT64, "2.0")).codeGen(builder);
+
+        assertNotNull(value);
+        assertTrue(builder.getIR().contains("fadd fast double 1.0, 2.0"));
     }
 
     @Test

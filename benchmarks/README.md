@@ -36,4 +36,3 @@ python3 benchmarks/bench.py --output -
 ```sh
 benchmarks/run.sh --runs 10
 ```
-

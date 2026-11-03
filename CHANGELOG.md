@@ -2,6 +2,24 @@
 
 All notable changes to Z-Compiler are documented in this file.
 
+## [0.0.14-rc.1] - 2026-11-03
+
+### Features
+
+- Added real benchmark system
+- Feat: added align system for more performance
+
+### Documentation
+
+- Docs: update changelog for main
+
+### Other Changes
+
+- Idk
+- Gitignore for md lint
+- Improve a lot performance
+- Remove extra newline in README.md
+
 ## [0.0.13-rc.1] - 2026-11-03
 
 ### Bug Fixes

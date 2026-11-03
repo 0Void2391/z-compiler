@@ -114,7 +114,7 @@ public final class ForAST extends ExprAST {
 
             builder.emitLabel(incLabel);
             if (verify(builder, slot, update)) return null;
-            builder.emitBr(condLabel);
+            builder.emitBrWithLoopMetadata(condLabel, 4, 4);
 
             builder.emitLabel(endLabel);
             return null;

@@ -189,6 +189,7 @@ private static String addTargetTriple(final String llvmIR) {
                 "-O3",
                 "-mcpu=native",
                 "-S",             // maintains a readable output
+                "-enable-implicit-null-checks",
                 inputLl,
                 "-o",
                 outputLl
@@ -258,6 +259,11 @@ private static String addTargetTriple(final String llvmIR) {
         command.add("-fno-rtti");
         command.add("-fno-exceptions");
         command.add("-mtune=native");
+        command.add("-fno-plt");
+        command.add("-fno-semantic-interposition");
+        command.add("-fvisibility=hidden");
+        command.add("-Wl,--gc-sections");
+        command.add("-Wl,-O2");
         command.add(llFilePath);
         command.add("-o");
         command.add(outputBinaryName);

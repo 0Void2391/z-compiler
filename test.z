@@ -16,9 +16,17 @@ proc test3(int32* t) -> void {
 
 }
 
+proc test4(int32 count) -> int32 {
+    for (int32 i -> 0 | i < count | i -> i +1 ) {
+        int32 sum -> 0
+    }
+    ret 0
+}
+
 proc main() {
     int32 t -> 0
     test3(&t)
     test()
+    int32 re -> test4(3)
     ret 61
 }

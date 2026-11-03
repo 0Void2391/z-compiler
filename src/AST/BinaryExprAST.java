@@ -89,9 +89,7 @@ public final class BinaryExprAST extends ExprAST {
             final boolean ordered = a.type().isFloat();
             final String cmpFlags = ordered && "fast".equals(builder.fastMathFlags()) ? "fast " : "";
             final String compared = builder.nextRegister();
-            builder.appendLine(compared + " = " + (ordered ? "fcmp " + cmpFlags : "icmp ")
-                    + predicate(ordered, a.type()) + " "
-                    + a.type().llvm() + " " + a.text() + ", " + b.text());
+            builder.appendLine(compared + " = " + (ordered ? "fcmp " + cmpFlags : "icmp ") + predicate(ordered, a.type()) + " " + a.type().llvm() + " " + a.text() + ", " + b.text());
             final String result = builder.nextRegister();
             builder.appendLine(result + " = zext i1 " + compared + " to i32");
             builder.setRegisterType(result, ZType.INT32.llvm());
@@ -170,8 +168,6 @@ public final class BinaryExprAST extends ExprAST {
      * {@code strlen}: the lengths are already in the struct.
      */
     private Value emitStringConcat(final IRBuilder builder, final Value a, final Value b) {
-        builder.ensureStringRuntime();
-
         final String aPtr = builder.nextRegister();
         builder.appendLine(aPtr + " = extractvalue { i8*, i64 } " + a.text() + ", 0");
         final String aLen = builder.nextRegister();
@@ -190,10 +186,15 @@ public final class BinaryExprAST extends ExprAST {
 
         final String buf = builder.emitBumpAlloc(allocSize);
 
-        final String copied = builder.nextRegister();
-        builder.appendLine(copied + " = call ptr @strcpy(ptr " + buf + ", ptr " + aPtr + ")");
-        final String concatenated = builder.nextRegister();
-        builder.appendLine(concatenated + " = call ptr @strcat(ptr " + buf + ", ptr " + bPtr + ")");
+        builder.emitMemcpy(buf, aPtr, aLen);
+
+        final String bufB = builder.nextRegister();
+        builder.appendLine(bufB + " = getelementptr inbounds i8, ptr " + buf + ", i64 " + aLen);
+        builder.emitMemcpy(bufB, bPtr, bLen);
+
+        final String nullSlot = builder.nextRegister();
+        builder.appendLine(nullSlot + " = getelementptr inbounds i8, ptr " + buf + ", i64 " + total);
+        builder.appendLine("store i8 0, ptr " + nullSlot + ", align 1");
 
         final String r1 = builder.nextRegister();
         builder.appendLine(r1 + " = insertvalue { i8*, i64 } undef, ptr " + buf + ", 0");

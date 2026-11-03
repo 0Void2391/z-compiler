@@ -31,6 +31,7 @@ public class IRBuilder {
     private int registerCount = 1;
     private final StringBuilder irCode = new StringBuilder();
     private final Map<String, String> registerTypes = new HashMap<>();
+    private int loopMetadataCounter = 1000;
 
     /**
      * The names visible to the function being generated.
@@ -718,5 +719,34 @@ public class IRBuilder {
         final String reg = nextRegister();
         appendLine(reg + " = getelementptr inbounds " + structType + ", ptr " + basePtr + ", i32 0, i32 " + idx);
         return reg;
+    }
+
+    /**
+     * emits an llvm builtin for memcpy instead on relying to a declare (can be inlinde)
+     */
+    public void emitMemcpy(final String dest, final String src, final String len) {
+        appendLine("call void @llvm.memcpy.p0.p0.i64(ptr align 1 " + dest + ", ptr align 1 " + src + ", i64 " + len + ", i1 false)");
+    }
+
+    /**
+     * same thing here
+     */
+    public void emitMemset(final String dest, final String val, final String len) {
+        appendLine("call void @llvm.memset.p0.i64(ptr align 1 " + dest + ", i8 " + val + ", i64 " + len + ", i1 false)");
+    }
+
+    /**
+     * emits metadata to inline loops
+     */
+    public void emitBrWithLoopMetadata(final String label, final int vectorWidth, final int unrollCount) {
+        loopMetadataCounter += 1;
+        final int id = loopMetadataCounter;
+
+        globals.append("!").append(id).append(" = !{!").append(id).append(", !").append(id + 1).append(", !").append(id + 2).append("}\n");
+        globals.append("!").append(id + 1).append(" = !{!\"llvm.loop.vectorize.enable\", i1 true}\n");
+        globals.append("!").append(id + 2).append(" = !{!\"llvm.loop.unroll.count\", i32 ").append(unrollCount).append("}\n");
+        appendLine("br label %" + label + ", !llvm.loop !" + id);
+
+        loopMetadataCounter += 2;
     }
 }

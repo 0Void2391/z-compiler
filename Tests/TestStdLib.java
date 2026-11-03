@@ -219,8 +219,7 @@ public class TestStdLib {
         final int mainStart = ir.indexOf("define dso_local i32 @main()");
         final String mainBody = ir.substring(mainStart);
         assertFalse(mainBody.contains("call i64 @strlen"), ir);
-        assertTrue(ir.contains("call ptr @strcpy(ptr"), ir);
-        assertTrue(ir.contains("call ptr @strcat(ptr"), ir);
+        assertTrue(ir.contains("call void @llvm.memcpy.p0.p0.i64(ptr"), ir);
     }
 
     @Test

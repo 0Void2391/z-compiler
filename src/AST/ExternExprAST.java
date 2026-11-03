@@ -53,7 +53,14 @@ public final class ExternExprAST extends ExprAST{
             parameters.append(ZType.fromZName(param.type()).llvm());
         }
 
-        final String code = "declare " + llvmType.llvm() + " @" + proto.name() + "(" + parameters + ")\n";
+        final String attrs = switch (proto.name()) {
+            case "printf", "fprintf", "puts" -> " nounwind";
+            case "memset", "memcpy", "memmove", "strcpy", "strcat" -> " nounwind willreturn nosync";
+            case "malloc", "calloc", "realloc" -> " nounwind allocsize(0)";
+            default -> "";
+        };
+
+        final String code = "declare " + llvmType.llvm() + " @" + proto.name() + "(" + parameters + ")" + attrs + "\n";
 
         return new Value(code, ZType.VOID);
     }

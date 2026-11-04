@@ -24,7 +24,10 @@ public record PrototypeAST(String name, List<Param> params, TypeRef returnType) 
     /**
      * One declared parameter.
      */
-    public record Param(String type, String name, boolean varArg) {
+    public record Param(String type, String name, boolean varArg, boolean mut) {
+        public Param(final String type, final String name, final boolean varArg) {
+            this(type, name, varArg, false);
+        }
     }
 
     /** A prototype with no declared return type. */

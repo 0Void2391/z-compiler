@@ -67,6 +67,24 @@ public final class CallExprAST extends ExprAST {
             return null;
         }
 
+        for (int i = 0; i < fixedParams; i++) {
+            if (params.get(i).mut()) {
+                final String targetI = getPointerTarget(arguments.get(i), builder);
+                if (targetI != null) {
+                    for (int j = 0; j < fixedParams; j++) {
+                        if (i != j) {
+                            final String targetJ = getPointerTarget(arguments.get(j), builder);
+                            if (targetI.equals(targetJ)) {
+                                logger.error("Error: alias detected: '{}' cannot be passed multiple times when an argument is marked 'mut'", targetI);
+                                builder.markFailed();
+                                return null;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
         final List<String> printed = new java.util.ArrayList<>();
         final ZType externReturn = resolved.externReturnType();
         for (int i = 0; i < arguments.size(); i++) {
@@ -155,5 +173,15 @@ public final class CallExprAST extends ExprAST {
             if (st == null) throw e;
             return st;
         }
+    }
+
+    private static String getPointerTarget(final ExprAST expr, final IRBuilder builder) {
+        if (expr instanceof AddressOfExprAST addr && addr.operand() instanceof VarRefExprAST var) {
+            return var.name();
+        }
+        if (expr instanceof VarRefExprAST var && var.type(builder).isPointer()) {
+            return var.name();
+        }
+        return null;
     }
 }

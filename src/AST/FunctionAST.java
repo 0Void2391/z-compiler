@@ -58,7 +58,9 @@ public final class FunctionAST extends ExprAST {
             else {
                 final String type = resolveParamType(param.type()).llvm();
                 String sb = type;
-                if ( type.contains("ptr")) sb+=" noalias";
+                if (type.contains("ptr") && param.mut()) {
+                    sb += " noalias";
+                }
                 sb += " %" + param.name();
                 parameters.append(sb);
             }

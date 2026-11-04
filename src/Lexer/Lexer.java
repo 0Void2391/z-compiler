@@ -70,7 +70,8 @@ public class Lexer {
         RET("ret", -4),
         NUMBER("unused", -3), // number returns
         INT64("int64", -2),
-        FUNC("proc", -1);
+        FUNC("proc", -1),
+        MUT("mut",-53);
 
         /**
          * Attributes: description is to identify the token; the value is the return value

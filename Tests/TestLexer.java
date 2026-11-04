@@ -357,4 +357,10 @@ public class TestLexer {
         assertEquals(Lexer.Tokens.NUMBER.value, lex.getTok());
         assertEquals(0.5, lex.getNumVal());
     }
+
+    @Test
+    void testMutToken() throws IOException {
+        final Lexer lex = new Lexer(new ByteArrayInputStream("mut".getBytes(StandardCharsets.UTF_8)));
+        assertEquals(Lexer.Tokens.MUT.value, lex.getTok());
+    }
 }

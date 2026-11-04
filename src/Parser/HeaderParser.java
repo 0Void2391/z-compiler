@@ -88,6 +88,11 @@ public class HeaderParser {
         final List<PrototypeAST.Param> params = new ArrayList<>();
         if (context.getCurTok() != Lexer.Tokens.CLOSE_PAR.value) {
             while (true) {
+                boolean isMut = false;
+                if (context.getCurTok() == Lexer.Tokens.MUT.value) {
+                    isMut = true;
+                    context.next();
+                }
                 TypeRef paramType = typeParser.parseType();
                 if (paramType == null) {
                     return error("Expected parameter type for function: " + fnName);
@@ -97,7 +102,7 @@ public class HeaderParser {
                 }
 
                 if (extern) {
-                    params.add(new PrototypeAST.Param(paramType.zName(), "", false));
+                    params.add(new PrototypeAST.Param(paramType.zName(), "", false,isMut));
                 } else {
                     if (paramType.isVararg()) {
                         paramType = typeParser.parseType();
@@ -111,7 +116,7 @@ public class HeaderParser {
                     }
                     final String paramName = context.getLex().getIdentifierStr();
                     context.next();
-                    params.add(new PrototypeAST.Param(paramType.zName(), paramName, isVarArg));
+                    params.add(new PrototypeAST.Param(paramType.zName(), paramName, isVarArg,isMut));
                 }
 
                 if (isVarArg && context.getCurTok() != Lexer.Tokens.CLOSE_PAR.value) {

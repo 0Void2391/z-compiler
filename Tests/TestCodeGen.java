@@ -1008,7 +1008,7 @@ entry:
     public void testPointerParameterCodegen() throws IOException {
         final String llvmIR = codeGen(
                 """
-                        proc inc(int32* p) { ret 0 }
+                        proc inc(mut int32* p) { ret 0 }
                         proc main() { int32 x -> 0
                          inc(&x)
                          ret 0 }""");
@@ -1016,6 +1016,44 @@ entry:
         assertNotNull(llvmIR);
         assertTrue(llvmIR.contains("define internal dso_local double @inc(ptr noalias %p)"), llvmIR);
         assertTrue(llvmIR.contains("call double @inc(ptr %x)"), llvmIR);
+    }
+
+    @Test
+    public void testNonMutPointerParameterAllowsAlias() throws IOException {
+        final String llvmIR = codeGen(
+                """
+                        proc read(int32* a | int32* b) { ret 0 }
+                        proc main() { int32 x -> 0
+                         read(&x | &x)
+                         ret 0 }""");
+
+        assertNotNull(llvmIR);
+        assertTrue(llvmIR.contains("define internal dso_local double @read(ptr %a, ptr %b)"), llvmIR);
+        assertFalse(llvmIR.contains("noalias"), llvmIR);
+    }
+
+    @Test
+    public void testPassingAliasToMutPointerFails() {
+        assertCodegenFails(
+                """
+                        proc copy(mut int32* dst | int32* src) { ret 0 }
+                        proc main() { int32 x -> 0
+                         copy(&x | &x)
+                         ret 0 }""");
+    }
+
+    @Test
+    public void testPassingDistinctVariablesToMutPointerSucceeds() throws IOException {
+        final String llvmIR = codeGen(
+                """
+                        proc copy(mut int32* dst | int32* src) { ret 0 }
+                        proc main() { int32 a -> 0
+                         int32 b -> 1
+                         copy(&a | &b)
+                         ret 0 }""");
+
+        assertNotNull(llvmIR);
+        assertTrue(llvmIR.contains("define internal dso_local double @copy(ptr noalias %dst, ptr %src)"), llvmIR);
     }
 
     @Test

@@ -44,23 +44,23 @@ public final class NumberExprAST extends ExprAST {
     }
 
     @Override
-    public Value codeGen(final IRBuilder builder) {
+    public LLVMTextUnit codeGen(final IRBuilder builder) {
         final ZType type = type(builder);
-        return new Value(floating ? type.literal(real) : type.literal(integer), type);
+        return new LLVMTextUnit(floating ? type.literal(real) : type.literal(integer), type);
     }
 
     @Override
-    public Value constantValue(final IRBuilder builder) {
+    public LLVMTextUnit constantValue(final IRBuilder builder) {
         return codeGen(builder);
     }
 
     @Override
-    public Value coerce(final IRBuilder builder, final Value value, final TypeRef target) {
+    public LLVMTextUnit coerce(final IRBuilder builder, final LLVMTextUnit llvmTextUnit, final TypeRef target) {
         if (target != null && target != type(null)) {
-            if (floating) return new Value(target.literal(real), target);
-            if (target.isIntegral()) return new Value(target.literal(integer), target);
-            if (target.isFloat()) return new Value(target.literal((double) integer), target);
+            if (floating) return new LLVMTextUnit(target.literal(real), target);
+            if (target.isIntegral()) return new LLVMTextUnit(target.literal(integer), target);
+            if (target.isFloat()) return new LLVMTextUnit(target.literal((double) integer), target);
         }
-        return super.coerce(builder, value, target);
+        return super.coerce(builder, llvmTextUnit, target);
     }
 }

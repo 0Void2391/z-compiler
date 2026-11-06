@@ -99,14 +99,14 @@ public final class FieldAccessExprAST extends ExprAST {
     }
 
     @Override
-    public Value codeGen(final IRBuilder builder) {
+    public LLVMTextUnit codeGen(final IRBuilder builder) {
         // Module variable, e.g. math.sqrt: the base is a module, the
         // field is a global. The symbol table holds the global directly.
         if (base instanceof VarRefExprAST var) {
             final SymbolTable.SymbolInfo moduleVar =
                     builder.symbols().lookup(var.name() + "." + field);
             if (moduleVar != null) {
-                return new Value(
+                return new LLVMTextUnit(
                         builder.emitLoad(moduleVar.getLlvmType(), moduleVar.getPointerReg()),
                         moduleVar.getType());
             }
@@ -114,6 +114,6 @@ public final class FieldAccessExprAST extends ExprAST {
         final String fieldPtr = emitFieldPointer(builder);
         if (fieldPtr == null) return null;
         final TypeRef ft = type(builder);
-        return new Value(builder.emitLoad(ft.llvm(), fieldPtr), ft);
+        return new LLVMTextUnit(builder.emitLoad(ft.llvm(), fieldPtr), ft);
     }
 }

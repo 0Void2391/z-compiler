@@ -4,14 +4,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import picocli.CommandLine;
 import picocli.CommandLine.Command;
-import src.AST.ExternExprAST;
-import src.AST.FunctionAST;
-import src.AST.ModuleAST;
-import src.AST.Value;
+import src.AST.*;
 import src.Codegen.IRBuilder;
 import src.Parser.Parser;
 import src.Lexer.Lexer;
-import src.AST.DeclaratorExprAST;
 import src.Parser.StructRegistry;
 import src.Parser.StructType;
 
@@ -371,12 +367,12 @@ public class Main {
         builder.setCurrentModule(null);
 
         for (final ExternExprAST extern : root.externals()) {
-            final Value externValue = extern.codeGen(builder);
-            if (externValue == null || builder.hasFailed()) {
+            final LLVMTextUnit externLLVMTextUnit = extern.codeGen(builder);
+            if (externLLVMTextUnit == null || builder.hasFailed()) {
                 logger.error("Error building the IR of the externs");
                 return null;
             }
-            module.append(externValue.text());
+            module.append(externLLVMTextUnit.text());
         }
 
         for (final DeclaratorExprAST var : root.vars()) {
@@ -390,7 +386,7 @@ public class Main {
         if (declareAll(root, builder)) return null;
 
         for (final FunctionAST definition : root.functions()) {
-            final Value function = definition.codeGen(builder);
+            final LLVMTextUnit function = definition.codeGen(builder);
             if (function == null || builder.hasFailed()) {
                 logger.error("Error building the IR");
                 return null;
@@ -413,14 +409,14 @@ public class Main {
         builder.setCurrentModule(module.name());
 
         for (final ExternExprAST extern : module.externals()) {
-            final Value externValue = extern.codeGen(builder);
-            if (externValue == null || builder.hasFailed()) {
+            final LLVMTextUnit externLLVMTextUnit = extern.codeGen(builder);
+            if (externLLVMTextUnit == null || builder.hasFailed()) {
                 if (logger.isErrorEnabled()) {
                     logger.error("Error building the IR of the externs of module '{}'", module.name());
                 }
                 return false;
             }
-            unit.append(externValue.text());
+            unit.append(externLLVMTextUnit.text());
         }
 
         for (final DeclaratorExprAST var : module.vars()) {
@@ -443,7 +439,7 @@ public class Main {
         if (declareAll(module, builder)) return false;
 
         for (final FunctionAST definition : module.functions()) {
-            final Value function = definition.codeGen(builder);
+            final LLVMTextUnit function = definition.codeGen(builder);
             if (function == null || builder.hasFailed()) {
                 if (logger.isErrorEnabled()) {
                     logger.error("Error building the IR of module '{}'", module.name());

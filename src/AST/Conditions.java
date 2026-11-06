@@ -23,9 +23,9 @@ final class Conditions {
      */
     static String emitI1(final IRBuilder builder, final ExprAST condition) {
         if (condition instanceof BinaryExprAST bin && bin.isComparison()) {
-            final Value a = bin.left().codeGen(builder);
+            final LLVMTextUnit a = bin.left().codeGen(builder);
             if (a == null) return null;
-            final Value b = bin.right().codeGen(builder);
+            final LLVMTextUnit b = bin.right().codeGen(builder);
             if (b == null) return null;
 
             final ZType common;
@@ -39,8 +39,8 @@ final class Conditions {
                 logger.error("Error: {}", e.getMessage());
                 return null;
             }
-            final Value left = bin.left().coerce(builder, a, common);
-            final Value right = bin.right().coerce(builder, b, common);
+            final LLVMTextUnit left = bin.left().coerce(builder, a, common);
+            final LLVMTextUnit right = bin.right().coerce(builder, b, common);
             if (left == null || right == null) return null;
 
             final boolean ordered = common.isFloat();
@@ -49,7 +49,7 @@ final class Conditions {
             return cmp;
         }
 
-        final Value v = condition.codeGen(builder);
+        final LLVMTextUnit v = condition.codeGen(builder);
         if (v == null) return null;
         final String cmp = builder.nextRegister();
         if (v.type().isFloat()) {

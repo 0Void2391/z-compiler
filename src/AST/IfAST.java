@@ -41,7 +41,7 @@ public final class IfAST extends ExprAST {
     }
 
     @Override
-    public @Nullable Value codeGen(final IRBuilder builder) {
+    public @Nullable LLVMTextUnit codeGen(final IRBuilder builder) {
         final List<String> condLabels = new ArrayList<>();
         final List<String> thenLabels = new ArrayList<>();
         for (int i = 0; i < branches.size(); i++) {

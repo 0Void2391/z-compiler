@@ -35,7 +35,7 @@ public final class StructLiteralAST extends ExprAST {
     }
 
     @Override
-    public Value codeGen(final IRBuilder builder) {
+    public LLVMTextUnit codeGen(final IRBuilder builder) {
         final StructType st = StructRegistry.lookup(typeName);
         if (st == null) {
             logger.error("Error: unknown struct: {}", typeName);
@@ -51,20 +51,20 @@ public final class StructLiteralAST extends ExprAST {
 
         String aggregate = "undef";
         for (int i = 0; i < values.size(); i++) {
-            final Value v = values.get(i).codeGen(builder);
+            final LLVMTextUnit v = values.get(i).codeGen(builder);
             if (v == null) {
                 builder.markFailed();
                 return null;
             }
             final TypeRef fieldType = st.fields().get(i).type();
-            final Value fitted = values.get(i).coerce(builder, v, fieldType);
+            final LLVMTextUnit fitted = values.get(i).coerce(builder, v, fieldType);
             if (fitted == null) return null;
             final String reg = builder.nextRegister();
             builder.appendLine(reg + " = insertvalue " + st.llvm() + " " + aggregate
                     + ", " + fieldType.llvm() + " " + fitted.text() + ", " + i);
             aggregate = reg;
         }
-        return new Value(aggregate, st);
+        return new LLVMTextUnit(aggregate, st);
     }
 
     /**
@@ -77,18 +77,18 @@ public final class StructLiteralAST extends ExprAST {
      * @return the constant aggregate, or null when a field is not constant
      */
     @Override
-    public Value constantValue(final IRBuilder builder) {
+    public LLVMTextUnit constantValue(final IRBuilder builder) {
         final StructType st = StructRegistry.lookup(typeName);
         if (st == null || values.size() != st.fields().size()) return null;
 
         final StringBuilder sb = new StringBuilder("{ ");
         for (int i = 0; i < values.size(); i++) {
-            final Value v = values.get(i).constantValue(builder);
+            final LLVMTextUnit v = values.get(i).constantValue(builder);
             if (v == null) return null;
             if (i > 0) sb.append(", ");
             sb.append(v.type().llvm()).append(" ").append(v.text());
         }
         sb.append(" }");
-        return new Value(sb.toString(), st);
+        return new LLVMTextUnit(sb.toString(), st);
     }
 }

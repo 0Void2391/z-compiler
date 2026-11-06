@@ -42,7 +42,7 @@ public final class FunctionAST extends ExprAST {
     }
 
     @Override
-    public Value codeGen(final IRBuilder builder) {
+    public LLVMTextUnit codeGen(final IRBuilder builder) {
         builder.reset();
         builder.symbols().enterScope();
         builder.declare(proto);
@@ -137,7 +137,7 @@ public final class FunctionAST extends ExprAST {
         final String text = "define " + (isMain ? "dso_local" : "internal dso_local") + " " + returnType().llvm() + " @" + builder.irNameOf(proto.name()) + "(" + parameters + ")" + attrs + " {\nentry:\n" + builder.getIR() + "}\n";
 
         builder.symbols().exitScope();
-        return new Value(text, ZType.VOID);
+        return new LLVMTextUnit(text, ZType.VOID);
     }
 
     private static TypeRef resolveParamType(final String name) {

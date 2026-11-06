@@ -26,8 +26,8 @@ public final class AssignThroughPointerExprAST extends ExprAST {
     }
 
     @Override
-    public Value codeGen(final IRBuilder builder) {
-        final Value ptr = target.pointer().codeGen(builder);
+    public LLVMTextUnit codeGen(final IRBuilder builder) {
+        final LLVMTextUnit ptr = target.pointer().codeGen(builder);
         if (ptr == null) {
             builder.markFailed();
             return null;
@@ -38,12 +38,12 @@ public final class AssignThroughPointerExprAST extends ExprAST {
             builder.markFailed();
             return null;
         }
-        final Value v = value.codeGen(builder);
+        final LLVMTextUnit v = value.codeGen(builder);
         if (v == null) {
             builder.markFailed();
             return null;
         }
-        final Value fitted = value.coerce(builder, v, elem);
+        final LLVMTextUnit fitted = value.coerce(builder, v, elem);
         if (fitted == null) return null;
         builder.emitStore(fitted.text(), elem.llvm(), ptr.text());
         return null;

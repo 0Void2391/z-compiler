@@ -55,7 +55,7 @@ public final class CallExprAST extends ExprAST {
     }
 
     @Override
-    public Value codeGen(final IRBuilder builder) {
+    public LLVMTextUnit codeGen(final IRBuilder builder) {
         final IRBuilder.ResolvedSignature resolved = builder.resolve(callee);
         if (resolved == null) {
             logger.error("Error: unknown function: {}", callee);
@@ -96,7 +96,7 @@ public final class CallExprAST extends ExprAST {
         final List<String> printed = new java.util.ArrayList<>();
         final ZType externReturn = resolved.externReturnType();
         for (int i = 0; i < arguments.size(); i++) {
-            final Value argument = arguments.get(i).codeGen(builder);
+            final LLVMTextUnit argument = arguments.get(i).codeGen(builder);
             if (argument == null) {
                 builder.markFailed();
                 return null;
@@ -119,7 +119,7 @@ public final class CallExprAST extends ExprAST {
                     default -> zt;
                 };
             }
-            final Value fitted = coerce(builder, argument, expected);
+            final LLVMTextUnit fitted = coerce(builder, argument, expected);
             if (fitted == null) return null;
 
             // Extern (C) functions take the raw bytes, not the fat struct.
@@ -164,7 +164,7 @@ public final class CallExprAST extends ExprAST {
         final String register = builder.nextRegister();
         builder.appendLine(register + " = " + call);
         builder.setRegisterType(register, result.llvm());
-        return new Value(register, result);
+        return new LLVMTextUnit(register, result);
     }
 
     /**

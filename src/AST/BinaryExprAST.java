@@ -64,21 +64,21 @@ public final class BinaryExprAST extends ExprAST {
     }
 
     @Override
-    public Value codeGen(final IRBuilder builder) {
-        final Value lhs = left.codeGen(builder);
+    public LLVMTextUnit codeGen(final IRBuilder builder) {
+        final LLVMTextUnit lhs = left.codeGen(builder);
         if (lhs == null) {
             builder.markFailed();
             return null;
         }
-        final Value rhs = right.codeGen(builder);
+        final LLVMTextUnit rhs = right.codeGen(builder);
         if (rhs == null) {
             builder.markFailed();
             return null;
         }
 
         final TypeRef common = operandType(builder);
-        final Value a = left.coerce(builder, lhs, common);
-        final Value b = right.coerce(builder, rhs, common);
+        final LLVMTextUnit a = left.coerce(builder, lhs, common);
+        final LLVMTextUnit b = right.coerce(builder, rhs, common);
         if (a == null || b == null) return null;
 
         if (op.equals("+") && a.type().isString() && b.type().isString()) {
@@ -93,7 +93,7 @@ public final class BinaryExprAST extends ExprAST {
             final String result = builder.nextRegister();
             builder.appendLine(result + " = zext i1 " + compared + " to i32");
             builder.setRegisterType(result, ZType.INT32.llvm());
-            return new Value(result, ZType.INT32);
+            return new LLVMTextUnit(result, ZType.INT32);
         }
 
         final String opcode = arithmeticOpcode(a.type());
@@ -107,7 +107,7 @@ public final class BinaryExprAST extends ExprAST {
         builder.appendLine(result + " = " + opcode + flags + " " + a.type().llvm() + " " + a.text() + ", " + b.text());
 
         builder.setRegisterType(result, a.type().llvm());
-        return new Value(result, a.type());
+        return new LLVMTextUnit(result, a.type());
     }
 
     String predicate(final boolean ordered, final TypeRef type) {
@@ -167,7 +167,7 @@ public final class BinaryExprAST extends ExprAST {
      * the result is built as a new {@code { ptr, len_a + len_b }}. No
      * {@code strlen}: the lengths are already in the struct.
      */
-    private Value emitStringConcat(final IRBuilder builder, final Value a, final Value b) {
+    private LLVMTextUnit emitStringConcat(final IRBuilder builder, final LLVMTextUnit a, final LLVMTextUnit b) {
         final String aPtr = builder.nextRegister();
         builder.appendLine(aPtr + " = extractvalue { i8*, i64 } " + a.text() + ", 0");
         final String aLen = builder.nextRegister();
@@ -203,6 +203,6 @@ public final class BinaryExprAST extends ExprAST {
         builder.appendLine(r2 + " = insertvalue { i8*, i64 } " + r1 + ", i64 " + total + ", 1");
 
         builder.setRegisterType(r2, ZType.STRING.llvm());
-        return new Value(r2, ZType.STRING);
+        return new LLVMTextUnit(r2, ZType.STRING);
     }
 }

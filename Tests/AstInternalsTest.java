@@ -35,12 +35,12 @@ public class AstInternalsTest {
         }
 
         @Override
-        public Value codeGen(final IRBuilder builder) {
-            return new Value(text, type);
+        public LLVMTextUnit codeGen(final IRBuilder builder) {
+            return new LLVMTextUnit(text, type);
         }
 
         @Override
-        public Value constantValue(final IRBuilder builder) {
+        public LLVMTextUnit constantValue(final IRBuilder builder) {
             return codeGen(builder);
         }
     }
@@ -167,12 +167,12 @@ public class AstInternalsTest {
         }
 
         @Override
-        public Value codeGen(final IRBuilder builder) {
-            return new Value("1", ZType.INT32);
+        public LLVMTextUnit codeGen(final IRBuilder builder) {
+            return new LLVMTextUnit("1", ZType.INT32);
         }
 
         @Override
-        public Value coerce(final IRBuilder builder, final Value value, final TypeRef target) {
+        public LLVMTextUnit coerce(final IRBuilder builder, final LLVMTextUnit llvmTextUnit, final TypeRef target) {
             return null;
         }
     }
@@ -204,8 +204,8 @@ public class AstInternalsTest {
         builder.symbols().define("o", new src.Codegen.SymbolTable.SymbolInfo("o", outer, "%o", false));
 
         assertSame(ZType.INT64, new FieldAccessExprAST(new FieldAccessExprAST(new VarRefExprAST("o"), "inner"), "v").type(builder));
-        final Value value = new FieldAccessExprAST(new FieldAccessExprAST(new VarRefExprAST("o"), "inner"), "v").codeGen(builder);
-        assertNotNull(value);
-        assertSame(ZType.INT64, value.type());
+        final LLVMTextUnit llvmTextUnit = new FieldAccessExprAST(new FieldAccessExprAST(new VarRefExprAST("o"), "inner"), "v").codeGen(builder);
+        assertNotNull(llvmTextUnit);
+        assertSame(ZType.INT64, llvmTextUnit.type());
     }
 }

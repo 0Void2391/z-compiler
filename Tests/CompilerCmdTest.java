@@ -106,17 +106,17 @@ public class CompilerCmdTest {
 
     @Test
     void testClangFailureIsReported() throws Exception {
-        final Method method = CompilerCmd.class.getDeclaredMethod("compileToBinary", String.class, String.class, List.class, List.class);
+        final Method method = CompilerCmd.class.getDeclaredMethod("compileToBinary", String.class, String.class, List.class, List.class, boolean.class, String.class);
         method.setAccessible(true);
 
-        assertEquals(1, method.invoke(null, directory.resolve("missing.ll").toString(), directory.resolve("binary").toString(), List.of(), List.of()));
+        assertEquals(1, method.invoke(null, directory.resolve("missing.ll").toString(), directory.resolve("binary").toString(), List.of(), List.of(), false, null));
     }
 
     @Test
     void testCreateProcessBuilderBuildsTheFullCommand() throws Exception {
-        final Method method = CompilerCmd.class.getDeclaredMethod("createProcessBuilder", String.class, String.class, List.class, List.class);
+        final Method method = CompilerCmd.class.getDeclaredMethod("createProcessBuilder", String.class, String.class, List.class, List.class, boolean.class, String.class);
         method.setAccessible(true);
-        final ProcessBuilder builder = (ProcessBuilder) method.invoke(null, "in.ll", "binary", List.of("/opt/lib"), List.of("m", "-lz"));
+        final ProcessBuilder builder = (ProcessBuilder) method.invoke(null, "in.ll", "binary", List.of("/opt/lib"), List.of("m", "-lz"), false, null);
         final List<String> command = builder.command();
 
         assertEquals("clang", command.getFirst());

@@ -30,6 +30,8 @@ public final class AllocExprAST extends ExprAST {
         if (sz == null) return null;
         final Value fitted = size.coerce(builder, sz, ZType.UINT64);
         if (fitted == null) return null;
-        return new Value(builder.emitBumpAlloc(fitted.text()), ZType.PTR);
+        final String ptr = builder.emitBumpAlloc(fitted.text());
+        builder.emitAssumeAfterAlloc(ptr, fitted.text());
+        return new Value(ptr, ZType.PTR);
     }
 }

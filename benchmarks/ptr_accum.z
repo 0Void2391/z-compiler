@@ -1,6 +1,6 @@
 extern printf(str | ...) -> int32
 
-proc accumulate(int64* acc | int64 value) -> void {
+proc accumulate(mut int64* acc | int64 value) -> void {
     *acc -> *acc + (value * value) % 7;
 }
 

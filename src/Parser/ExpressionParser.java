@@ -51,8 +51,8 @@ public class ExpressionParser {
      * @return null or calls other functions
      * @throws IOException if an exception is found
      */
-    public @Nullable ExprAST parseExpression() throws IOException {
-        final ExprAST leftOperandSide = parsePrimary();
+    public @Nullable ExprAST parseExpression(final boolean inTailPosition) throws IOException {
+        final ExprAST leftOperandSide = parsePrimary(inTailPosition);
         if (leftOperandSide == null) return null;
         return parseBinOpRHS(0, leftOperandSide);
     }
@@ -77,7 +77,7 @@ public class ExpressionParser {
 
             if (BinOp == Lexer.Tokens.ASSIGN.value || BinOp == Lexer.Tokens.SAME.value) {
                 // Right-associative: parse the whole RHS.
-                final ExprAST rhs = parseExpression();
+                final ExprAST rhs = parseExpression(false);
                 if (rhs == null) return null;
 
                 ExprAST target = leftOperandSide;
@@ -111,7 +111,7 @@ public class ExpressionParser {
                 }
                 return new ArrayIdxExprAST(leftOperandSide, indexes);
             }
-            ExprAST rightOperandSide = parsePrimary();
+            ExprAST rightOperandSide = parsePrimary(false);
             if (rightOperandSide == null) return null;
 
             final int NextPrev = getTokPrecedence();
@@ -130,13 +130,13 @@ public class ExpressionParser {
      * @return an Expression node or an error
      * @throws IOException if an exception is found
      */
-    public @org.jspecify.annotations.Nullable ExprAST parsePrimary() throws IOException {
+    public @org.jspecify.annotations.Nullable ExprAST parsePrimary(final boolean inTailPosition) throws IOException {
         if (context.getCurTok() == Lexer.Tokens.OPEN_FUNC.value) {
             context.next();
         }
 
         if (context.getCurTok() == Lexer.Tokens.IDENTIFIER.value) {
-            return parseIdentifierExpr();
+            return parseIdentifierExpr(inTailPosition);
         } else if (context.getCurTok() == Lexer.Tokens.NUMBER.value) {
             return parseNumberExpr(context.getLex().getNumVal());
         } else if (context.getCurTok() == Lexer.Tokens.STRING_LITERAL.value) {
@@ -149,7 +149,7 @@ public class ExpressionParser {
                 return error("Expected '(' after 'alloc'");
             }
             context.next();
-            final ExprAST sizeExpr = parseExpression();
+            final ExprAST sizeExpr = parseExpression(inTailPosition);
             if (sizeExpr == null) return null;
             if (context.getCurTok() != Lexer.Tokens.CLOSE_PAR.value) {
                 return error("Expected ')' after alloc size");
@@ -162,7 +162,7 @@ public class ExpressionParser {
                 return error("Expected '(' after 'free'");
             }
             context.next();
-            final ExprAST ptrExpr = parseExpression();
+            final ExprAST ptrExpr = parseExpression(inTailPosition);
             if (ptrExpr == null) return null;
             if (context.getCurTok() != Lexer.Tokens.CLOSE_PAR.value) {
                 return error("Expected ')' after free argument");
@@ -174,20 +174,20 @@ public class ExpressionParser {
             context.next();
             return new BoolExprAST(value);
         } else if (context.getCurTok() == Lexer.Tokens.OPEN_PAR.value) {
-            return parseParenExpr();
+            return parseParenExpr(inTailPosition);
         } else if (context.getCurTok() == Lexer.Tokens.AND.value) {
             context.next();
-            final ExprAST operand = parsePrimary();
+            final ExprAST operand = parsePrimary(inTailPosition);
             if (operand == null) return null;
             return new AddressOfExprAST(operand);
         } else if (context.getCurTok() == Lexer.Tokens.MUL.value) {
             context.next();
-            final ExprAST operand = parsePrimary();
+            final ExprAST operand = parsePrimary(inTailPosition);
             if (operand == null) return null;
             return new DerefExprAST(operand);
         } else if (context.getCurTok() == Lexer.Tokens.SUB.value) {
             context.next();
-            final ExprAST operand = parsePrimary();
+            final ExprAST operand = parsePrimary(inTailPosition);
             if (operand == null) return null;
             return new UnaryExprAST(operand);
         } else {
@@ -201,7 +201,7 @@ public class ExpressionParser {
      * @return an Expression node or an error
      * @throws IOException if an exception is found
      */
-    public @org.jspecify.annotations.Nullable ExprAST parseIdentifierExpr() throws IOException {
+    public @Nullable ExprAST parseIdentifierExpr(final boolean inTailPosition) throws IOException {
         final List<String> parts = new ArrayList<>();
         final StringBuilder fullName = new StringBuilder(context.getLex().getIdentifierStr());
         parts.add(context.getLex().getIdentifierStr());
@@ -228,7 +228,7 @@ public class ExpressionParser {
                 final List<ExprAST> values = new ArrayList<>();
                 if (context.getCurTok() != Lexer.Tokens.CLOSE_FUNC.value) {
                     while (true) {
-                        final ExprAST val = parseExpression();
+                        final ExprAST val = parseExpression(false);
                         if (val == null) return null;
                         values.add(val);
                         if (context.getCurTok() == Lexer.Tokens.CLOSE_FUNC.value) break;
@@ -251,7 +251,7 @@ public class ExpressionParser {
             final List<ExprAST> args = new ArrayList<>();
             if (context.getCurTok() != Lexer.Tokens.CLOSE_PAR.value) {
                 while (true) {
-                    final ExprAST arg = parseExpression();
+                    final ExprAST arg = parseExpression(false);
                     if (arg == null) return null;
                     args.add(arg);
                     if (context.getCurTok() == Lexer.Tokens.CLOSE_PAR.value) break;
@@ -262,7 +262,7 @@ public class ExpressionParser {
                 }
             }
             context.next();
-            return new CallExprAST(fullName.toString(), args);
+            return new CallExprAST(fullName.toString(), args, inTailPosition);
         }
 
         // no dot: plain variable
@@ -297,9 +297,9 @@ public class ExpressionParser {
      * @return an Expression node or an error
      * @throws IOException if an exception is found
      */
-    public @org.jspecify.annotations.Nullable ExprAST parseParenExpr() throws IOException {
+    public @org.jspecify.annotations.Nullable ExprAST parseParenExpr(final boolean inTailPosition) throws IOException {
         context.next();
-        final ExprAST v = parseExpression();
+        final ExprAST v = parseExpression(false);
         if (v == null) return null;
 
         if (context.getCurTok() != Lexer.Tokens.CLOSE_PAR.value) {

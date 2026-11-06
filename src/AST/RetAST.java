@@ -20,6 +20,7 @@ public final class RetAST extends ExprAST {
         this.value = null;
     }
 
+
     @Override
     public ZType type(final IRBuilder builder) {
         return ZType.VOID;
@@ -32,6 +33,7 @@ public final class RetAST extends ExprAST {
             builder.emitReturn(null);
             return null;
         }
+
         final Value produced = Objects.requireNonNull(value).codeGen(builder);
         if (produced == null) {
             builder.markFailed();

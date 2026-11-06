@@ -13,6 +13,7 @@ import java.util.List;
 
 public final class FunctionAST extends ExprAST {
     private static final Logger logger = LoggerFactory.getLogger(FunctionAST.class);
+    private static final short LINE_COUNT_TO_INLINE = 40;
 
     private final PrototypeAST proto;
     private final ExprAST body;
@@ -125,6 +126,12 @@ public final class FunctionAST extends ExprAST {
         }
 
         final StringBuilder attrs = new StringBuilder();
+
+        final boolean small = builder.getIR().lines().count() < LINE_COUNT_TO_INLINE;
+        if (small) attrs.append(" alwaysinline");
+        else attrs.append(" inlinehint");
+
+
         attrs.append(" nounwind nosync");
         if (isMain) attrs.append(" hot willreturn");
         final String text = "define " + (isMain ? "dso_local" : "internal dso_local") + " " + returnType().llvm() + " @" + builder.irNameOf(proto.name()) + "(" + parameters + ")" + attrs + " {\nentry:\n" + builder.getIR() + "}\n";

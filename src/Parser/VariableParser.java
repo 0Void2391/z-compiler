@@ -45,7 +45,7 @@ public class VariableParser {
         }
         context.next();
 
-        final ExprAST value = parseExpression.parseExpression();
+        final ExprAST value = parseExpression.parseExpression(false);
         if (value == null) return null;
 
         return new DeclaratorExprAST(zType, name, value, true, false);
@@ -71,7 +71,7 @@ public class VariableParser {
             return new DeclaratorExprAST(zType, name, null, false, globals);
         }
         context.next();
-        final ExprAST val = parseExpression.parseExpression();
+        final ExprAST val = parseExpression.parseExpression(false);
         if (val == null) return null;
         return new DeclaratorExprAST(zType, name, val, false, globals);
     }

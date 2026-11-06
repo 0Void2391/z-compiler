@@ -2,7 +2,21 @@
 
 All notable changes to Z-Compiler are documented in this file.
 
-## [unreleased]
+## [0.0.16-rc.1] - 2026-11-06
+
+### Features
+
+- Added !tbaa, nsw, tail calls, inlining, branch weights, llvm.assume, fast-math, more extern attributes and clang flags, added optional --pgo flag
+
+### Documentation
+
+- Docs: update changelog for v0.0.15-rc.1
+
+### Other Changes
+
+- Just changed the name of a class
+
+## [0.0.3] - 2026-11-04
 
 ### Features
 

@@ -58,7 +58,7 @@ public final class ForAST extends ExprAST {
     }
 
     @Override
-    public Value codeGen(final IRBuilder builder) {
+    public LLVMTextUnit codeGen(final IRBuilder builder) {
         builder.symbols().enterScope();
         try {
             if (builder.symbols().lookup(varName) != null) {
@@ -123,12 +123,12 @@ public final class ForAST extends ExprAST {
     }
 
     private boolean verify(IRBuilder builder, String slot, ExprAST init) {
-        final Value produced = init.codeGen(builder);
+        final LLVMTextUnit produced = init.codeGen(builder);
         if (produced == null) {
             builder.markFailed();
             return true;
         }
-        final Value fitted = init.coerce(builder, produced, varType);
+        final LLVMTextUnit fitted = init.coerce(builder, produced, varType);
         if (fitted == null) {
             builder.markFailed();
             return true;

@@ -18,12 +18,12 @@ public final class BoolExprAST extends ExprAST {
     }
 
     @Override
-    public Value codeGen(final IRBuilder builder) {
-        return new Value(Boolean.toString(value), ZType.BOOL);
+    public LLVMTextUnit codeGen(final IRBuilder builder) {
+        return new LLVMTextUnit(Boolean.toString(value), ZType.BOOL);
     }
 
     @Override
-    public Value constantValue(final IRBuilder builder) {
+    public LLVMTextUnit constantValue(final IRBuilder builder) {
         return codeGen(builder);
     }
 }

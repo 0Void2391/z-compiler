@@ -31,7 +31,7 @@ public final class BlockAST extends ExprAST {
     }
 
     @Override
-    public @Nullable Value codeGen(final IRBuilder builder) {
+    public @Nullable LLVMTextUnit codeGen(final IRBuilder builder) {
 
         builder.symbols().enterScope();
         try {

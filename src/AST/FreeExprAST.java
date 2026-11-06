@@ -26,8 +26,8 @@ public final class FreeExprAST extends ExprAST {
     }
 
     @Override
-    public Value codeGen(final IRBuilder builder) {
-        final Value p = pointer.codeGen(builder);
+    public LLVMTextUnit codeGen(final IRBuilder builder) {
+        final LLVMTextUnit p = pointer.codeGen(builder);
         if (p == null) return null;
         if (!p.type().isPointer() && !p.type().isString()) {
             logger.error("Error: free expects a pointer, got {}", p.type().zName());

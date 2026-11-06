@@ -32,7 +32,7 @@ public final class ExternExprAST extends ExprAST{
     }
 
     @Override
-    public Value codeGen(IRBuilder builder) {
+    public LLVMTextUnit codeGen(IRBuilder builder) {
         final ZType llvmType = ZType.fromZName(type);
         final IRBuilder.ExternDeclaration declaration = builder.declareExtern(proto, llvmType);
         if (declaration == IRBuilder.ExternDeclaration.CONFLICT) {
@@ -41,7 +41,7 @@ public final class ExternExprAST extends ExprAST{
             return null;
         }
         if (declaration == IRBuilder.ExternDeclaration.ALREADY_DECLARED) {
-            return new Value("", ZType.VOID);
+            return new LLVMTextUnit("", ZType.VOID);
         }
 
         final List<PrototypeAST.Param> params = proto.params();
@@ -64,6 +64,6 @@ public final class ExternExprAST extends ExprAST{
 
         final String code = "declare " + llvmType.llvm() + " @" + proto.name() + "(" + parameters + ")" + attrs + "\n";
 
-        return new Value(code, ZType.VOID);
+        return new LLVMTextUnit(code, ZType.VOID);
     }
 }

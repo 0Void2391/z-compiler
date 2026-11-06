@@ -27,14 +27,14 @@ public final class RetAST extends ExprAST {
     }
 
     @Override
-    public @Nullable Value codeGen(final IRBuilder builder) {
+    public @Nullable LLVMTextUnit codeGen(final IRBuilder builder) {
         if (value == null && type == null) return null;
         if (value == null) {
             builder.emitReturn(null);
             return null;
         }
 
-        final Value produced = Objects.requireNonNull(value).codeGen(builder);
+        final LLVMTextUnit produced = Objects.requireNonNull(value).codeGen(builder);
         if (produced == null) {
             builder.markFailed();
             return null;

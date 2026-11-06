@@ -33,20 +33,20 @@ public final class StringExprAST extends ExprAST {
     }
 
     @Override
-    public Value codeGen(final IRBuilder builder) {
+    public LLVMTextUnit codeGen(final IRBuilder builder) {
         final byte[] bytes = value.getBytes(StandardCharsets.UTF_8);
         final String globalName = builder.emitStringConstant(bytes);
 
         final String reg = builder.nextRegister();
         builder.appendLine(reg + " = load { i8*, i64 }, ptr @" + globalName);
         builder.setRegisterType(reg, ZType.STRING.llvm());
-        return new Value(reg, ZType.STRING);
+        return new LLVMTextUnit(reg, ZType.STRING);
     }
 
     @Override
-    public Value constantValue(final IRBuilder builder) {
+    public LLVMTextUnit constantValue(final IRBuilder builder) {
         final byte[] bytes = value.getBytes(StandardCharsets.UTF_8);
         final String globalName = builder.emitStringConstant(bytes);
-        return new Value("@" + globalName, ZType.STRING);
+        return new LLVMTextUnit("@" + globalName, ZType.STRING);
     }
 }

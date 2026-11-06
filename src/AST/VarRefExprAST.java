@@ -36,7 +36,7 @@ public final class VarRefExprAST extends ExprAST {
     }
 
     @Override
-    public Value codeGen(final IRBuilder builder) {
+    public LLVMTextUnit codeGen(final IRBuilder builder) {
         SymbolTable.SymbolInfo info = builder.symbols().lookup(name);
         if (info == null && !name.contains(".")) {
             info = builder.symbols().lookup(builder.qualify(name));
@@ -48,7 +48,7 @@ public final class VarRefExprAST extends ExprAST {
                 return null;
             }
             final TypeRef type = info.getType();
-            return new Value(builder.emitLoad(type.llvm(), info.getPointerReg()), type);
+            return new LLVMTextUnit(builder.emitLoad(type.llvm(), info.getPointerReg()), type);
         }
 
         final int dot = name.lastIndexOf('.');
@@ -71,7 +71,7 @@ public final class VarRefExprAST extends ExprAST {
                     builder.markFailed();
                     return null;
                 }
-                return new Value(register, varArg.getType());
+                return new LLVMTextUnit(register, varArg.getType());
             }
         }
 

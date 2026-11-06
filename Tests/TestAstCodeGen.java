@@ -32,12 +32,12 @@ public class TestAstCodeGen {
         }
 
         @Override
-        public Value codeGen(final IRBuilder builder) {
-            return new Value(text, type);
+        public LLVMTextUnit codeGen(final IRBuilder builder) {
+            return new LLVMTextUnit(text, type);
         }
 
         @Override
-        public Value constantValue(final IRBuilder builder) {
+        public LLVMTextUnit constantValue(final IRBuilder builder) {
             return codeGen(builder);
         }
     }
@@ -49,14 +49,14 @@ public class TestAstCodeGen {
         }
 
         @Override
-        public Value codeGen(final IRBuilder builder) {
+        public LLVMTextUnit codeGen(final IRBuilder builder) {
             return constantValue(builder);
         }
 
         @Override
-        public Value constantValue(final IRBuilder builder) {
+        public LLVMTextUnit constantValue(final IRBuilder builder) {
             builder.appendLine("%impure = add i32 1, 2");
-            return new Value("3", ZType.INT32);
+            return new LLVMTextUnit("3", ZType.INT32);
         }
     }
 
@@ -86,10 +86,10 @@ public class TestAstCodeGen {
         final IRBuilder builder = new IRBuilder();
         builder.symbols().defineGlobal("math.sqrt", new SymbolTable.SymbolInfo("sqrt", ZType.FLT64, "@sqrt", false));
 
-        final Value value = new FieldAccessExprAST(new VarRefExprAST("math"), "sqrt").codeGen(builder);
+        final LLVMTextUnit llvmTextUnit = new FieldAccessExprAST(new VarRefExprAST("math"), "sqrt").codeGen(builder);
 
-        assertNotNull(value);
-        assertSame(ZType.FLT64, value.type());
+        assertNotNull(llvmTextUnit);
+        assertSame(ZType.FLT64, llvmTextUnit.type());
         assertTrue(builder.getIR().contains("load double, ptr @sqrt"), builder.getIR());
     }
 
@@ -107,7 +107,7 @@ public class TestAstCodeGen {
         assertSame(prototype, extern.getProto());
         assertEquals("flt64", extern.getType());
         assertSame(ZType.VOID, extern.type(builder));
-        final Value declaration = extern.codeGen(builder);
+        final LLVMTextUnit declaration = extern.codeGen(builder);
         assertNotNull(declaration);
         assertTrue(declaration.text().contains("declare double @sqrt(double)"), declaration.text());
         assertTrue(Objects.requireNonNull(extern.codeGen(builder)).text().isEmpty());
@@ -159,7 +159,7 @@ public class TestAstCodeGen {
         final IRBuilder builder = new IRBuilder();
         builder.declareExtern(new PrototypeAST("printf", List.of(new PrototypeAST.Param("str", "", false), new PrototypeAST.Param("...", "", false))), ZType.INT32);
 
-        final Value result = new CallExprAST("printf", List.of(new Literal(ZType.STRING, "@format"), new Literal(ZType.FLT32, "1.5"), new Literal(ZType.BOOL, "true"))).codeGen(builder);
+        final LLVMTextUnit result = new CallExprAST("printf", List.of(new Literal(ZType.STRING, "@format"), new Literal(ZType.FLT32, "1.5"), new Literal(ZType.BOOL, "true"))).codeGen(builder);
 
         assertNotNull(result);
         assertTrue(builder.getIR().contains("call i32 (i8*, ...) @printf"), builder.getIR());
@@ -178,7 +178,7 @@ public class TestAstCodeGen {
         final IRBuilder builder = new IRBuilder();
         builder.declareExtern(new PrototypeAST("log", List.of(new PrototypeAST.Param("...", "", false))), ZType.INT32);
 
-        final Value result = new CallExprAST("log", List.of(new NumberExprAST("1", 1))).codeGen(builder);
+        final LLVMTextUnit result = new CallExprAST("log", List.of(new NumberExprAST("1", 1))).codeGen(builder);
 
         assertNotNull(result);
         assertTrue(builder.getIR().contains("call i32 (...) @log"), builder.getIR());
@@ -198,7 +198,7 @@ public class TestAstCodeGen {
         final IRBuilder builder = new IRBuilder();
         builder.declare(new PrototypeAST("main", List.of()));
 
-        final Value result = new CallExprAST("main", List.of()).codeGen(builder);
+        final LLVMTextUnit result = new CallExprAST("main", List.of()).codeGen(builder);
 
         assertNotNull(result);
         assertSame(ZType.INT32, result.type());
@@ -237,9 +237,9 @@ public class TestAstCodeGen {
     }
 
     private static String generate(final PrototypeAST prototype, final ExprAST body) {
-        final Value value = new FunctionAST(prototype, body).codeGen(new IRBuilder());
-        assertNotNull(value);
-        return value.text();
+        final LLVMTextUnit llvmTextUnit = new FunctionAST(prototype, body).codeGen(new IRBuilder());
+        assertNotNull(llvmTextUnit);
+        return llvmTextUnit.text();
     }
 
     @Test

@@ -17,8 +17,8 @@ public class ArrayIdxExprAST extends ExprAST {
     public TypeRef type(final IRBuilder builder) {
         return arrExpr.type(builder);
     } //will return a pointer as a type
-    public Value codeGen(final IRBuilder builder) {
-        return new Value("placeholder", ZType.VOID); //placeholder
+    public LLVMTextUnit codeGen(final IRBuilder builder) {
+        return new LLVMTextUnit("placeholder", ZType.VOID); //placeholder
     }
 
     public List<NumberExprAST> getIndexes() {

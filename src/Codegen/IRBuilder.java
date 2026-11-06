@@ -3,7 +3,7 @@ package src.Codegen;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import src.AST.PrototypeAST;
-import src.AST.Value;
+import src.AST.LLVMTextUnit;
 import src.Parser.StructType;
 import src.Parser.TypeRef;
 import src.Parser.ZType;
@@ -219,7 +219,7 @@ public class IRBuilder {
         appendLine("br i1 " + cond + ", label %" + t + ", label %" + f + ", !prof !{!\"branch_weights\", i32 1000, i32 1}");
     }
 
-    public void emitReturn(final Value value) {
+    public void emitReturn(final LLVMTextUnit llvmTextUnit) {
         emitVarArgEnd();
 
         final TypeRef targetType = returnType;
@@ -229,7 +229,7 @@ public class IRBuilder {
             return;
         }
 
-        if (value == null) { // it must be main
+        if (llvmTextUnit == null) { // it must be main
             appendLine("ret i32 281");
             terminated = true;
             return;
@@ -237,10 +237,10 @@ public class IRBuilder {
 
 
         final String target = targetType.llvm();
-        final String from = value.type().llvm();
+        final String from = llvmTextUnit.type().llvm();
 
         if (from.equals(target)) {
-            appendLine("ret " + target + " " + value.text());
+            appendLine("ret " + target + " " + llvmTextUnit.text());
             terminated = true;
             return;
         }
@@ -251,19 +251,19 @@ public class IRBuilder {
             return;
         }
 
-        if (value.type().isString() || targetType.isString()) {
-            logger.error("Error: cannot convert between str and {}", value.type().isString() ? target : from);
+        if (llvmTextUnit.type().isString() || targetType.isString()) {
+            logger.error("Error: cannot convert between str and {}", llvmTextUnit.type().isString() ? target : from);
             markFailed();
             return;
         }
-        final String opcode = conversionOpcode(value.type(), targetType);
+        final String opcode = conversionOpcode(llvmTextUnit.type(), targetType);
         if (opcode == null) {
             logger.error("Error: cannot convert between {} and {}", from, target);
             markFailed();
             return;
         }
         final String converted = nextRegister();
-        appendLine(converted + " = " + opcode + from + " " + value.text() + " to " + target);
+        appendLine(converted + " = " + opcode + from + " " + llvmTextUnit.text() + " to " + target);
         appendLine("ret " + target + " " + converted);
         terminated = true;
     }

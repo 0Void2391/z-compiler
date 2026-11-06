@@ -32,7 +32,7 @@ public final class AddressOfExprAST extends ExprAST {
     }
 
     @Override
-    public Value codeGen(final IRBuilder builder) {
+    public LLVMTextUnit codeGen(final IRBuilder builder) {
         if (!(operand instanceof VarRefExprAST var)) {
             logger.error("Error: cannot take the address of this expression");
             builder.markFailed();
@@ -47,6 +47,6 @@ public final class AddressOfExprAST extends ExprAST {
             builder.markFailed();
             return null;
         }
-        return new Value(info.getPointerReg(), info.getType().pointerTo());
+        return new LLVMTextUnit(info.getPointerReg(), info.getType().pointerTo());
     }
 }

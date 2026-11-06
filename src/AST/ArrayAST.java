@@ -23,8 +23,8 @@ public final class ArrayAST extends ExprAST { //we could also consider doing ext
     public ZType type(final IRBuilder builder) {
         return type;
     } //placeholder
-    public Value codeGen(final IRBuilder builder) {
-        return new Value("placeholder", ZType.VOID); //placeholder
+    public LLVMTextUnit codeGen(final IRBuilder builder) {
+        return new LLVMTextUnit("placeholder", ZType.VOID); //placeholder
     }
 
     public NumberExprAST getSize() {

@@ -33,7 +33,7 @@ public final class LoopJumpAST extends ExprAST {
     }
 
     @Override
-    public @Nullable Value codeGen(final IRBuilder builder) {
+    public @Nullable LLVMTextUnit codeGen(final IRBuilder builder) {
         final Loop loop = builder.currentLoop();
         if (loop == null) {
             logger.error("Error: '{}' used outside of a loop", isBreak ? "break" : "continue");

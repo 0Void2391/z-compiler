@@ -31,12 +31,12 @@ public class TestAstNodes {
         }
 
         @Override
-        public Value codeGen(final IRBuilder builder) {
-            return new Value(text, type);
+        public LLVMTextUnit codeGen(final IRBuilder builder) {
+            return new LLVMTextUnit(text, type);
         }
 
         @Override
-        public Value constantValue(final IRBuilder builder) {
+        public LLVMTextUnit constantValue(final IRBuilder builder) {
             return codeGen(builder);
         }
     }
@@ -87,8 +87,8 @@ public class TestAstNodes {
 
     @Test
     void testValueDistinguishesRegisters() {
-        assertTrue(new Value("%1", ZType.INT32).isRegister());
-        assertFalse(new Value("1", ZType.INT32).isRegister());
+        assertTrue(new LLVMTextUnit("%1", ZType.INT32).isRegister());
+        assertFalse(new LLVMTextUnit("1", ZType.INT32).isRegister());
     }
 
     @Test
@@ -135,11 +135,11 @@ public class TestAstNodes {
         final NumberExprAST integer = new NumberExprAST("42", 42L);
         final NumberExprAST floating = new NumberExprAST("4.5", 4.5);
 
-        assertEquals(ZType.INT64.llvm(), integer.coerce(builder, new Value("42", ZType.INT32), ZType.INT64).type().llvm());
-        assertEquals(ZType.FLT32.llvm(), integer.coerce(builder, new Value("42", ZType.INT32), ZType.FLT32).type().llvm());
-        assertEquals(ZType.INT32.llvm(), floating.coerce(builder, new Value("4.5", ZType.FLT64), ZType.INT32).type().llvm());
-        assertEquals(ZType.FLT32.llvm(), floating.coerce(builder, new Value("4.5", ZType.FLT64), ZType.FLT32).type().llvm());
-        assertSame(ZType.INT32, integer.coerce(builder, new Value("42", ZType.INT32), ZType.INT32).type());
+        assertEquals(ZType.INT64.llvm(), integer.coerce(builder, new LLVMTextUnit("42", ZType.INT32), ZType.INT64).type().llvm());
+        assertEquals(ZType.FLT32.llvm(), integer.coerce(builder, new LLVMTextUnit("42", ZType.INT32), ZType.FLT32).type().llvm());
+        assertEquals(ZType.INT32.llvm(), floating.coerce(builder, new LLVMTextUnit("4.5", ZType.FLT64), ZType.INT32).type().llvm());
+        assertEquals(ZType.FLT32.llvm(), floating.coerce(builder, new LLVMTextUnit("4.5", ZType.FLT64), ZType.FLT32).type().llvm());
+        assertSame(ZType.INT32, integer.coerce(builder, new LLVMTextUnit("42", ZType.INT32), ZType.INT32).type());
     }
 
     @Test
@@ -446,8 +446,8 @@ public class TestAstNodes {
         }
 
         @Override
-        public Value codeGen(final IRBuilder builder) {
-            return new Value("placeholder", ZType.VOID);
+        public LLVMTextUnit codeGen(final IRBuilder builder) {
+            return new LLVMTextUnit("placeholder", ZType.VOID);
         }
     }
 }

@@ -160,8 +160,8 @@ public class TestImports {
                 "d.z\nproc fd() { ret 1 }");
 
         assertNotNull(ir);
-        assertEquals(1, count(ir, "@d_fd() nounwind"), "the shared module must be compiled once:\n" + ir);
-        assertEquals(2, count(ir, "call double @d_fd()"), ir);
+        assertEquals(1, count(ir, "@d_fd() alwaysinline nounwind"), "the shared module must be compiled once:\n" + ir);
+        assertEquals(2, count(ir, "tail call double @d_fd()"), ir);
     }
 
     @Test

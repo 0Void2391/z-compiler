@@ -19,10 +19,18 @@ public final class CallExprAST extends ExprAST {
 
     private final String callee;
     private final List<ExprAST> arguments;
+    private final boolean inTailPosition;
 
     public CallExprAST(final String callee, final List<ExprAST> arguments) {
         this.callee = callee;
         this.arguments = List.copyOf(arguments);
+        this.inTailPosition = false;
+    }
+
+    public CallExprAST(final String callee, final List<ExprAST> arguments, final boolean inTailPosition) {
+        this.callee = callee;
+        this.arguments = List.copyOf(arguments);
+        this.inTailPosition = inTailPosition;
     }
 
     /** @return the name being called */
@@ -136,7 +144,7 @@ public final class CallExprAST extends ExprAST {
             result = ZType.FLT64;
         }
 
-        final StringBuilder call = new StringBuilder("call ").append(result.llvm());
+        final StringBuilder call = new StringBuilder(inTailPosition ? "tail call " : "call ").append(result.llvm());
         if (variadic) {
             call.append(" (");
             for (int i = 0; i < fixedParams; i++) {

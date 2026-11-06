@@ -40,7 +40,7 @@ public final class ForAST extends ExprAST {
     /** @return the loop variable name */
     public String varName() { return varName; }
 
-    /** @return the initialiser expression */
+    /** @return the initializer expression */
     public ExprAST init() { return init; }
 
     /** @return the loop condition */
@@ -67,8 +67,7 @@ public final class ForAST extends ExprAST {
                 return null;
             }
             final String slot = builder.emitAlloca(varName, varType.llvm());
-            builder.symbols().define(varName, new SymbolTable.SymbolInfo(
-                    varName, varType, slot, false));
+            builder.symbols().define(varName, new SymbolTable.SymbolInfo(varName, varType, slot, false));
 
             if (init != null) {
                 if (verify(builder, slot, init)) return null;
@@ -91,7 +90,7 @@ public final class ForAST extends ExprAST {
                 builder.markFailed();
                 return null;
             }
-            builder.emitCondBr(condReg, bodyLabel, endLabel);
+            builder.appendLine("br i1 " + condReg + ", label %" + bodyLabel + ", label %" + endLabel + ", !prof !{!\"branch_weights\", i32 1000, i32 1}");
 
 
             builder.emitLabel(bodyLabel);

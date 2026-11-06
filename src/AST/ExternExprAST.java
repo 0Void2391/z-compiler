@@ -54,9 +54,11 @@ public final class ExternExprAST extends ExprAST{
         }
 
         final String attrs = switch (proto.name()) {
+            case "strnlen", "strlen" -> " nounwind willreturn nosync readonly";
             case "printf", "fprintf", "puts" -> " nounwind";
-            case "memset", "memcpy", "memmove", "strcpy", "strcat" -> " nounwind willreturn nosync";
+            case "strcpy", "strcat" -> " nounwind willreturn nosync";
             case "malloc", "calloc", "realloc" -> " nounwind allocsize(0)";
+            case "memset", "memcpy", "memmove" -> " nounwind willreturn nosync writeonly";
             default -> "";
         };
 

@@ -23,11 +23,13 @@ public class RetParser {
      * @throws IOException if an exception is found
      */
     protected @Nullable ExprAST parseRet() throws IOException {
+        boolean inTailPosition = true;
+
         context.next();
         if (context.getCurTok() == Lexer.Tokens.CLOSE_FUNC.value) {
             return new RetAST(ZType.VOID);
         }
-        final ExprAST rightSide = expressionParser.parseExpression();
+        final ExprAST rightSide = expressionParser.parseExpression(inTailPosition);
         if (rightSide == null) return null;
 
         return new RetAST(rightSide);

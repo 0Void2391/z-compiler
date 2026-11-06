@@ -69,7 +69,7 @@ public class BranchesParser {
             return error("Expected '(' after '" + keyword + "'");
         }
         context.next();
-        final ExprAST cond = expressionParser.parseExpression();
+        final ExprAST cond = expressionParser.parseExpression(false);
         if (cond == null) return null;
         if (context.getCurTok() != Lexer.Tokens.CLOSE_PAR.value) {
             return error("Expected ')' after condition in " + keyword);

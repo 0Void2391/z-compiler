@@ -1,6 +1,6 @@
 extern printf(str | ...) -> int32
 
-proc step(uint64* a | uint64* b | uint64* c | uint64* d) -> void {
+proc step(mut uint64* a | mut uint64* b | mut uint64* c | mut uint64* d) -> void {
     *a -> *a * *a + 1;
     *b -> *b * *b + 2;
     *c -> *c * *c + 3;

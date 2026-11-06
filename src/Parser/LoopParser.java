@@ -57,7 +57,7 @@ public class LoopParser {
             return error("Expected '->' or '=' for initial value in for");
         }
         context.next();
-        final ExprAST init = expressionParser.parseExpression();
+        final ExprAST init = expressionParser.parseExpression(false);
         if (init == null) return null;
 
         // Expect '|'
@@ -67,7 +67,7 @@ public class LoopParser {
         context.next();
 
         // Parse condition
-        final ExprAST cond = expressionParser.parseExpression();
+        final ExprAST cond = expressionParser.parseExpression(false);
         if (cond == null) return null;
 
         // Expect '|'
@@ -77,7 +77,7 @@ public class LoopParser {
         context.next();
 
         // Parse update
-        final ExprAST update = expressionParser.parseExpression();
+        final ExprAST update = expressionParser.parseExpression(false);
         if (update == null) return null;
 
         // Expect ')'

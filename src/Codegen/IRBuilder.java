@@ -31,6 +31,10 @@ public class IRBuilder {
     private int registerCount = 1;
     private final StringBuilder irCode = new StringBuilder();
     private final Map<String, String> registerTypes = new HashMap<>();
+    private int tbaaCounter = 5000;
+    private int tbaaRoot = -1;
+    private int tbaaChar = -1;
+    private final Map<String, Integer> tbaaNodes = new HashMap<>();
     private int loopMetadataCounter = 1000;
 
     /**
@@ -207,6 +211,14 @@ public class IRBuilder {
         appendLine("call void @llvm.va_end(ptr " + varArgList + ")");
     }
 
+    public void emitAssumeAfterAlloc(final String p, final String size) {
+        appendLine("call void @llvm.assume(i1 true) [ \"nonnull\"(ptr " + p + "), \"dereferenceable\"(ptr " + p + ", i64 " + size + ") ]");
+    }
+
+    public void emitBranchWeights(final String cond, final String t, final String f) {
+        appendLine("br i1 " + cond + ", label %" + t + ", label %" + f + ", !prof !{!\"branch_weights\", i32 1000, i32 1}");
+    }
+
     public void emitReturn(final Value value) {
         emitVarArgEnd();
 
@@ -240,8 +252,7 @@ public class IRBuilder {
         }
 
         if (value.type().isString() || targetType.isString()) {
-            logger.error("Error: cannot convert between str and {}",
-                    value.type().isString() ? target : from);
+            logger.error("Error: cannot convert between str and {}", value.type().isString() ? target : from);
             markFailed();
             return;
         }
@@ -387,7 +398,34 @@ public class IRBuilder {
      * @param ptr the name of the ptr
      */
     public void emitStore(final String val, final String llvmType, final String ptr) {
-        appendLine("store " + llvmType + " " + val + ", ptr " + ptr + alignment(llvmType));
+        appendLine("store " + llvmType + " " + val + ", ptr " + ptr + alignment(llvmType) + ", !tbaa !" + tbaaNodeFor(llvmType));
+    }
+
+    private int tbaaRootNode() {
+        if (tbaaRoot == -1) {
+            tbaaRoot = tbaaCounter++;
+            globals.append("!" + tbaaRoot + " = !{!\"Z TBAA\"}\n");
+        }
+        return tbaaRoot;
+    }
+
+    private int tbaaCharNode() {
+        if (tbaaChar == -1) {
+            final int root = tbaaRootNode();
+            tbaaChar = tbaaCounter++;
+            globals.append("!" + tbaaChar + " = !{!\"omnipotent char\", !" + root + ", i64 0}\n");
+        }
+        return tbaaChar;
+    }
+
+    private int tbaaNodeFor(final String llvmType) {
+        final Integer existing = tbaaNodes.get(llvmType);
+        if (existing != null) return existing;
+        final int parent = tbaaCharNode();
+        final int id = tbaaCounter++;
+        globals.append("!" + id + " = !{!\"" + llvmType.replace("\"", "") + "\", !" + parent + ", i64 0}\n");
+        tbaaNodes.put(llvmType, id);
+        return id;
     }
 
     public final String emitAllocaGlobal(final String varName, final String llvmType) {
@@ -409,7 +447,7 @@ public class IRBuilder {
      */
     public final String emitLoad(final String llvmType, final String ptr) {
         final String reg = nextRegister();
-        appendLine(reg + " = load " + llvmType + ", ptr " + ptr + alignment(llvmType));
+        appendLine(reg + " = load " + llvmType + ", ptr " + ptr + alignment(llvmType) + ", !tbaa !" + tbaaNodeFor(llvmType));
         registerTypes.put(reg, llvmType);
         return reg;
     }

@@ -21,9 +21,9 @@ public class TestCodeGen {
         final String code = "proc test() { ret 3 + 4 }";
 
         assertEquals("""
-                define internal dso_local double @test() nounwind nosync {
+                define internal dso_local double @test() alwaysinline nounwind nosync {
                 entry:
-                 %1 = add i32 3, 4
+                 %1 = add nsw i32 3, 4
                  %2 = sitofp i32 %1 to double
                  ret double %2
                 }
@@ -35,9 +35,9 @@ public class TestCodeGen {
         final String code = "proc main() { ret 40 + 32 }";
 
         assertEquals("""
-                define dso_local i32 @main() nounwind nosync hot willreturn {
+                define dso_local i32 @main() alwaysinline nounwind nosync hot willreturn {
                 entry:
-                 %1 = add i32 40, 32
+                 %1 = add nsw i32 40, 32
                  ret i32 %1
                 }
                 """, codeGen(code));
@@ -48,9 +48,9 @@ public class TestCodeGen {
         final String code = "proc foo() { ret 10 * 2 }";
 
         assertEquals("""
-                define internal dso_local double @foo() nounwind nosync {
+                define internal dso_local double @foo() alwaysinline nounwind nosync {
                 entry:
-                 %1 = mul i32 10, 2
+                 %1 = mul nsw i32 10, 2
                  %2 = sitofp i32 %1 to double
                  ret double %2
                 }
@@ -62,10 +62,14 @@ public class TestCodeGen {
         final String code = "proc main() { int32 var \n ret 0 }";
 
         assertEquals("""
-                define dso_local i32 @main() nounwind nosync hot willreturn {
+                !5000 = !{!"Z TBAA"}
+                !5001 = !{!"omnipotent char", !5000, i64 0}
+                !5002 = !{!"i32", !5001, i64 0}
+                
+                define dso_local i32 @main() alwaysinline nounwind nosync hot willreturn {
                 entry:
                  %var = alloca i32, align 4
-                 store i32 0, ptr %var, align 4
+                 store i32 0, ptr %var, align 4, !tbaa !5002
                  ret i32 0
                 }
                 """, codeGen(code));
@@ -76,10 +80,14 @@ public class TestCodeGen {
         final String code = "proc main() { int32 var -> 3 \n ret 0 }";
 
         assertEquals("""
-                define dso_local i32 @main() nounwind nosync hot willreturn {
+                !5000 = !{!"Z TBAA"}
+                !5001 = !{!"omnipotent char", !5000, i64 0}
+                !5002 = !{!"i32", !5001, i64 0}
+                
+                define dso_local i32 @main() alwaysinline nounwind nosync hot willreturn {
                 entry:
                  %var = alloca i32, align 4
-                 store i32 3, ptr %var, align 4
+                 store i32 3, ptr %var, align 4, !tbaa !5002
                  ret i32 0
                 }
                 """, codeGen(code));
@@ -90,11 +98,15 @@ public class TestCodeGen {
         final String code = "proc main() { int32 var -> 3 \n ret var }";
 
         assertEquals("""
-                define dso_local i32 @main() nounwind nosync hot willreturn {
+                !5000 = !{!"Z TBAA"}
+                !5001 = !{!"omnipotent char", !5000, i64 0}
+                !5002 = !{!"i32", !5001, i64 0}
+                
+                define dso_local i32 @main() alwaysinline nounwind nosync hot willreturn {
                 entry:
                  %var = alloca i32, align 4
-                 store i32 3, ptr %var, align 4
-                 %1 = load i32, ptr %var, align 4
+                 store i32 3, ptr %var, align 4, !tbaa !5002
+                 %1 = load i32, ptr %var, align 4, !tbaa !5002
                  ret i32 %1
                 }
                 """, codeGen(code));
@@ -105,12 +117,16 @@ public class TestCodeGen {
         final String code = "proc main() { int32 var\n int32 var2\n ret 0 }";
 
         assertEquals("""
-                define dso_local i32 @main() nounwind nosync hot willreturn {
+                !5000 = !{!"Z TBAA"}
+                !5001 = !{!"omnipotent char", !5000, i64 0}
+                !5002 = !{!"i32", !5001, i64 0}
+                
+                define dso_local i32 @main() alwaysinline nounwind nosync hot willreturn {
                 entry:
                  %var = alloca i32, align 4
-                 store i32 0, ptr %var, align 4
+                 store i32 0, ptr %var, align 4, !tbaa !5002
                  %var2 = alloca i32, align 4
-                 store i32 0, ptr %var2, align 4
+                 store i32 0, ptr %var2, align 4, !tbaa !5002
                  ret i32 0
                 }
                 """, codeGen(code));
@@ -121,12 +137,17 @@ public class TestCodeGen {
         final String code = "proc main() { int32 var -> 3\n int64 var2 -> 4\n ret 0 }";
 
         assertEquals("""
-                define dso_local i32 @main() nounwind nosync hot willreturn {
+                !5000 = !{!"Z TBAA"}
+                !5001 = !{!"omnipotent char", !5000, i64 0}
+                !5002 = !{!"i32", !5001, i64 0}
+                !5003 = !{!"i64", !5001, i64 0}
+                
+                define dso_local i32 @main() alwaysinline nounwind nosync hot willreturn {
                 entry:
                  %var = alloca i32, align 4
-                 store i32 3, ptr %var, align 4
+                 store i32 3, ptr %var, align 4, !tbaa !5002
                  %var2 = alloca i64, align 8
-                 store i64 4, ptr %var2, align 8
+                 store i64 4, ptr %var2, align 8, !tbaa !5003
                  ret i32 0
                 }
                 """, codeGen(code));
@@ -137,15 +158,21 @@ public class TestCodeGen {
         final String code = "proc main() { int32 var -> 3\n flt32 var2 -> 4\n flt64 var3 -> 4\n ret var3 }";
 
         assertEquals("""
-                define dso_local i32 @main() nounwind nosync hot willreturn {
+                !5000 = !{!"Z TBAA"}
+                !5001 = !{!"omnipotent char", !5000, i64 0}
+                !5002 = !{!"i32", !5001, i64 0}
+                !5003 = !{!"float", !5001, i64 0}
+                !5004 = !{!"double", !5001, i64 0}
+                
+                define dso_local i32 @main() alwaysinline nounwind nosync hot willreturn {
                 entry:
                  %var = alloca i32, align 4
-                 store i32 3, ptr %var, align 4
+                 store i32 3, ptr %var, align 4, !tbaa !5002
                  %var2 = alloca float, align 4
-                 store float 4.0, ptr %var2, align 4
+                 store float 4.0, ptr %var2, align 4, !tbaa !5003
                  %var3 = alloca double, align 8
-                 store double 4.0, ptr %var3, align 8
-                 %1 = load double, ptr %var3, align 8
+                 store double 4.0, ptr %var3, align 8, !tbaa !5004
+                 %1 = load double, ptr %var3, align 8, !tbaa !5004
                  %2 = fptosi double %1 to i32
                  ret i32 %2
                 }
@@ -157,12 +184,17 @@ public class TestCodeGen {
         final String code = "proc main() { cn int32 const -> 3\n cn flt32 floatConst -> 1.0\n ret 0}";
 
         assertEquals("""
-                define dso_local i32 @main() nounwind nosync hot willreturn {
+                !5000 = !{!"Z TBAA"}
+                !5001 = !{!"omnipotent char", !5000, i64 0}
+                !5002 = !{!"i32", !5001, i64 0}
+                !5003 = !{!"float", !5001, i64 0}
+                
+                define dso_local i32 @main() alwaysinline nounwind nosync hot willreturn {
                 entry:
                  %const = alloca i32, align 4
-                 store i32 3, ptr %const, align 4
+                 store i32 3, ptr %const, align 4, !tbaa !5002
                  %floatConst = alloca float, align 4
-                 store float 1.0, ptr %floatConst, align 4
+                 store float 1.0, ptr %floatConst, align 4, !tbaa !5003
                  ret i32 0
                 }
                 """, codeGen(code));
@@ -173,13 +205,18 @@ public class TestCodeGen {
         final String code = "proc main() { cn int32 const -> 3\n cn flt32 floatConst -> 1.0\n ret const}";
 
         assertEquals("""
-                define dso_local i32 @main() nounwind nosync hot willreturn {
+                !5000 = !{!"Z TBAA"}
+                !5001 = !{!"omnipotent char", !5000, i64 0}
+                !5002 = !{!"i32", !5001, i64 0}
+                !5003 = !{!"float", !5001, i64 0}
+                
+                define dso_local i32 @main() alwaysinline nounwind nosync hot willreturn {
                 entry:
                  %const = alloca i32, align 4
-                 store i32 3, ptr %const, align 4
+                 store i32 3, ptr %const, align 4, !tbaa !5002
                  %floatConst = alloca float, align 4
-                 store float 1.0, ptr %floatConst, align 4
-                 %1 = load i32, ptr %const, align 4
+                 store float 1.0, ptr %floatConst, align 4, !tbaa !5003
+                 %1 = load i32, ptr %const, align 4, !tbaa !5002
                  ret i32 %1
                 }
                 """, codeGen(code));
@@ -256,27 +293,30 @@ public class TestCodeGen {
                 }""";
 
         assertEquals("""
+!5000 = !{!"Z TBAA"}
+!5001 = !{!"omnipotent char", !5000, i64 0}
+!5002 = !{!"i32", !5001, i64 0}
 !1001 = !{!1001, !1002, !1003}
 !1002 = !{!"llvm.loop.vectorize.enable", i1 true}
 !1003 = !{!"llvm.loop.unroll.count", i32 4}
 
-define dso_local i32 @main() nounwind nosync hot willreturn {
+define dso_local i32 @main() alwaysinline nounwind nosync hot willreturn {
 entry:
  %i = alloca i32, align 4
- store i32 0, ptr %i, align 4
+ store i32 0, ptr %i, align 4, !tbaa !5002
  br label %for.cond.0
  for.cond.0:
- %1 = load i32, ptr %i, align 4
+ %1 = load i32, ptr %i, align 4, !tbaa !5002
  %2 = icmp slt i32 %1, 10
- br i1 %2, label %for.body.1, label %for.end.3
+ br i1 %2, label %for.body.1, label %for.end.3, !prof !{!"branch_weights", i32 1000, i32 1}
  for.body.1:
  %x = alloca i32, align 4
- store i32 5, ptr %x, align 4
+ store i32 5, ptr %x, align 4, !tbaa !5002
  br label %for.inc.2
  for.inc.2:
- %3 = load i32, ptr %i, align 4
- %4 = add i32 %3, 1
- store i32 %4, ptr %i, align 4
+ %3 = load i32, ptr %i, align 4, !tbaa !5002
+ %4 = add nsw i32 %3, 1
+ store i32 %4, ptr %i, align 4, !tbaa !5002
  br label %for.cond.0, !llvm.loop !1001
  for.end.3:
  ret i32 0
@@ -434,7 +474,7 @@ entry:
     @Test
     public void testEmptyMainReturnsZero() throws IOException {
         assertEquals("""
-                define dso_local i32 @main() nounwind nosync hot willreturn {
+                define dso_local i32 @main() alwaysinline nounwind nosync hot willreturn {
                 entry:
                  ret i32 0
                 }
@@ -446,10 +486,10 @@ entry:
         final String llvmIR = codeGen("proc main() { ret -5 + 3 }");
 
         assertEquals("""
-                define dso_local i32 @main() nounwind nosync hot willreturn {
+                define dso_local i32 @main() alwaysinline nounwind nosync hot willreturn {
                 entry:
                  %1 = sub i32 0, 5
-                 %2 = add i32 %1, 3
+                 %2 = add nsw i32 %1, 3
                  ret i32 %2
                 }
                 """, llvmIR);
@@ -460,7 +500,7 @@ entry:
         final String llvmIR = codeGen("proc main() { ret -5.5 }");
 
         assertEquals("""
-                define dso_local i32 @main() nounwind nosync hot willreturn {
+                define dso_local i32 @main() alwaysinline nounwind nosync hot willreturn {
                 entry:
                  %1 = fneg contract double 5.5
                  %2 = fptosi double %1 to i32
@@ -484,7 +524,7 @@ entry:
         final String llvmIR = codeGen("proc main() { ret 3 < 4 }");
 
         assertEquals("""
-                define dso_local i32 @main() nounwind nosync hot willreturn {
+                define dso_local i32 @main() alwaysinline nounwind nosync hot willreturn {
                 entry:
                  %1 = icmp slt i32 3, 4
                  %2 = zext i1 %1 to i32
@@ -663,7 +703,7 @@ entry:
     @Test
     public void testMixingAnIntegerAndAFloatWidensToFloat() throws IOException {
         assertEquals("""
-                define dso_local i32 @main() nounwind nosync hot willreturn {
+                define dso_local i32 @main() alwaysinline nounwind nosync hot willreturn {
                 entry:
                  %1 = fadd contract double 1.0, 2.5
                  %2 = fptosi double %1 to i32
@@ -675,11 +715,15 @@ entry:
     @Test
     public void testFloatVariableIsReadAsItsOwnType() throws IOException {
         assertEquals("""
-                define dso_local i32 @main() nounwind nosync hot willreturn {
+                !5000 = !{!"Z TBAA"}
+                !5001 = !{!"omnipotent char", !5000, i64 0}
+                !5002 = !{!"float", !5001, i64 0}
+                
+                define dso_local i32 @main() alwaysinline nounwind nosync hot willreturn {
                 entry:
                  %a = alloca float, align 4
-                 store float 1.5, ptr %a, align 4
-                 %1 = load float, ptr %a, align 4
+                 store float 1.5, ptr %a, align 4, !tbaa !5002
+                 %1 = load float, ptr %a, align 4, !tbaa !5002
                  %2 = fptosi float %1 to i32
                  ret i32 %2
                 }
@@ -778,7 +822,7 @@ entry:
 
         // The then-branch ends in `ret`, so no fallthrough br is emitted there.
         assertEquals("""
-                define dso_local i32 @main() nounwind nosync hot willreturn {
+                define dso_local i32 @main() alwaysinline nounwind nosync hot willreturn {
                 entry:
                  br label %if.cond.0
                  if.cond.0:
@@ -798,7 +842,7 @@ entry:
 
         assertNotNull(llvmIR);
         assertEquals("""
-                define dso_local i32 @main() nounwind nosync hot willreturn {
+                define dso_local i32 @main() alwaysinline nounwind nosync hot willreturn {
                 entry:
                  br label %if.cond.0
                  if.cond.0:
@@ -1008,7 +1052,7 @@ entry:
     public void testPointerParameterCodegen() throws IOException {
         final String llvmIR = codeGen(
                 """
-                        proc inc(int32* p) { ret 0 }
+                        proc inc(mut int32* p) { ret 0 }
                         proc main() { int32 x -> 0
                          inc(&x)
                          ret 0 }""");
@@ -1016,6 +1060,44 @@ entry:
         assertNotNull(llvmIR);
         assertTrue(llvmIR.contains("define internal dso_local double @inc(ptr noalias %p)"), llvmIR);
         assertTrue(llvmIR.contains("call double @inc(ptr %x)"), llvmIR);
+    }
+
+    @Test
+    public void testNonMutPointerParameterAllowsAlias() throws IOException {
+        final String llvmIR = codeGen(
+                """
+                        proc read(int32* a | int32* b) { ret 0 }
+                        proc main() { int32 x -> 0
+                         read(&x | &x)
+                         ret 0 }""");
+
+        assertNotNull(llvmIR);
+        assertTrue(llvmIR.contains("define internal dso_local double @read(ptr %a, ptr %b)"), llvmIR);
+        assertFalse(llvmIR.contains("noalias"), llvmIR);
+    }
+
+    @Test
+    public void testPassingAliasToMutPointerFails() {
+        assertCodegenFails(
+                """
+                        proc copy(mut int32* dst | int32* src) { ret 0 }
+                        proc main() { int32 x -> 0
+                         copy(&x | &x)
+                         ret 0 }""");
+    }
+
+    @Test
+    public void testPassingDistinctVariablesToMutPointerSucceeds() throws IOException {
+        final String llvmIR = codeGen(
+                """
+                        proc copy(mut int32* dst | int32* src) { ret 0 }
+                        proc main() { int32 a -> 0
+                         int32 b -> 1
+                         copy(&a | &b)
+                         ret 0 }""");
+
+        assertNotNull(llvmIR);
+        assertTrue(llvmIR.contains("define internal dso_local double @copy(ptr noalias %dst, ptr %src)"), llvmIR);
     }
 
     @Test

@@ -173,9 +173,9 @@ public class TestStdLib {
     @Test
     void mathLibraryIsLinkedAutomatically() throws Exception {
         final Class<?> command = Class.forName("src.Main.CompilerCmd");
-        final Method builder = command.getDeclaredMethod("createProcessBuilder", String.class, String.class, List.class, List.class);
+        final Method builder = command.getDeclaredMethod("createProcessBuilder", String.class, String.class, List.class, List.class, boolean.class, String.class);
         builder.setAccessible(true);
-        final ProcessBuilder process = (ProcessBuilder) builder.invoke(null, "in.ll", "out", List.of(), List.of());
+        final ProcessBuilder process = (ProcessBuilder) builder.invoke(null, "in.ll", "out", List.of(), List.of(), false, null);
 
         assertEquals("-lm", process.command().getLast());
     }

@@ -192,7 +192,7 @@ public final class Parser {
      * @throws IOException if an exception is found
      */
     public @Nullable ExprAST parseParenExpr() throws IOException {
-        return expressionParser.parseParenExpr();
+        return expressionParser.parseParenExpr(false);
     }
 
     /**
@@ -202,7 +202,7 @@ public final class Parser {
      * @throws IOException if an exception is found
      */
     public @Nullable ExprAST parseIdentifierExpr() throws IOException {
-        return expressionParser.parseIdentifierExpr();
+        return expressionParser.parseIdentifierExpr(false);
     }
 
     /**
@@ -212,7 +212,7 @@ public final class Parser {
      * @throws IOException if an exception is found
      */
     public @Nullable ExprAST parsePrimary() throws IOException {
-        return expressionParser.parsePrimary();
+        return expressionParser.parsePrimary(false);
     }
 
 
@@ -296,7 +296,7 @@ public final class Parser {
      * @throws IOException if an exception is found
      */
     public @Nullable ExprAST parseExpression() throws IOException {
-        return expressionParser.parseExpression();
+        return expressionParser.parseExpression(false);
     }
 
     /**

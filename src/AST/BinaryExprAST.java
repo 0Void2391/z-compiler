@@ -150,9 +150,9 @@ public final class BinaryExprAST extends ExprAST {
         }
         final boolean unsigned = zt.isUnsigned() || zt.isBoolean();
         return switch (op) {
-            case "+" -> "add";
-            case "-" -> "sub";
-            case "*" -> "mul";
+            case "+" -> unsigned ? "add" : "add nsw";
+            case "-" -> unsigned ? "sub" : "sub nsw";
+            case "*" -> unsigned ? "mul" : "mul nsw";
             case "/" -> unsigned ? "udiv" : "sdiv";
             case "%" -> unsigned ? "urem" : "srem";
             default -> null;
@@ -185,6 +185,7 @@ public final class BinaryExprAST extends ExprAST {
         builder.appendLine(allocSize + " = add i64 " + total + ", 1");
 
         final String buf = builder.emitBumpAlloc(allocSize);
+        builder.emitAssumeAfterAlloc(buf, allocSize);
 
         builder.emitMemcpy(buf, aPtr, aLen);
 

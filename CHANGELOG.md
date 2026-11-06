@@ -2,6 +2,19 @@
 
 All notable changes to Z-Compiler are documented in this file.
 
+## [unreleased]
+
+### Features
+
+- Add noalias support for mutable pointer parameters
+- Add optional LLVM fast-math support
+
+## [0.0.15-rc.1] - 2026-11-03
+
+### Documentation
+
+- Docs: update changelog for v0.0.14-rc.1
+
 ## [0.0.14-rc.1] - 2026-11-03
 
 ### Features

@@ -55,6 +55,12 @@ class CompilerCmd implements Callable<Integer> {
     @CommandLine.Option(names = {"-L", "--library-path"}, description = "Directories to search for libraries")
     private final List<String> libraryPaths = new ArrayList<>();
 
+    @CommandLine.Option(names = {"--pgo-generate"}, description = "Build an instrumented binary for profile collection")
+    private boolean pgoGenerate = false;
+
+    @CommandLine.Option(names = {"--pgo-use"}, description = "Use a profile (profdata) when generating the final binary")
+    private String pgoUse;
+
     /**
      * enables LLVM fast-math optimizations
      */
@@ -120,6 +126,11 @@ class CompilerCmd implements Callable<Integer> {
 
             logger.info("Raw IR built successfully: {}", llFilePath);
 
+            if (pgoGenerate && pgoUse != null && !pgoUse.isBlank()) {
+                logger.error("Cannot use --pgo-generate and --pgo-use together");
+                return 1;
+            }
+
             final boolean optSuccess = runOptPasses(llFilePath, optFilePath);
             final String toCompile = optSuccess ? optFilePath : llFilePath;
             if (!optSuccess) {
@@ -129,7 +140,7 @@ class CompilerCmd implements Callable<Integer> {
             final boolean windows = System.getProperty("os.name").toLowerCase().contains("win");
             final String exeName = windows && !binaryName.endsWith(".exe") ? binaryName + ".exe" : binaryName;
 
-            return compileToBinary(new File(toCompile).getAbsolutePath(), exeName, libraryPaths, linkLibraries);
+            return compileToBinary(new File(toCompile).getAbsolutePath(), exeName, libraryPaths, linkLibraries, pgoGenerate, pgoUse);
 
         } catch (IOException e) {
             logger.error("IO error during compilation", e);
@@ -225,10 +236,11 @@ private static String addTargetTriple(final String llvmIR) {
      * @param outputBinaryName name for the final binary file
      * @return 0 if the executable was produced, 1 otherwise
      */
-    private static int compileToBinary(String llFilePath, String outputBinaryName, List<String> libPaths, List<String> libFlags) {
+    private static int compileToBinary(String llFilePath, String outputBinaryName, List<String> libPaths, List<String> libFlags,
+                                      final boolean pgoGenerate, final String pgoUse) {
         logger.info("Launching Clang...");
 
-        final ProcessBuilder processBuilder = createProcessBuilder(llFilePath, outputBinaryName, libPaths, libFlags);
+        final ProcessBuilder processBuilder = createProcessBuilder(llFilePath, outputBinaryName, libPaths, libFlags, pgoGenerate, pgoUse);
 
         try {
             final Process process = processBuilder.start();
@@ -253,7 +265,7 @@ private static String addTargetTriple(final String llvmIR) {
      * @param outputBinaryName name for the final binary file
      * @return a ProcesssBuilder object
      */
-    private static ProcessBuilder createProcessBuilder(String llFilePath, String outputBinaryName, List<String> libPaths, List<String> libFlags) {
+    private static ProcessBuilder createProcessBuilder(String llFilePath, String outputBinaryName, List<String> libPaths, List<String> libFlags, final boolean pgoGenerate, final String pgoUse) {
 
         final List<String> command = new ArrayList<>();
         command.add("clang");
@@ -269,6 +281,13 @@ private static String addTargetTriple(final String llvmIR) {
         command.add("-fvisibility=hidden");
         command.add("-Wl,--gc-sections");
         command.add("-Wl,-O2");
+        command.add("-fstrict-aliasing");
+        if (pgoGenerate) {
+            command.add("-fprofile-generate");
+        }
+        if (pgoUse != null && !pgoUse.isBlank()) {
+            command.add("-fprofile-use=" + pgoUse);
+        }
         command.add(llFilePath);
         command.add("-o");
         command.add(outputBinaryName);

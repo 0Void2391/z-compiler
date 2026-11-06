@@ -43,7 +43,7 @@ public final class DeclaratorExprAST extends ExprAST {
     }
 
     @Override
-    public @Nullable Value codeGen(final IRBuilder builder) {
+    public @Nullable LLVMTextUnit codeGen(final IRBuilder builder) {
         if (global) return genGlobal(builder);
 
         if (builder.symbols().lookup(name) != null) {
@@ -56,12 +56,12 @@ public final class DeclaratorExprAST extends ExprAST {
         if (initialiser == null) {
             text = type.initial();
         } else {
-            final Value value = initialiser.codeGen(builder);
-            if (value == null) {
+            final LLVMTextUnit llvmTextUnit = initialiser.codeGen(builder);
+            if (llvmTextUnit == null) {
                 builder.markFailed();
                 return null;
             }
-            final Value fitted = initialiser.coerce(builder, value, type);
+            final LLVMTextUnit fitted = initialiser.coerce(builder, llvmTextUnit, type);
             if (fitted == null) return null;
             text = fitted.text();
         }
@@ -72,7 +72,7 @@ public final class DeclaratorExprAST extends ExprAST {
         return null;
     }
 
-    private @Nullable Value genGlobal(final IRBuilder builder) {
+    private @Nullable LLVMTextUnit genGlobal(final IRBuilder builder) {
         final String key = builder.qualify(name);          // es. "library.global"
         if (builder.symbols().lookup(key) != null) {
             logger.error("Error: global '{}' is defined more than once", key);
@@ -83,13 +83,13 @@ public final class DeclaratorExprAST extends ExprAST {
         String init = type.initial();
         if (initialiser != null) {
             final int emittedBefore = builder.getIR().length();
-            final Value value = initialiser.constantValue(builder);
-            if (value == null) {
+            final LLVMTextUnit llvmTextUnit = initialiser.constantValue(builder);
+            if (llvmTextUnit == null) {
                 logger.error("Error: global '{}' must be initialized with a constant expression", key);
                 builder.markFailed();
                 return null;
             }
-            final Value fitted = initialiser.coerce(builder, value, type);
+            final LLVMTextUnit fitted = initialiser.coerce(builder, llvmTextUnit, type);
             if (fitted == null) {
                 builder.markFailed();
                 return null;

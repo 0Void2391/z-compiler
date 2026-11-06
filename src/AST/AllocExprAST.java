@@ -25,13 +25,13 @@ public final class AllocExprAST extends ExprAST {
     }
 
     @Override
-    public Value codeGen(final IRBuilder builder) {
-        final Value sz = size.codeGen(builder);
+    public LLVMTextUnit codeGen(final IRBuilder builder) {
+        final LLVMTextUnit sz = size.codeGen(builder);
         if (sz == null) return null;
-        final Value fitted = size.coerce(builder, sz, ZType.UINT64);
+        final LLVMTextUnit fitted = size.coerce(builder, sz, ZType.UINT64);
         if (fitted == null) return null;
         final String ptr = builder.emitBumpAlloc(fitted.text());
         builder.emitAssumeAfterAlloc(ptr, fitted.text());
-        return new Value(ptr, ZType.PTR);
+        return new LLVMTextUnit(ptr, ZType.PTR);
     }
 }

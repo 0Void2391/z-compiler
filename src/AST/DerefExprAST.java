@@ -35,8 +35,8 @@ public final class DerefExprAST extends ExprAST {
     }
 
     @Override
-    public Value codeGen(final IRBuilder builder) {
-        final Value p = pointer.codeGen(builder);
+    public LLVMTextUnit codeGen(final IRBuilder builder) {
+        final LLVMTextUnit p = pointer.codeGen(builder);
         if (p == null) return null;
         final TypeRef elem = p.type().elementType();
         if (elem == null) {
@@ -47,6 +47,6 @@ public final class DerefExprAST extends ExprAST {
         final String reg = builder.nextRegister();
         builder.appendLine(reg + " = load " + elem.llvm() + ", ptr " + p.text());
         builder.setRegisterType(reg, elem.llvm());
-        return new Value(reg, elem);
+        return new LLVMTextUnit(reg, elem);
     }
 }

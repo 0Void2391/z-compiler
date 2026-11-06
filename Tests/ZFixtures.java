@@ -5,7 +5,7 @@ import org.slf4j.LoggerFactory;
 import src.AST.DeclaratorExprAST;
 import src.AST.FunctionAST;
 import src.AST.StructDeclAST;
-import src.AST.Value;
+import src.AST.LLVMTextUnit;
 import src.Codegen.IRBuilder;
 import src.Parser.Parser;
 import src.Lexer.Lexer;
@@ -175,7 +175,7 @@ final class ZFixtures {
 
         final StringBuilder module = new StringBuilder();
         for (final FunctionAST definition : unit.functions()) {
-            final Value function = definition.codeGen(builder);
+            final LLVMTextUnit function = definition.codeGen(builder);
             if (function == null || builder.hasFailed()) return null;
             module.append(function.text());
         }

@@ -1502,8 +1502,8 @@ entry:
     public void testFreeingAStringFreesTheDataPointer() throws IOException {
         final String llvmIR = codeGen("""
                 proc main() {
-                    str value -> "hi"
-                    free(value)
+                    str llvmTextUnit -> "hi"
+                    free(llvmTextUnit)
                     ret 0
                 }""");
 

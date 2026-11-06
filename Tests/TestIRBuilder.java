@@ -1,8 +1,8 @@
 package Tests;
 
 import org.junit.jupiter.api.Test;
+import src.AST.LLVMTextUnit;
 import src.AST.PrototypeAST;
-import src.AST.Value;
 import src.Codegen.IRBuilder;
 import src.Codegen.SymbolTable;
 import src.Parser.StructRegistry;
@@ -122,7 +122,7 @@ public class TestIRBuilder {
         final IRBuilder builder = new IRBuilder();
 
         builder.setReturnType(ZType.VOID);
-        builder.emitReturn(new Value("1", ZType.INT32));
+        builder.emitReturn(new LLVMTextUnit("1", ZType.INT32));
         assertTrue(builder.isTerminated());
         assertTrue(builder.getIR().contains("ret void"));
 
@@ -133,53 +133,53 @@ public class TestIRBuilder {
 
         builder.reset();
         builder.setReturnType(ZType.INT32);
-        builder.emitReturn(new Value("1", ZType.INT32_PTR));
+        builder.emitReturn(new LLVMTextUnit("1", ZType.INT32_PTR));
         assertTrue(builder.hasFailed());
         assertFalse(builder.isTerminated());
 
         builder.reset();
         builder.setReturnType(ZType.INT32_PTR);
-        builder.emitReturn(new Value("1", ZType.INT32));
+        builder.emitReturn(new LLVMTextUnit("1", ZType.INT32));
         assertTrue(builder.hasFailed());
 
         builder.reset();
         builder.setReturnType(ZType.INT32);
-        builder.emitReturn(new Value("1.5", ZType.FLT64));
+        builder.emitReturn(new LLVMTextUnit("1.5", ZType.FLT64));
         assertTrue(builder.getIR().contains("fptosi double 1.5 to i32"));
 
         builder.reset();
         builder.setReturnType(ZType.UINT32);
-        builder.emitReturn(new Value("1.5", ZType.FLT64));
+        builder.emitReturn(new LLVMTextUnit("1.5", ZType.FLT64));
         assertTrue(builder.getIR().contains("fptoui double 1.5 to i32"));
 
         builder.reset();
         builder.setReturnType(ZType.FLT64);
-        builder.emitReturn(new Value("1", ZType.UINT32));
+        builder.emitReturn(new LLVMTextUnit("1", ZType.UINT32));
         assertTrue(builder.getIR().contains("uitofp i32 1 to double"));
 
         builder.reset();
         builder.setReturnType(ZType.FLT32);
-        builder.emitReturn(new Value("1.5", ZType.FLT64));
+        builder.emitReturn(new LLVMTextUnit("1.5", ZType.FLT64));
         assertTrue(builder.getIR().contains("fptrunc double 1.5 to float"));
 
         builder.reset();
         builder.setReturnType(ZType.FLT64);
-        builder.emitReturn(new Value("1.5", ZType.FLT32));
+        builder.emitReturn(new LLVMTextUnit("1.5", ZType.FLT32));
         assertTrue(builder.getIR().contains("fpext float 1.5 to double"));
 
         builder.reset();
         builder.setReturnType(ZType.INT32);
-        builder.emitReturn(new Value("1", ZType.INT64));
+        builder.emitReturn(new LLVMTextUnit("1", ZType.INT64));
         assertTrue(builder.getIR().contains("trunc i64 1 to i32"));
 
         builder.reset();
         builder.setReturnType(ZType.INT64);
-        builder.emitReturn(new Value("1", ZType.INT32));
+        builder.emitReturn(new LLVMTextUnit("1", ZType.INT32));
         assertTrue(builder.getIR().contains("sext i32 1 to i64"));
 
         builder.reset();
         builder.setReturnType(ZType.STRING);
-        builder.emitReturn(new Value("1", ZType.INT32));
+        builder.emitReturn(new LLVMTextUnit("1", ZType.INT32));
         assertTrue(builder.hasFailed());
     }
 

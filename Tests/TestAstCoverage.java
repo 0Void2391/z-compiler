@@ -2,18 +2,7 @@ package Tests;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
-import src.AST.AssignExprAST;
-import src.AST.BinaryExprAST;
-import src.AST.BlockAST;
-import src.AST.CallExprAST;
-import src.AST.ExprAST;
-import src.AST.FunctionAST;
-import src.AST.IfAST;
-import src.AST.NumberExprAST;
-import src.AST.PrototypeAST;
-import src.AST.UnaryExprAST;
-import src.AST.Value;
-import src.AST.VarRefExprAST;
+import src.AST.*;
 import src.Codegen.IRBuilder;
 import src.Codegen.SymbolTable;
 import src.Parser.StructRegistry;
@@ -47,12 +36,12 @@ public class TestAstCoverage {
         }
 
         @Override
-        public Value codeGen(final IRBuilder builder) {
-            return new Value(text, type);
+        public LLVMTextUnit codeGen(final IRBuilder builder) {
+            return new LLVMTextUnit(text, type);
         }
 
         @Override
-        public Value constantValue(final IRBuilder builder) {
+        public LLVMTextUnit constantValue(final IRBuilder builder) {
             return codeGen(builder);
         }
     }
@@ -66,43 +55,43 @@ public class TestAstCoverage {
     void testBaseCoercionGuardsAndConversions() {
         final IRBuilder builder = new IRBuilder();
         final Literal literal = new Literal(ZType.INT32, "1");
-        final Value value = new Value("1", ZType.INT32);
+        final LLVMTextUnit llvmTextUnit = new LLVMTextUnit("1", ZType.INT32);
 
         assertNull(literal.coerce(builder, null, ZType.INT32));
-        assertSame(value, literal.coerce(builder, value, null));
+        assertSame(llvmTextUnit, literal.coerce(builder, llvmTextUnit, null));
 
-        assertEqualsType(ZType.FLT32, literal.coerce(builder, new Value("1.5", ZType.FLT64), ZType.FLT32));
+        assertEqualsType(ZType.FLT32, literal.coerce(builder, new LLVMTextUnit("1.5", ZType.FLT64), ZType.FLT32));
         assertTrue(builder.getIR().contains("fptrunc double 1.5 to float"));
-        assertEqualsType(ZType.FLT64, literal.coerce(builder, new Value("1.5", ZType.FLT32), ZType.FLT64));
+        assertEqualsType(ZType.FLT64, literal.coerce(builder, new LLVMTextUnit("1.5", ZType.FLT32), ZType.FLT64));
         assertTrue(builder.getIR().contains("fpext float 1.5 to double"));
-        assertEqualsType(ZType.UINT32, literal.coerce(builder, new Value("1.5", ZType.FLT64), ZType.UINT32));
+        assertEqualsType(ZType.UINT32, literal.coerce(builder, new LLVMTextUnit("1.5", ZType.FLT64), ZType.UINT32));
         assertTrue(builder.getIR().contains("fptoui double 1.5 to i32"));
-        assertEqualsType(ZType.INT32, literal.coerce(builder, new Value("1", ZType.INT64), ZType.INT32));
+        assertEqualsType(ZType.INT32, literal.coerce(builder, new LLVMTextUnit("1", ZType.INT64), ZType.INT32));
         assertTrue(builder.getIR().contains("trunc i64 1 to i32"));
-        assertEqualsType(ZType.INT64, literal.coerce(builder, new Value("1", ZType.UINT32), ZType.INT64));
+        assertEqualsType(ZType.INT64, literal.coerce(builder, new LLVMTextUnit("1", ZType.UINT32), ZType.INT64));
         assertTrue(builder.getIR().contains("zext i32 1 to i64"));
     }
 
-    private static void assertEqualsType(final TypeRef expected, final Value value) {
-        assertNotNull(value);
-        assertSame(expected, value.type());
+    private static void assertEqualsType(final TypeRef expected, final LLVMTextUnit llvmTextUnit) {
+        assertNotNull(llvmTextUnit);
+        assertSame(expected, llvmTextUnit.type());
     }
 
     @Test
     void testFloatRemainderIsSupported() {
         final IRBuilder builder = new IRBuilder();
-        final Value value = new BinaryExprAST("%", new Literal(ZType.FLT64, "1.0"), new Literal(ZType.FLT64, "2.0")).codeGen(builder);
+        final LLVMTextUnit llvmTextUnit = new BinaryExprAST("%", new Literal(ZType.FLT64, "1.0"), new Literal(ZType.FLT64, "2.0")).codeGen(builder);
 
-        assertNotNull(value);
+        assertNotNull(llvmTextUnit);
         assertTrue(builder.getIR().contains("frem contract double 1.0, 2.0"));
     }
 
     @Test
     void testFloatSubtractionIsSupported() {
         final IRBuilder builder = new IRBuilder();
-        final Value value = new BinaryExprAST("-", new Literal(ZType.FLT64, "3.0"), new Literal(ZType.FLT64, "2.0")).codeGen(builder);
+        final LLVMTextUnit llvmTextUnit = new BinaryExprAST("-", new Literal(ZType.FLT64, "3.0"), new Literal(ZType.FLT64, "2.0")).codeGen(builder);
 
-        assertNotNull(value);
+        assertNotNull(llvmTextUnit);
         assertTrue(builder.getIR().contains("fsub contract double 3.0, 2.0"));
     }
 
@@ -110,9 +99,9 @@ public class TestAstCoverage {
     void testFloatFastMathFlag() {
         final IRBuilder builder = new IRBuilder();
         builder.setFastMathFlags("fast");
-        final Value value = new BinaryExprAST("+", new Literal(ZType.FLT64, "1.0"), new Literal(ZType.FLT64, "2.0")).codeGen(builder);
+        final LLVMTextUnit llvmTextUnit = new BinaryExprAST("+", new Literal(ZType.FLT64, "1.0"), new Literal(ZType.FLT64, "2.0")).codeGen(builder);
 
-        assertNotNull(value);
+        assertNotNull(llvmTextUnit);
         assertTrue(builder.getIR().contains("fadd fast double 1.0, 2.0"));
     }
 
@@ -130,8 +119,8 @@ public class TestAstCoverage {
         final PrototypeAST sum = new PrototypeAST("sum", List.of(new PrototypeAST.Param("int32", "count", false), new PrototypeAST.Param("int32", "rest", true)));
         builder.declare(sum);
 
-        final Value value = new CallExprAST("sum", List.of(new NumberExprAST("1", 1), new NumberExprAST("2", 2))).codeGen(builder);
-        assertNotNull(value);
+        final LLVMTextUnit llvmTextUnit = new CallExprAST("sum", List.of(new NumberExprAST("1", 1), new NumberExprAST("2", 2))).codeGen(builder);
+        assertNotNull(llvmTextUnit);
         assertTrue(builder.getIR().contains("call double (i32, ...) @sum(i32 1, i32 2)"), builder.getIR());
         assertTrue(builder.getIR().contains("(i32, ...)"));
     }
@@ -142,9 +131,9 @@ public class TestAstCoverage {
         final PrototypeAST sum = new PrototypeAST("sum", List.of(new PrototypeAST.Param("int32", "a", false), new PrototypeAST.Param("int32", "b", false), new PrototypeAST.Param("int32", "rest", true)));
         builder.declare(sum);
 
-        final Value value = new CallExprAST("sum", List.of(new NumberExprAST("1", 1), new NumberExprAST("2", 2), new NumberExprAST("3", 3))).codeGen(builder);
+        final LLVMTextUnit llvmTextUnit = new CallExprAST("sum", List.of(new NumberExprAST("1", 1), new NumberExprAST("2", 2), new NumberExprAST("3", 3))).codeGen(builder);
 
-        assertNotNull(value);
+        assertNotNull(llvmTextUnit);
         assertTrue(builder.getIR().contains("(i32, i32, ...)"));
     }
 
@@ -155,10 +144,10 @@ public class TestAstCoverage {
         final IRBuilder builder = new IRBuilder();
         builder.declare(new PrototypeAST("take", List.of(new PrototypeAST.Param("Point", "p", false)), ZType.INT32));
 
-        final Value value = new CallExprAST("take", List.of(new Literal(point, "zeroinitializer"))).codeGen(builder);
+        final LLVMTextUnit llvmTextUnit = new CallExprAST("take", List.of(new Literal(point, "zeroinitializer"))).codeGen(builder);
 
-        assertNotNull(value);
-        assertSame(ZType.INT32, value.type());
+        assertNotNull(llvmTextUnit);
+        assertSame(ZType.INT32, llvmTextUnit.type());
         assertTrue(builder.getIR().contains("%Point zeroinitializer"));
     }
 

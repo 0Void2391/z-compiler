@@ -25,7 +25,7 @@ public final class StructDeclAST extends ExprAST {
     }
 
     @Override
-    public Value codeGen(final IRBuilder builder) {
+    public LLVMTextUnit codeGen(final IRBuilder builder) {
         builder.declareStruct(type);
         return null;
     }

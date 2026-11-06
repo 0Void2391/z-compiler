@@ -1,7 +1,7 @@
 package Tests;
 
 import org.junit.jupiter.api.Test;
-import src.AST.Value;
+import src.AST.LLVMTextUnit;
 import src.AST.VarRefExprAST;
 import src.Codegen.IRBuilder;
 import src.Codegen.SymbolTable;
@@ -40,7 +40,7 @@ public class TestVarRefExpr {
     void testCodeGenReadsVariablesAndModuleGlobals() {
         final IRBuilder builder = new IRBuilder();
         builder.symbols().define("x", new SymbolTable.SymbolInfo("x", ZType.INT32, "%x", false));
-        final Value local = new VarRefExprAST("x").codeGen(builder);
+        final LLVMTextUnit local = new VarRefExprAST("x").codeGen(builder);
         assertNotNull(local);
         assertSame(ZType.INT32, local.type());
         assertTrue(builder.getIR().contains("load i32, ptr %x"));
@@ -48,7 +48,7 @@ public class TestVarRefExpr {
         final IRBuilder module = new IRBuilder();
         module.setCurrentModule("math");
         module.symbols().defineGlobal("math.pi", new SymbolTable.SymbolInfo("pi", ZType.FLT64, "@pi", false));
-        final Value global = new VarRefExprAST("pi").codeGen(module);
+        final LLVMTextUnit global = new VarRefExprAST("pi").codeGen(module);
         assertNotNull(global);
         assertSame(ZType.FLT64, global.type());
     }
@@ -68,10 +68,10 @@ public class TestVarRefExpr {
         builder.symbols().define("rest", new SymbolTable.SymbolInfo("rest", ZType.INT32, "", false, true));
         builder.beginVarArgFunction();
 
-        final Value value = new VarRefExprAST("rest.2").codeGen(builder);
-        assertNotNull(value);
-        assertSame(ZType.INT32, value.type());
-        assertTrue(value.isRegister());
+        final LLVMTextUnit llvmTextUnit = new VarRefExprAST("rest.2").codeGen(builder);
+        assertNotNull(llvmTextUnit);
+        assertSame(ZType.INT32, llvmTextUnit.type());
+        assertTrue(llvmTextUnit.isRegister());
         assertTrue(builder.getIR().contains("va_arg"));
     }
 
@@ -101,6 +101,6 @@ public class TestVarRefExpr {
         assertNull(new VarRefExprAST("ghost").codeGen(builder));
         assertTrue(builder.hasFailed());
         assertEquals("ghost", new VarRefExprAST("ghost").name());
-        assertFalse(new Value("1", ZType.INT32).isRegister());
+        assertFalse(new LLVMTextUnit("1", ZType.INT32).isRegister());
     }
 }

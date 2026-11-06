@@ -44,7 +44,7 @@ public final class AssignExprAST extends ExprAST {
     }
 
     @Override
-    public Value codeGen(final IRBuilder builder) {
+    public LLVMTextUnit codeGen(final IRBuilder builder) {
         final SymbolTable.SymbolInfo info = builder.symbols().lookup(varName);
         if (info == null) {
             logger.error("Error: Undefined variable: {}", varName);
@@ -58,8 +58,8 @@ public final class AssignExprAST extends ExprAST {
             return null;
         }
 
-        final Value value = expr.codeGen(builder);
-        if (value == null) {
+        final LLVMTextUnit llvmTextUnit = expr.codeGen(builder);
+        if (llvmTextUnit == null) {
             builder.markFailed();
             return null;
         }
@@ -78,7 +78,7 @@ public final class AssignExprAST extends ExprAST {
             return null;
         }
 
-        final Value fitted = expr.coerce(builder, value, varType);
+        final LLVMTextUnit fitted = expr.coerce(builder, llvmTextUnit, varType);
         if (fitted == null) {
             builder.markFailed();
             return null;

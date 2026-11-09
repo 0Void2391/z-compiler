@@ -110,10 +110,10 @@ public class TestMainBranches {
         final Method addTargetTriple = command.getDeclaredMethod("addTargetTriple", String.class);
         addTargetTriple.setAccessible(true);
 
-        final String ir = (String) addTargetTriple.invoke(null, "define i32 @main() { ret i32 0 }\\n");
+        final String ir = (String) addTargetTriple.invoke(null, "define i32 @main() { ret i32 0 }\n");
 
-        assertTrue(ir.contains("target triple = \\""), ir);
-        assertTrue(ir.contains("target datalayout = \\""), ir);
+        assertTrue(ir.contains("target triple = \""), ir);
+        assertTrue(ir.contains("target datalayout = \""), ir);
         assertTrue(ir.indexOf("target triple =") < ir.indexOf("target datalayout ="), ir);
     }
 
@@ -122,9 +122,9 @@ public class TestMainBranches {
         final Class<?> command = Class.forName("src.Main.CompilerCmd");
         final Method addTargetTriple = command.getDeclaredMethod("addTargetTriple", String.class);
         addTargetTriple.setAccessible(true);
-        final String ir = "target triple = \\"existing-target\\"\\n"
-                + "target datalayout = \\"e-p:64:64\\"\\n"
-                + "define i32 @main() { ret i32 0 }\\n";
+        final String ir = "target triple = \"existing-target\"\n"
+                + "target datalayout = \"e-p:64:64\"\n"
+                + "define i32 @main() { ret i32 0 }\n";
 
         assertEquals(ir, addTargetTriple.invoke(null, ir));
     }

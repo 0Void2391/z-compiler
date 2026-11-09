@@ -261,7 +261,14 @@ public class TestIRBuilder {
         assertTrue(builder.getGlobals().contains("extra"));
         assertEquals("%p", builder.emitAlloca("p", "i32"));
         builder.emitStore("1", "i32", "%p");
+        assertTrue(builder.getEntryAllocas().contains("%p = alloca i32"));
         assertTrue(builder.getIR().contains("store i32 1, ptr %p"));
+
+        assertEquals("%i", builder.emitAlloca("i", "i32"));
+        assertEquals("%i.1", builder.emitAlloca("i", "i32"));
+        assertEquals("%i.2", builder.emitAlloca("i", "i32"));
+        assertTrue(builder.getEntryAllocas().contains("%i.1 = alloca i32"));
+        assertTrue(builder.getEntryAllocas().contains("%i.2 = alloca i32"));
         assertEquals("l.0", builder.nextLabel("l"));
         builder.emitLabel("l.0");
         builder.emitBr("l.1");
@@ -306,6 +313,7 @@ public class TestIRBuilder {
         builder.appendLine("x");
         builder.setRegisterType(reg, "i32");
         builder.reset();
+        assertEquals("", builder.getEntryAllocas());
         assertEquals("%1", builder.nextRegister());
         assertFalse(builder.isTerminated());
         assertNull(builder.getRegisterType(reg));

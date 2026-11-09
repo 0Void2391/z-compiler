@@ -152,40 +152,85 @@ class CompilerCmd implements Callable<Integer> {
  *  Existing target triples are preserved.
  */
 private static String addTargetTriple(final String llvmIR) {
-    if (llvmIR.lines().anyMatch(line -> line.startsWith("target triple ="))) {
+    String result = llvmIR;
+    if (result.lines().noneMatch(line -> line.startsWith("target triple ="))) {
+        try {
+            final Process process = new ProcessBuilder("clang", "-dumpmachine")
+                    .redirectErrorStream(true)
+                    .start();
+
+            final String targetTriple = new String(
+                    process.getInputStream().readAllBytes(),
+                    StandardCharsets.UTF_8
+            ).trim();
+
+            final int exitCode = process.waitFor();
+            if (exitCode != 0 || !targetTriple.matches("[A-Za-z0-9_.-]+")) {
+                logger.warn("Could not determine target triple from Clang; leaving target triple unchanged");
+            } else {
+                result = "target triple = \"" + targetTriple + "\"\\n\\n" + result;
+            }
+        } catch (IOException e) {
+            logger.warn("Failed to determine target triple from Clang; leaving target triple unchanged", e);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            logger.warn("Interrupted while determining target triple; leaving target triple unchanged", e);
+        }
+    }
+
+    return addTargetDataLayout(result);
+}
+
+/**
+ * Adds Clang's target data layout when the module does not already define one.
+ * A missing or failing Clang executable is non-fatal, matching target-triple handling.
+ */
+private static String addTargetDataLayout(final String llvmIR) {
+    if (llvmIR.lines().anyMatch(line -> line.startsWith("target datalayout ="))) {
         return llvmIR;
     }
 
+    final boolean windows = System.getProperty("os.name").toLowerCase().contains("win");
+    final String nullDevice = windows ? "NUL" : "/dev/null";
     try {
-        final Process process = new ProcessBuilder("clang", "-dumpmachine")
-                .redirectErrorStream(true)
-                .start();
+        final Process process = new ProcessBuilder(
+                "clang", "-S", "-emit-llvm", "-x", "c", nullDevice, "-o", "-"
+        ).redirectErrorStream(true).start();
 
-        final String targetTriple = new String(
+        final String clangOutput = new String(
                 process.getInputStream().readAllBytes(),
                 StandardCharsets.UTF_8
-        ).trim();
-
+        );
         final int exitCode = process.waitFor();
-
-        if (exitCode != 0 || !targetTriple.matches("[A-Za-z0-9_.-]+")) {
-            logger.warn("Could not determine target triple from Clang; leaving IR unchanged");
+        if (exitCode != 0) {
+            logger.warn("Could not determine target data layout from Clang (exit code {}); leaving IR unchanged", exitCode);
             return llvmIR;
         }
 
-        return "target triple = \"" + targetTriple + "\"\n\n" + llvmIR;
+        final String dataLayout = clangOutput.lines()
+                .map(String::trim)
+                .filter(line -> line.startsWith("target datalayout ="))
+                .findFirst()
+                .orElse(null);
+        if (dataLayout == null || !dataLayout.matches("target datalayout = \"[^\\"]+\"")) {
+            logger.warn("Clang output did not contain a valid target data layout; leaving IR unchanged");
+            return llvmIR;
+        }
 
+        final int tripleEnd = llvmIR.indexOf('\\n', llvmIR.indexOf("target triple ="));
+        if (tripleEnd >= 0) {
+            return llvmIR.substring(0, tripleEnd + 1) + dataLayout + "\\n" + llvmIR.substring(tripleEnd + 1);
+        }
+        return dataLayout + "\\n" + llvmIR;
     } catch (IOException e) {
-        logger.warn("Failed to determine target triple from Clang; leaving IR unchanged", e);
+        logger.warn("Failed to determine target data layout from Clang; leaving IR unchanged", e);
         return llvmIR;
-
     } catch (InterruptedException e) {
         Thread.currentThread().interrupt();
-        logger.warn("Interrupted while determining target triple; leaving IR unchanged", e);
+        logger.warn("Interrupted while determining target data layout; leaving IR unchanged", e);
         return llvmIR;
     }
 }
-
 
 
     /**

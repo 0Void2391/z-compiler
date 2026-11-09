@@ -168,7 +168,7 @@ private static String addTargetTriple(final String llvmIR) {
             if (exitCode != 0 || !targetTriple.matches("[A-Za-z0-9_.-]+")) {
                 logger.warn("Could not determine target triple from Clang; leaving target triple unchanged");
             } else {
-                result = "target triple = \"" + targetTriple + "\"\\n\\n" + result;
+                result = "target triple = \"" + targetTriple + "\"\n\n" + result;
             }
         } catch (IOException e) {
             logger.warn("Failed to determine target triple from Clang; leaving target triple unchanged", e);
@@ -212,16 +212,16 @@ private static String addTargetDataLayout(final String llvmIR) {
                 .filter(line -> line.startsWith("target datalayout ="))
                 .findFirst()
                 .orElse(null);
-        if (dataLayout == null || !dataLayout.matches("target datalayout = \"[^\\"]+\"")) {
+        if (dataLayout == null || !dataLayout.startsWith("target datalayout = \"") || !dataLayout.endsWith("\"")) {
             logger.warn("Clang output did not contain a valid target data layout; leaving IR unchanged");
             return llvmIR;
         }
 
-        final int tripleEnd = llvmIR.indexOf('\\n', llvmIR.indexOf("target triple ="));
+        final int tripleEnd = llvmIR.indexOf('\n', llvmIR.indexOf("target triple ="));
         if (tripleEnd >= 0) {
-            return llvmIR.substring(0, tripleEnd + 1) + dataLayout + "\\n" + llvmIR.substring(tripleEnd + 1);
+            return llvmIR.substring(0, tripleEnd + 1) + dataLayout + "\n" + llvmIR.substring(tripleEnd + 1);
         }
-        return dataLayout + "\\n" + llvmIR;
+        return dataLayout + "\n" + llvmIR;
     } catch (IOException e) {
         logger.warn("Failed to determine target data layout from Clang; leaving IR unchanged", e);
         return llvmIR;

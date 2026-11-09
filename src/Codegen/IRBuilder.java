@@ -30,6 +30,9 @@ public class IRBuilder {
      */
     private int registerCount = 1;
     private final StringBuilder irCode = new StringBuilder();
+    /** Stack slots are collected here and emitted immediately after a function's entry label. */
+    private final StringBuilder entryAllocas = new StringBuilder();
+    private final Map<String, Integer> allocaNameCounts = new HashMap<>();
     private final Map<String, String> registerTypes = new HashMap<>();
     private int tbaaCounter = 5000;
     private int tbaaRoot = -1;
@@ -353,6 +356,8 @@ public class IRBuilder {
         registerCount = 1;
         labelCount = 0;
         irCode.setLength(0);
+        entryAllocas.setLength(0);
+        allocaNameCounts.clear();
         registerTypes.clear();
         loops.clear();
         terminated = false;
@@ -386,9 +391,17 @@ public class IRBuilder {
      * @return a String with the IR code
      */
     public final String emitAlloca(final String varName, final String llvmType) {
-        final String ptr = "%" + varName;
-        appendLine(ptr + " = alloca " + llvmType + alignment(llvmType));
+        final int occurrence = allocaNameCounts.merge(varName, 1, Integer::sum);
+        final String uniqueName = occurrence == 1 ? varName : varName + "." + (occurrence - 1);
+        final String ptr = "%" + uniqueName;
+        entryAllocas.append(" ").append(ptr).append(" = alloca ")
+                .append(llvmType).append(alignment(llvmType)).append("\n");
         return ptr;
+    }
+
+    /** @return stack allocations that must be placed at the start of the entry block */
+    public final String getEntryAllocas() {
+        return entryAllocas.toString();
     }
 
     /**

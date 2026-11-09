@@ -344,7 +344,7 @@ public class TestAstCodeGen {
     void testLocalDeclarations() {
         final IRBuilder builder = new IRBuilder();
         assertNull(new DeclaratorExprAST(ZType.INT32, "x", null, false, false).codeGen(builder));
-        assertTrue(builder.getIR().contains("alloca i32"), builder.getIR());
+        assertTrue(builder.getEntryAllocas().contains("alloca i32"), builder.getEntryAllocas());
 
         assertNull(new DeclaratorExprAST(ZType.INT32, "y", new NumberExprAST("1", 1), false, false).codeGen(new IRBuilder()));
         assertNull(new DeclaratorExprAST(ZType.INT32, "z", new VarRefExprAST("ghost"), false, false).codeGen(new IRBuilder()));

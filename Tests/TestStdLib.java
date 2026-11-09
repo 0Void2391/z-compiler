@@ -177,7 +177,8 @@ public class TestStdLib {
         builder.setAccessible(true);
         final ProcessBuilder process = (ProcessBuilder) builder.invoke(null, "in.ll", "out", List.of(), List.of(), false, null);
 
-        assertEquals("-lm", process.command().getLast());
+        final boolean windows = System.getProperty("os.name").toLowerCase().contains("win");
+        assertEquals(windows ? "out" : "-lm", process.command().getLast());
     }
 
     @Test

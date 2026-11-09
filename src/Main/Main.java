@@ -266,7 +266,7 @@ private static String addTargetDataLayout(final String llvmIR) {
                 return false;
             }
         } catch (IOException | InterruptedException e) {
-            logger.error("Failed to launch 'opt' tool. Is it installed and in your PATH? idiot. Do sudo apt install opt", e);
+            logger.warn("LLVM opt is unavailable; continuing with unoptimized IR", e);
             return false;
         }
     }
@@ -309,19 +309,28 @@ private static String addTargetDataLayout(final String llvmIR) {
     private static ProcessBuilder createProcessBuilder(String llFilePath, String outputBinaryName, List<String> libPaths, List<String> libFlags, final boolean pgoGenerate, final String pgoUse) {
 
         final List<String> command = new ArrayList<>();
+        final boolean windows = System.getProperty("os.name").toLowerCase().contains("win");
+
         command.add("clang");
         command.add("-O3");
         command.add("-flto");
+        if (windows) {
+            // Windows Clang uses the MSVC-style linker driver; explicitly select LLD.
+            command.add("-fuse-ld=lld");
+        }
         command.add("-march=native");
         command.add("-funroll-loops");
         command.add("-fno-rtti");
         command.add("-fno-exceptions");
         command.add("-mtune=native");
-        command.add("-fno-plt");
-        command.add("-fno-semantic-interposition");
+        if (!windows) {
+            // These options are specific to ELF/GNU-style toolchains.
+            command.add("-fno-plt");
+            command.add("-fno-semantic-interposition");
+            command.add("-Wl,--gc-sections");
+            command.add("-Wl,-O2");
+        }
         command.add("-fvisibility=hidden");
-        command.add("-Wl,--gc-sections");
-        command.add("-Wl,-O2");
         command.add("-fstrict-aliasing");
         if (pgoGenerate) {
             command.add("-fprofile-generate");
@@ -341,7 +350,10 @@ private static String addTargetDataLayout(final String llvmIR) {
             command.add(lib.startsWith("-l") ? lib : "-l" + lib);
         }
 
-        command.add("-lm");
+        // The Windows C runtime provides the standard math functions; there is no m.lib.
+        if (!windows) {
+            command.add("-lm");
+        }
 
         final ProcessBuilder processBuilder = new ProcessBuilder(command);
 

@@ -1,6 +1,6 @@
 # Z benchmark results
 
-Generated on `2026-11-03T15:35:16Z` from commit `39ff09e` (`feat: added align system for more performance`) on branch `feat/benchmark-suite`.
+Generated on `2026-11-09T12:43:40Z` from commit `a36a272` (`Merge pull request #221 from the-big-zed/feat/benchmark-suite`) on branch `main`.
 
 Positive `Z vs C` means Z is faster. The headline uses the fastest run of each binary. The target is a geometric mean of at least 1.20x across the suite.
 
@@ -9,42 +9,42 @@ Positive `Z vs C` means Z is faster. The headline uses the fastest run of each b
 | Metric | Value |
 | --- | ---: |
 | Cases | 10 |
-| Geometric mean speedup (best) | 1.100x |
-| Median case speedup (best) | 1.000x |
-| Geometric mean speedup (median) | 1.099x |
-| Z faster | 5 |
-| C faster | 5 |
+| Geometric mean speedup (best) | 1.170x |
+| Median case speedup (best) | 1.001x |
+| Geometric mean speedup (median) | 1.169x |
+| Z faster | 7 |
+| C faster | 3 |
 | Ties | 0 |
-| Total C best | 8715.312 ms |
-| Total Z best | 8635.941 ms |
-| Highest C RSD | 7.12% (collatz) |
-| Highest Z RSD | 7.14% (collatz) |
+| Total C best | 2464.025 ms |
+| Total Z best | 2365.074 ms |
+| Highest C RSD | 0.35% (alloc_churn) |
+| Highest Z RSD | 35.15% (string_concat) |
 
-Run-to-run variance above 5%: `fibonacci`, `collatz`. Treat those speedups as indicative and rerun on an idle machine.
+Run-to-run variance above 5%: `string_concat`. Treat those speedups as indicative and rerun on an idle machine.
 
 ## Categories
 
 | Category | Cases | Geometric mean (best) | Geometric mean (median) |
 | --- | ---: | ---: | ---: |
-| alias | 1 | 1.000x | 1.001x |
-| allocation | 1 | 1.994x | 1.968x |
-| compute | 7 | 1.038x | 1.038x |
-| strings | 1 | 1.001x | 1.000x |
+| alias | 1 | 1.000x | 1.000x |
+| allocation | 1 | 2.017x | 2.008x |
+| compute | 7 | 1.025x | 1.025x |
+| strings | 1 | 1.999x | 1.993x |
 
 ## Results
 
 | Benchmark | Category | C best (ms) | Z best (ms) | Z vs C | C median (ms) | Z median (ms) | C RSD | Z RSD |
 | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| fibonacci | compute | 716.530 | 717.361 | -0.1% | 816.835 | 816.818 | 5.37% | 4.45% |
-| collatz | compute | 215.400 | 215.313 | +0.0% | 215.673 | 215.587 | 7.12% | 7.14% |
-| pi | compute | 265.367 | 265.374 | -0.0% | 265.665 | 265.622 | 0.09% | 0.07% |
-| primes | compute | 6376.330 | 6378.429 | -0.0% | 6382.521 | 6383.954 | 0.04% | 0.06% |
-| ackermann | compute | 114.825 | 115.182 | -0.3% | 115.243 | 115.389 | 0.28% | 0.18% |
-| mandelbrot | compute | 215.598 | 165.434 | +23.3% | 215.653 | 165.666 | 0.11% | 0.08% |
-| hash | compute | 415.544 | 415.774 | -0.1% | 415.912 | 415.935 | 0.09% | 0.03% |
-| alias | alias | 215.209 | 215.142 | +0.0% | 215.641 | 215.466 | 0.14% | 0.16% |
-| alloc_churn | allocation | 65.070 | 32.631 | +49.9% | 65.254 | 33.159 | 0.23% | 0.77% |
-| string_concat | strings | 115.440 | 115.301 | +0.1% | 115.546 | 115.551 | 0.19% | 0.20% |
+| fibonacci | compute | 314.681 | 264.574 | +15.9% | 314.802 | 264.766 | 0.05% | 0.05% |
+| collatz | compute | 164.561 | 164.516 | +0.0% | 164.614 | 164.600 | 0.03% | 0.05% |
+| pi | compute | 114.425 | 114.332 | +0.1% | 114.532 | 114.569 | 0.06% | 0.09% |
+| primes | compute | 1267.100 | 1266.345 | +0.1% | 1267.685 | 1267.657 | 0.02% | 0.04% |
+| ackermann | compute | 64.139 | 64.095 | +0.1% | 64.216 | 64.208 | 0.06% | 0.10% |
+| mandelbrot | compute | 114.319 | 114.436 | -0.1% | 114.484 | 114.512 | 0.08% | 0.04% |
+| hash | compute | 214.513 | 214.517 | -0.0% | 214.573 | 214.587 | 0.04% | 0.05% |
+| alias | alias | 114.439 | 114.451 | -0.0% | 114.588 | 114.555 | 0.07% | 0.05% |
+| alloc_churn | allocation | 31.875 | 15.802 | +50.4% | 32.034 | 15.952 | 0.35% | 0.64% |
+| string_concat | strings | 63.973 | 32.007 | +50.0% | 64.145 | 32.189 | 0.21% | 35.15% |
 
 `best` is the fastest timed run and is the headline comparison. `median` and RSD show how stable the sample is.
 
@@ -62,17 +62,17 @@ Run-to-run variance above 5%: `fibonacci`, `collatz`. Treat those speedups as in
 
 | Field | Value |
 | --- | --- |
-| OS | Kali GNU/Linux Rolling |
-| Kernel | 7.1.5+kali-amd64 |
-| CPU | AMD Ryzen 5 5500U with Radeon Graphics |
-| Cores | 12 |
-| Affinity | [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11] |
-| CPU governor | powersave |
-| Load average | [1.38, 1.98, 2.27] |
-| Clang | Debian clang version 21.1.8 (13) |
-| opt | Debian LLVM version 21.1.8 |
-| Java | openjdk version "25.0.5" 2026-10-20 |
-| Working tree | dirty |
+| OS | Ubuntu 26.04.1 LTS |
+| Kernel | 7.0.0-1019-azure |
+| CPU | AMD EPYC 7763 64-Core Processor |
+| Cores | 4 |
+| Affinity | [0, 1, 2, 3] |
+| CPU governor | unavailable |
+| Load average | [1.01, 0.46, 0.2] |
+| Clang | Ubuntu clang version 22.1.2 (1ubuntu1) |
+| opt | Ubuntu LLVM version 22.1.2 |
+| Java | openjdk version "21.0.13" 2026-10-20 LTS |
+| Working tree | clean |
 
 ## Reproduce
 

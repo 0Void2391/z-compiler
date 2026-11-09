@@ -292,10 +292,10 @@ public class TestIRBuilder {
             StructRegistry.clear();
         }
 
-        final String ir = builder.getIR();
-        assertTrue(ir.contains("%s = alloca { i8*, i64 }, align 8"), ir);
-        assertTrue(ir.contains("%a = alloca [4 x i16], align 2"), ir);
-        assertTrue(ir.contains("%p = alloca %AlignPoint, align 8"), ir);
+        final String allocas = builder.getEntryAllocas();
+        assertTrue(allocas.contains("%s = alloca { i8*, i64 }, align 8"), allocas);
+        assertTrue(allocas.contains("%a = alloca [4 x i16], align 2"), allocas);
+        assertTrue(allocas.contains("%p = alloca %AlignPoint, align 8"), allocas);
     }
 
     @Test

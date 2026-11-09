@@ -17,6 +17,18 @@ public class CompilerCmdTest {
     @TempDir
     Path directory;
 
+    private boolean optAvailable() throws Exception {
+        try {
+            final Process process = new ProcessBuilder("opt", "--version")
+                    .redirectErrorStream(true)
+                    .redirectOutput(ProcessBuilder.Redirect.DISCARD)
+                    .start();
+            return process.waitFor() == 0;
+        } catch (java.io.IOException e) {
+            return false;
+        }
+    }
+
     private Path source() throws Exception {
         final Path file = directory.resolve("main.z");
         Files.writeString(file, "proc main() { ret 0 }");
@@ -39,7 +51,7 @@ public class CompilerCmdTest {
         assertEquals(0, run("-o", out.toString(), source().toString()));
         assertTrue(Files.isRegularFile(binary("program")));
         assertTrue(Files.isRegularFile(directory.resolve("program.ll")));
-        assertTrue(Files.isRegularFile(directory.resolve("program_opt.ll")));
+        assertEquals(optAvailable(), Files.isRegularFile(directory.resolve("program_opt.ll")));
     }
 
     @Test
@@ -51,7 +63,7 @@ public class CompilerCmdTest {
                 : run("-o", out.toString(), "-L", directory.toString(), "-l", "m", "-l", "z", source().toString());
         assertEquals(0, exitCode);
         assertTrue(Files.isRegularFile(out));
-        assertTrue(Files.isRegularFile(directory.resolve("program_opt.ll")));
+        assertEquals(optAvailable(), Files.isRegularFile(directory.resolve("program_opt.ll")));
         assertTrue(Files.isRegularFile(binary("program")));
     }
 

@@ -134,7 +134,7 @@ public final class FunctionAST extends ExprAST {
 
         attrs.append(" nounwind nosync");
         if (isMain) attrs.append(" hot willreturn");
-        final String text = "define " + (isMain ? "dso_local" : "internal dso_local") + " " + returnType().llvm() + " @" + builder.irNameOf(proto.name()) + "(" + parameters + ")" + attrs + " {\nentry:\n" + builder.getIR() + "}\n";
+        final String text = "define " + (isMain ? "dso_local" : "internal dso_local") + " " + returnType().llvm() + " @" + builder.irNameOf(proto.name()) + "(" + parameters + ")" + attrs + " {\nentry:\n" + builder.getEntryAllocas() + builder.getIR() + "}\n";
 
         builder.symbols().exitScope();
         return new LLVMTextUnit(text, ZType.VOID);

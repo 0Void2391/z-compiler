@@ -152,40 +152,85 @@ class CompilerCmd implements Callable<Integer> {
  *  Existing target triples are preserved.
  */
 private static String addTargetTriple(final String llvmIR) {
-    if (llvmIR.lines().anyMatch(line -> line.startsWith("target triple ="))) {
+    String result = llvmIR;
+    if (result.lines().noneMatch(line -> line.startsWith("target triple ="))) {
+        try {
+            final Process process = new ProcessBuilder("clang", "-dumpmachine")
+                    .redirectErrorStream(true)
+                    .start();
+
+            final String targetTriple = new String(
+                    process.getInputStream().readAllBytes(),
+                    StandardCharsets.UTF_8
+            ).trim();
+
+            final int exitCode = process.waitFor();
+            if (exitCode != 0 || !targetTriple.matches("[A-Za-z0-9_.-]+")) {
+                logger.warn("Could not determine target triple from Clang; leaving target triple unchanged");
+            } else {
+                result = "target triple = \"" + targetTriple + "\"\n\n" + result;
+            }
+        } catch (IOException e) {
+            logger.warn("Failed to determine target triple from Clang; leaving target triple unchanged", e);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            logger.warn("Interrupted while determining target triple; leaving target triple unchanged", e);
+        }
+    }
+
+    return addTargetDataLayout(result);
+}
+
+/**
+ * Adds Clang's target data layout when the module does not already define one.
+ * A missing or failing Clang executable is non-fatal, matching target-triple handling.
+ */
+private static String addTargetDataLayout(final String llvmIR) {
+    if (llvmIR.lines().anyMatch(line -> line.startsWith("target datalayout ="))) {
         return llvmIR;
     }
 
+    final boolean windows = System.getProperty("os.name").toLowerCase().contains("win");
+    final String nullDevice = windows ? "NUL" : "/dev/null";
     try {
-        final Process process = new ProcessBuilder("clang", "-dumpmachine")
-                .redirectErrorStream(true)
-                .start();
+        final Process process = new ProcessBuilder(
+                "clang", "-S", "-emit-llvm", "-x", "c", nullDevice, "-o", "-"
+        ).redirectErrorStream(true).start();
 
-        final String targetTriple = new String(
+        final String clangOutput = new String(
                 process.getInputStream().readAllBytes(),
                 StandardCharsets.UTF_8
-        ).trim();
-
+        );
         final int exitCode = process.waitFor();
-
-        if (exitCode != 0 || !targetTriple.matches("[A-Za-z0-9_.-]+")) {
-            logger.warn("Could not determine target triple from Clang; leaving IR unchanged");
+        if (exitCode != 0) {
+            logger.warn("Could not determine target data layout from Clang (exit code {}); leaving IR unchanged", exitCode);
             return llvmIR;
         }
 
-        return "target triple = \"" + targetTriple + "\"\n\n" + llvmIR;
+        final String dataLayout = clangOutput.lines()
+                .map(String::trim)
+                .filter(line -> line.startsWith("target datalayout ="))
+                .findFirst()
+                .orElse(null);
+        if (dataLayout == null || !dataLayout.startsWith("target datalayout = \"") || !dataLayout.endsWith("\"")) {
+            logger.warn("Clang output did not contain a valid target data layout; leaving IR unchanged");
+            return llvmIR;
+        }
 
+        final int tripleEnd = llvmIR.indexOf('\n', llvmIR.indexOf("target triple ="));
+        if (tripleEnd >= 0) {
+            return llvmIR.substring(0, tripleEnd + 1) + dataLayout + "\n" + llvmIR.substring(tripleEnd + 1);
+        }
+        return dataLayout + "\n" + llvmIR;
     } catch (IOException e) {
-        logger.warn("Failed to determine target triple from Clang; leaving IR unchanged", e);
+        logger.warn("Failed to determine target data layout from Clang; leaving IR unchanged", e);
         return llvmIR;
-
     } catch (InterruptedException e) {
         Thread.currentThread().interrupt();
-        logger.warn("Interrupted while determining target triple; leaving IR unchanged", e);
+        logger.warn("Interrupted while determining target data layout; leaving IR unchanged", e);
         return llvmIR;
     }
 }
-
 
 
     /**
@@ -221,7 +266,7 @@ private static String addTargetTriple(final String llvmIR) {
                 return false;
             }
         } catch (IOException | InterruptedException e) {
-            logger.error("Failed to launch 'opt' tool. Is it installed and in your PATH? idiot. Do sudo apt install opt", e);
+            logger.warn("LLVM opt is unavailable; continuing with unoptimized IR", e);
             return false;
         }
     }
@@ -264,19 +309,28 @@ private static String addTargetTriple(final String llvmIR) {
     private static ProcessBuilder createProcessBuilder(String llFilePath, String outputBinaryName, List<String> libPaths, List<String> libFlags, final boolean pgoGenerate, final String pgoUse) {
 
         final List<String> command = new ArrayList<>();
+        final boolean windows = System.getProperty("os.name").toLowerCase().contains("win");
+
         command.add("clang");
         command.add("-O3");
         command.add("-flto");
+        if (windows) {
+            // Windows Clang uses the MSVC-style linker driver; explicitly select LLD.
+            command.add("-fuse-ld=lld");
+        }
         command.add("-march=native");
         command.add("-funroll-loops");
         command.add("-fno-rtti");
         command.add("-fno-exceptions");
         command.add("-mtune=native");
-        command.add("-fno-plt");
-        command.add("-fno-semantic-interposition");
+        if (!windows) {
+            // These options are specific to ELF/GNU-style toolchains.
+            command.add("-fno-plt");
+            command.add("-fno-semantic-interposition");
+            command.add("-Wl,--gc-sections");
+            command.add("-Wl,-O2");
+        }
         command.add("-fvisibility=hidden");
-        command.add("-Wl,--gc-sections");
-        command.add("-Wl,-O2");
         command.add("-fstrict-aliasing");
         if (pgoGenerate) {
             command.add("-fprofile-generate");
@@ -296,7 +350,10 @@ private static String addTargetTriple(final String llvmIR) {
             command.add(lib.startsWith("-l") ? lib : "-l" + lib);
         }
 
-        command.add("-lm");
+        // The Windows C runtime provides the standard math functions; there is no m.lib.
+        if (!windows) {
+            command.add("-lm");
+        }
 
         final ProcessBuilder processBuilder = new ProcessBuilder(command);
 

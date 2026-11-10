@@ -261,7 +261,14 @@ public class TestIRBuilder {
         assertTrue(builder.getGlobals().contains("extra"));
         assertEquals("%p", builder.emitAlloca("p", "i32"));
         builder.emitStore("1", "i32", "%p");
+        assertTrue(builder.getEntryAllocas().contains("%p = alloca i32"));
         assertTrue(builder.getIR().contains("store i32 1, ptr %p"));
+
+        assertEquals("%i", builder.emitAlloca("i", "i32"));
+        assertEquals("%i.1", builder.emitAlloca("i", "i32"));
+        assertEquals("%i.2", builder.emitAlloca("i", "i32"));
+        assertTrue(builder.getEntryAllocas().contains("%i.1 = alloca i32"));
+        assertTrue(builder.getEntryAllocas().contains("%i.2 = alloca i32"));
         assertEquals("l.0", builder.nextLabel("l"));
         builder.emitLabel("l.0");
         builder.emitBr("l.1");
@@ -285,10 +292,10 @@ public class TestIRBuilder {
             StructRegistry.clear();
         }
 
-        final String ir = builder.getIR();
-        assertTrue(ir.contains("%s = alloca { i8*, i64 }, align 8"), ir);
-        assertTrue(ir.contains("%a = alloca [4 x i16], align 2"), ir);
-        assertTrue(ir.contains("%p = alloca %AlignPoint, align 8"), ir);
+        final String allocas = builder.getEntryAllocas();
+        assertTrue(allocas.contains("%s = alloca { i8*, i64 }, align 8"), allocas);
+        assertTrue(allocas.contains("%a = alloca [4 x i16], align 2"), allocas);
+        assertTrue(allocas.contains("%p = alloca %AlignPoint, align 8"), allocas);
     }
 
     @Test
@@ -306,6 +313,7 @@ public class TestIRBuilder {
         builder.appendLine("x");
         builder.setRegisterType(reg, "i32");
         builder.reset();
+        assertEquals("", builder.getEntryAllocas());
         assertEquals("%1", builder.nextRegister());
         assertFalse(builder.isTerminated());
         assertNull(builder.getRegisterType(reg));

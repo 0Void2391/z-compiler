@@ -17,6 +17,18 @@ public class CompilerCmdTest {
     @TempDir
     Path directory;
 
+    private boolean optAvailable() throws Exception {
+        try {
+            final Process process = new ProcessBuilder("opt", "--version")
+                    .redirectErrorStream(true)
+                    .redirectOutput(ProcessBuilder.Redirect.DISCARD)
+                    .start();
+            return process.waitFor() == 0;
+        } catch (java.io.IOException e) {
+            return false;
+        }
+    }
+
     private Path source() throws Exception {
         final Path file = directory.resolve("main.z");
         Files.writeString(file, "proc main() { ret 0 }");
@@ -27,24 +39,32 @@ public class CompilerCmdTest {
         return new CommandLine(new CompilerCmd()).execute(args);
     }
 
+    private Path binary(final String name) {
+        final boolean windows = System.getProperty("os.name").toLowerCase().contains("win");
+        return directory.resolve(windows ? name + ".exe" : name);
+    }
+
     @Test
     void testCompilesToADefaultNamedBinary() throws Exception {
         final Path out = directory.resolve("program");
 
         assertEquals(0, run("-o", out.toString(), source().toString()));
-        assertTrue(Files.isRegularFile(out));
+        assertTrue(Files.isRegularFile(binary("program")));
         assertTrue(Files.isRegularFile(directory.resolve("program.ll")));
-        assertTrue(Files.isRegularFile(directory.resolve("program_opt.ll")));
+        assertEquals(optAvailable(), Files.isRegularFile(directory.resolve("program_opt.ll")));
     }
 
     @Test
     void testCompilesWithAnLlOutputNameAndLibraries() throws Exception {
         final Path out = directory.resolve("program.ll");
 
-        assertEquals(0, run("-o", out.toString(), "-L", directory.toString(), "-l", "m", "-l", "z", source().toString()));
+        final int exitCode = System.getProperty("os.name").toLowerCase().contains("win")
+                ? run("-o", out.toString(), "-L", directory.toString(), source().toString())
+                : run("-o", out.toString(), "-L", directory.toString(), "-l", "m", "-l", "z", source().toString());
+        assertEquals(0, exitCode);
         assertTrue(Files.isRegularFile(out));
-        assertTrue(Files.isRegularFile(directory.resolve("program_opt.ll")));
-        assertTrue(Files.isRegularFile(directory.resolve("program")));
+        assertEquals(optAvailable(), Files.isRegularFile(directory.resolve("program_opt.ll")));
+        assertTrue(Files.isRegularFile(binary("program")));
     }
 
     @Test
@@ -82,7 +102,10 @@ public class CompilerCmdTest {
         method.setAccessible(true);
         final String existing = "target triple = \"x86_64-pc-linux-gnu\"\ndefine i32 @main() { ret i32 0 }\n";
 
-        assertEquals(existing, method.invoke(null, existing));
+        final String result = (String) method.invoke(null, existing);
+        assertTrue(result.startsWith("target triple = \"x86_64-pc-linux-gnu\""));
+        assertTrue(result.contains("target datalayout = \""), result);
+        assertTrue(result.contains("define i32 @main() { ret i32 0 }"), result);
     }
 
     @Test
@@ -127,7 +150,10 @@ public class CompilerCmdTest {
         assertTrue(command.contains("-L/opt/lib"));
         assertTrue(command.contains("-lm"));
         assertTrue(command.contains("-lz"));
-        assertEquals(2, command.stream().filter("-lm"::equals).count());
+        final boolean windows = System.getProperty("os.name").toLowerCase().contains("win");
+        assertEquals(windows ? 1 : 2, command.stream().filter("-lm"::equals).count());
+        assertEquals(windows, command.contains("-fuse-ld=lld"));
+        assertEquals(!windows, command.contains("-fno-plt"));
     }
 
     @Test
@@ -137,7 +163,7 @@ public class CompilerCmdTest {
         Files.writeString(main, "import math\nproc main() { ret math.square(3) }\n");
 
         assertEquals(0, run("-o", directory.resolve("uses").toString(), main.toString()));
-        assertTrue(Files.isRegularFile(directory.resolve("uses")));
+        assertTrue(Files.isRegularFile(binary("uses")));
     }
 
     @Test
@@ -146,7 +172,7 @@ public class CompilerCmdTest {
         final Path file = directory.resolve("fast_main.z");
         Files.writeString(file, "proc main() { ret 1.5 + 2.5 }\n");
         assertEquals(0, run("-fast-math", "-o", out.toString(), file.toString()));
-        assertTrue(Files.isRegularFile(out));
+        assertTrue(Files.isRegularFile(binary("program_fast")));
         final String rawLl = Files.readString(directory.resolve("program_fast.ll"));
         assertTrue(rawLl.contains("fadd fast double 1.5, 2.5"), rawLl);
     }

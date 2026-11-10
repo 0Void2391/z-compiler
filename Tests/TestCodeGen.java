@@ -124,8 +124,8 @@ public class TestCodeGen {
                 define dso_local i32 @main() alwaysinline nounwind nosync hot willreturn {
                 entry:
                  %var = alloca i32, align 4
-                 store i32 0, ptr %var, align 4, !tbaa !5002
                  %var2 = alloca i32, align 4
+                 store i32 0, ptr %var, align 4, !tbaa !5002
                  store i32 0, ptr %var2, align 4, !tbaa !5002
                  ret i32 0
                 }
@@ -145,8 +145,8 @@ public class TestCodeGen {
                 define dso_local i32 @main() alwaysinline nounwind nosync hot willreturn {
                 entry:
                  %var = alloca i32, align 4
-                 store i32 3, ptr %var, align 4, !tbaa !5002
                  %var2 = alloca i64, align 8
+                 store i32 3, ptr %var, align 4, !tbaa !5002
                  store i64 4, ptr %var2, align 8, !tbaa !5003
                  ret i32 0
                 }
@@ -167,10 +167,10 @@ public class TestCodeGen {
                 define dso_local i32 @main() alwaysinline nounwind nosync hot willreturn {
                 entry:
                  %var = alloca i32, align 4
-                 store i32 3, ptr %var, align 4, !tbaa !5002
                  %var2 = alloca float, align 4
-                 store float 4.0, ptr %var2, align 4, !tbaa !5003
                  %var3 = alloca double, align 8
+                 store i32 3, ptr %var, align 4, !tbaa !5002
+                 store float 4.0, ptr %var2, align 4, !tbaa !5003
                  store double 4.0, ptr %var3, align 8, !tbaa !5004
                  %1 = load double, ptr %var3, align 8, !tbaa !5004
                  %2 = fptosi double %1 to i32
@@ -192,8 +192,8 @@ public class TestCodeGen {
                 define dso_local i32 @main() alwaysinline nounwind nosync hot willreturn {
                 entry:
                  %const = alloca i32, align 4
-                 store i32 3, ptr %const, align 4, !tbaa !5002
                  %floatConst = alloca float, align 4
+                 store i32 3, ptr %const, align 4, !tbaa !5002
                  store float 1.0, ptr %floatConst, align 4, !tbaa !5003
                  ret i32 0
                 }
@@ -213,8 +213,8 @@ public class TestCodeGen {
                 define dso_local i32 @main() alwaysinline nounwind nosync hot willreturn {
                 entry:
                  %const = alloca i32, align 4
-                 store i32 3, ptr %const, align 4, !tbaa !5002
                  %floatConst = alloca float, align 4
+                 store i32 3, ptr %const, align 4, !tbaa !5002
                  store float 1.0, ptr %floatConst, align 4, !tbaa !5003
                  %1 = load i32, ptr %const, align 4, !tbaa !5002
                  ret i32 %1
@@ -303,6 +303,7 @@ public class TestCodeGen {
 define dso_local i32 @main() alwaysinline nounwind nosync hot willreturn {
 entry:
  %i = alloca i32, align 4
+ %x = alloca i32, align 4
  store i32 0, ptr %i, align 4, !tbaa !5002
  br label %for.cond.0
  for.cond.0:
@@ -310,7 +311,6 @@ entry:
  %2 = icmp slt i32 %1, 10
  br i1 %2, label %for.body.1, label %for.end.3, !prof !{!"branch_weights", i32 1000, i32 1}
  for.body.1:
- %x = alloca i32, align 4
  store i32 5, ptr %x, align 4, !tbaa !5002
  br label %for.inc.2
  for.inc.2:

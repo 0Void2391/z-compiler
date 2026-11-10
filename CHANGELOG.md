@@ -2,7 +2,48 @@
 
 All notable changes to Z-Compiler are documented in this file.
 
-## [unreleased]
+## [0.0.17-rc.1] - 2026-11-09
+
+### Tests
+
+- Test(codegen): update expected entry-block alloca output
+- Test(codegen): expect local allocas in entry block
+- Test(codegen): assert allocas in entry buffer
+- Test(codegen): cover entry allocas and unique slot names
+- Test(stdlib): make math linker assertion platform-aware
+- Test(compiler): account for optional LLVM opt tool
+- Test: support platform-specific compiler output
+- Test: fix target metadata string escaping
+- Test(llvm): import equality assertion
+- Test(llvm): cover target data layout metadata (#222)
+
+### Bug Fixes
+
+- Fix(codegen): emit entry allocas before function body
+- Fix(codegen): collect allocas in function entry block (#223)
+- Fix: use Windows-compatible Clang linker flags
+- Fix(llvm): correct target metadata newline handling
+- Fix(llvm): emit target data layout in IR (#222)
+
+### Documentation
+
+- Docs: update changelog for v0.0.16-rc.1
+
+## [0.0.16-rc.1] - 2026-11-06
+
+### Features
+
+- Added !tbaa, nsw, tail calls, inlining, branch weights, llvm.assume, fast-math, more extern attributes and clang flags, added optional --pgo flag
+
+### Documentation
+
+- Docs: update changelog for v0.0.15-rc.1
+
+### Other Changes
+
+- Just changed the name of a class
+
+## [0.0.3] - 2026-11-04
 
 ### Features
 
